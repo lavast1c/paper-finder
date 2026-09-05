@@ -27,11 +27,22 @@ _TODO: fill in when the project skeleton exists (Python 3.11+, venv, `pip instal
 _TODO: fill in the exact commands. Planned: `pytest`, and a CLI entry point
 `python -m paper_finder ...`._
 
+## Version control
+
+- Repo: `github.com/Lavastic-Gaming/paper-finder` (private), remote `origin`,
+  default branch `main`.
+- Commit identity is set locally on this repo (`Lavastic-Gaming` /
+  `vihaantalluri@gmail.com`) — do not rely on global git config.
+- Workflow: after each meaningful, working change, make a clean commit (concise
+  imperative subject, body explaining what and why) and `git push` to `origin`.
+  Keep `main` in a working state. The user wants a pushed checkpoint at every step
+  so the project is easy to revert.
+
 ## Conventions
 
 - `data/raw/` holds downloaded PDFs and is **never edited** — everything in
   `data/processed/` and `papers.db` is regenerated from it.
 - CIE past papers are copyright of Cambridge Assessment: this is a private study
-  tool; the corpus and extracted question bank are not to be published or
-  redistributed.
-- _TODO: add code style / branch / commit conventions once coding starts._
+  tool; the corpus and extracted question bank are not committed and not to be
+  published or redistributed.
+- _TODO: add code style conventions once coding starts._
