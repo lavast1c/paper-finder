@@ -15,17 +15,24 @@ tech stack, data reference, and database schema.
 
 ## Status
 
-Not yet implemented (as of 2026-09-05). Currently at Stage 1 of `PLAN.md`.
-Update this section and the sections below as each stage lands.
+Stage 1 of `PLAN.md` in progress (as of 2026-09-05): project skeleton + filename
+parsing + `papers` table ingestion are done. Waiting on the user to download the
+first ~12 Physics 9702 PDFs into `data/raw/` (see `data/raw/README.md`), then
+`paper-finder ingest`. Stage 2 (PDF text extraction) is next.
 
 ## Setup
 
-_TODO: fill in when the project skeleton exists (Python 3.11+, venv, `pip install -e .`)._
+- Python 3.11+ (developed on 3.14). `src/` layout, package `paper_finder`.
+- `python -m venv .venv` then `.venv\Scripts\python -m pip install -e ".[dev]"`
+  (PowerShell) — installs PyMuPDF plus pytest/ruff and the `paper-finder` CLI.
 
 ## Build / test / lint
 
-_TODO: fill in the exact commands. Planned: `pytest`, and a CLI entry point
-`python -m paper_finder ...`._
+- Tests: `.venv\Scripts\python -m pytest`
+- Lint: `.venv\Scripts\ruff check .`   Format: `.venv\Scripts\ruff format .`
+- CLI: `paper-finder init-db` | `paper-finder ingest` | `paper-finder papers`
+- `paper-finder ingest` is idempotent — it upserts, and prunes rows whose PDF was
+  removed from `data/raw/`. All CLI commands create the schema if missing.
 
 ## Version control
 
@@ -45,4 +52,8 @@ _TODO: fill in the exact commands. Planned: `pytest`, and a CLI entry point
 - CIE past papers are copyright of Cambridge Assessment: this is a private study
   tool; the corpus and extracted question bank are not committed and not to be
   published or redistributed.
-- _TODO: add code style conventions once coding starts._
+- Code style: ruff (`select = E, F, I, UP, B, DTZ`, line length 100); run
+  `ruff format` before committing. Prefer functions that take an explicit
+  `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.
+- CIE filename grammar and the parser live in `src/paper_finder/filenames.py`;
+  the DB schema (all tables, created up front) in `src/paper_finder/db.py`.
