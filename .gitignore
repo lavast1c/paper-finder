@@ -1,0 +1,34 @@
+# --- Paper Finder data (never committed) ---
+# Downloaded CIE past papers are copyright of Cambridge Assessment; the extracted
+# question bank is derived from them. Keep both out of version control.
+data/raw/
+data/processed/
+*.pdf
+papers.db
+papers.db-journal
+papers.db-wal
+papers.db-shm
+*.npy
+
+# --- Python ---
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Claude Code ---
+CLAUDE.local.md
+.claude/settings.local.json
