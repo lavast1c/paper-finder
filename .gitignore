@@ -1,8 +1,12 @@
 # --- Paper Finder data (never committed) ---
 # Downloaded CIE past papers are copyright of Cambridge Assessment; the extracted
-# question bank is derived from them. Keep both out of version control.
-data/raw/
-data/processed/
+# question bank is derived from them. Keep both out of version control, but keep
+# the folders themselves (via .gitkeep) so the layout is obvious.
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/README.md
+data/processed/*
+!data/processed/.gitkeep
 *.pdf
 papers.db
 papers.db-journal
