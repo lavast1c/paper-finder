@@ -4,15 +4,13 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
-**NEXT:** Commit 2 — `paper-finder publish` (publish.py + cli + tests). Needs
-local `.env` `SUPABASE_DB_URL` (session pooler) before the real publish run;
-can build + test the code without it.
+**NEXT:** Commit 3 — `/api/config` + `/api/health` in `web/app.py`.
 
 ## Code commits (§7)
 
 - [x] 0 — Ignore `.env` / Vercel artefacts (`.gitignore`, `.env.example`, `.vercelignore`, this file)
 - [x] 1 — Supabase schema `0001_question_bank` applied (migration file committed, advisors clean, anon locked out — verified via curl)
-- [ ] 2 — `paper-finder publish` (`publish.py`, cli, `publish` extra, `conftest.py`, `test_publish.py`)
+- [x] 2 — `paper-finder publish` (`publish.py`, cli, `publish` extra, `conftest.py`, `test_publish.py`) — 96 tests green. Data seeded into Supabase via MCP (repeatable `paper-finder publish` needs the user's local `.env` `SUPABASE_DB_URL`).
 - [ ] 3 — `/api/config` + `/api/health` in `web/app.py` (+ `test_web.py` additions)
 - [ ] 4 — Google sign-in + Supabase search in `web/static/` (`index.html`, `app.js`, `style.css`)
 - [ ] 5 — Vercel files (`api/index.py`, `requirements.txt`, `vercel.json`)

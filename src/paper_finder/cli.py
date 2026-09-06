@@ -7,6 +7,7 @@ paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
 paper-finder build       run ingest -> extract -> segment -> answers in one go
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
+paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
 paper-finder search      find the paper a question came from
 paper-finder evaluate    score search against eval/validation.tsv
 paper-finder papers      list what is currently recorded
@@ -256,6 +257,22 @@ def _cmd_papers(_args: argparse.Namespace) -> None:
     print(f"\n{len(rows)} papers")
 
 
+def _cmd_publish(args: argparse.Namespace) -> None:
+    try:
+        # Imported here so the other commands work without the optional publish extra.
+        from paper_finder.publish import publish
+    except ImportError:
+        print('Install the publish extra:  pip install -e ".[publish]"')
+        return
+
+    report = publish(dry_run=args.dry_run, db_url=args.db_url)
+    verb = "Would publish" if report.dry_run else "Published"
+    print(f"{verb} papers    : {report.papers}")
+    print(f"{verb} questions : {report.questions}  ({report.answers} with an answer)")
+    if not report.dry_run:
+        print("\nNo PDFs and no source URLs were sent. Now sign in to the deployed site.")
+
+
 def _cmd_serve(args: argparse.Namespace) -> None:
     try:
         # Imported here so the other commands work without the optional web extra.
@@ -324,6 +341,11 @@ def main(argv: list[str] | None = None) -> None:
         "--dry-run", action="store_true", help="list candidate URLs, fetch nothing"
     )
     p_download.set_defaults(func=_cmd_download)
+
+    p_publish = sub.add_parser("publish", help="push the question bank to Supabase")
+    p_publish.add_argument("--db-url", help="Postgres URI (default: SUPABASE_DB_URL env / .env)")
+    p_publish.add_argument("--dry-run", action="store_true", help="count rows, send nothing")
+    p_publish.set_defaults(func=_cmd_publish)
 
     p_search = sub.add_parser("search", help="find the paper a question came from")
     p_search.add_argument("query", help="a few words of the question")
