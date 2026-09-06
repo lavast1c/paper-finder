@@ -292,6 +292,36 @@ hand-written static page in `web/static/`. Routes: `GET /`, `/api/search?q=&limi
 without them. PDF serving is gated on `parse_filename` + a `papers` row +
 `serve_pdfs`, and `--no-pdfs` / `serve_pdfs=False` is the deploy-safe mode.
 
+### Stage 7b — Deploy to Vercel + Supabase
+
+**Status (2026-09): done.** Detailed plan:
+`~/.claude/plans/yes-can-you-implement-expressive-comet.md`; runbook +
+one-time setup: `DEPLOY_PROGRESS.md`.
+
+- Local build pipeline unchanged (still SQLite). New `paper-finder publish`
+  (`[publish]` extra = psycopg) pushes `qp` papers + questions (text + flat
+  `answer_text`; no PDFs, no source URLs) to a Supabase Postgres index —
+  replace-all in one transaction, `SUPABASE_DB_URL` (session pooler) from
+  `.env`/env.
+- Supabase schema `supabase/migrations/0001_question_bank.sql`: `papers` +
+  `questions` (generated english tsvector + GIN), RLS `for select to
+  authenticated using (true)`, `search_questions` / `corpus_stats` RPCs
+  (`SECURITY INVOKER`, `search_path=''`, `EXECUTE` to `authenticated` only),
+  `or_tsquery()` (OR-combine words — `websearch_to_tsquery` ANDs), `ping()`.
+- Deployed app (`api/index.py` -> `create_app()`) in **cloud mode**
+  (`SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` env): serves the static page +
+  `GET /api/config` + `GET /api/health`; the browser loads pinned `supabase-js`,
+  does Google sign-in, calls the RPC with the user's JWT. `/api/search` +
+  `/api/stats` -> 501 in cloud mode. No PDFs, no `papers.db` on Vercel.
+- `vercel.json`: rewrites, `includeFiles` for `web/static`, region `bom1`, a
+  daily `/api/health` cron (keeps the free project unpaused). `.vercelignore`
+  keeps `papers.db` / `data/raw/` off Vercel (the CLI uploads the working dir).
+- Google OAuth + Auth redirect URLs configured in the Supabase dashboard;
+  `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` in the Vercel project env.
+- Left for later: an email allowlist (swap the RLS `using (true)` for a
+  `private.is_member()` check + `allowed_emails` table + a `before-user-created`
+  hook).
+
 ### Stage 8 — Image input (future)
 
 - `POST /search-image`: accept an uploaded photo.
