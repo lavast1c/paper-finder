@@ -1,6 +1,6 @@
 from paper_finder.segment import (
-    _is_noise,
     _split_stem_and_options,
+    is_noise,
     looks_like_mcq,
     segment_mcq,
 )
@@ -68,8 +68,8 @@ def test_split_stem_uses_last_valid_option_block():
 
 
 def test_noise_matches_furniture_but_not_questions():
-    assert _is_noise("© Cambridge University Press & Assessment 2026")
-    assert _is_noise("9702/11/M/J/26")
-    assert _is_noise("Downloaded from PapaCambridge - https://papacambridge.com/")
-    assert _is_noise("9702/11 Question Paper June 2026")
-    assert not _is_noise("A ball is thrown vertically upwards.")
+    assert is_noise("© Cambridge University Press & Assessment 2026")
+    assert is_noise("9702/11/M/J/26")
+    assert is_noise("Downloaded from PapaCambridge - https://papacambridge.com/")
+    assert is_noise("9702/11 Question Paper June 2026")
+    assert not is_noise("A ball is thrown vertically upwards.")
