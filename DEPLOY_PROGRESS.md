@@ -4,8 +4,10 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
-**NEXT:** Commit 6 — docs (`CLAUDE.md`, `README.md`, `PLAN.md`). Then hand the
-user the manual steps below (Google Cloud, Supabase dashboard, Vercel, `.env`).
+**NEXT:** All 7 code commits (0–6) are done and pushed. Nothing left in code.
+Remaining work is the **Manual steps** section below — account/dashboard actions
+only the user can do (local `.env` + `paper-finder publish`, Google Cloud OAuth,
+Supabase Google provider + URL config, Vercel import + env vars).
 
 ## Code commits (§7)
 
@@ -15,9 +17,7 @@ user the manual steps below (Google Cloud, Supabase dashboard, Vercel, `.env`).
 - [x] 3 — `/api/config` + `/api/health` + cloud-mode 501 guards in `web/app.py` — 100 tests green
 - [x] 4 — Google sign-in + Supabase search in `web/static/` (supabase-js@2.115.0 pinned + SRI; `#gate` login screen; `cloudRow` adapter; local mode unchanged — verified via `paper-finder serve`)
 - [x] 5 — Vercel files: `api/index.py` (sys.path + create_app), `requirements.txt` (fastapi only), `vercel.json` (rewrites + includeFiles + bom1 + daily /api/health cron). Entrypoint import verified.
-- [ ] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`)
-- [ ] 5 — Vercel files (`api/index.py`, `requirements.txt`, `vercel.json`)
-- [ ] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`)
+- [x] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`) + this file's manual runbook
 
 ## Supabase state (project `gfigwnbkzkgwxcdoqxtz`, region ap-south-1)
 
@@ -29,12 +29,53 @@ user the manual steps below (Google Cloud, Supabase dashboard, Vercel, `.env`).
 Project URL: `https://gfigwnbkzkgwxcdoqxtz.supabase.co`
 Publishable key id: `default` (`sb_publishable_…`) — value goes in Vercel env, not here.
 
-## Manual steps (user only — see plan §5)
+## Manual steps (user only)
 
-- [ ] Google Cloud: OAuth client (Web) created; redirect URI = `https://gfigwnbkzkgwxcdoqxtz.supabase.co/auth/v1/callback`
-- [ ] Supabase dashboard: Google provider enabled (Client ID + Secret pasted)
-- [ ] Supabase dashboard: Auth → URL Configuration → Site URL + Redirect URLs = Vercel URL
-- [ ] Vercel: GitHub repo connected
-- [ ] Vercel: env vars `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` set
-- [ ] Local `.env`: `SUPABASE_DB_URL` set (session pooler) — needed before commit 2's publish run
-- [ ] Deployed URL: ____________  (fill in once live)
+Everything in code is done and pushed. These are the account/dashboard actions
+only you can do. Order matters a little: do 1→2→3, then 4, then 5, then 6.
+
+### 1. Local `.env` + first publish
+- [ ] Supabase → Project Settings → Database → **Connection string → Session
+      pooler** (URI, port 5432, user `postgres.gfigwnbkzkgwxcdoqxtz`). Put it in
+      `.env` at the repo root as `SUPABASE_DB_URL=...` (`.env` is gitignored).
+- [ ] `pip install -e ".[publish]"` then `paper-finder publish` → should report
+      `papers 34 / questions 790 (765 with an answer)`.
+
+### 2. Google Cloud OAuth client (~10 min)
+- [ ] console.cloud.google.com → create/select a project.
+- [ ] "Google Auth Platform" → set up the consent screen (External; app name
+      "Paper Finder"; your email). Scopes: `openid`, `.../auth/userinfo.email`,
+      `.../auth/userinfo.profile`.
+- [ ] Clients → **Create OAuth client → Web application**:
+      - Authorized redirect URI: `https://gfigwnbkzkgwxcdoqxtz.supabase.co/auth/v1/callback`
+      - Authorized JavaScript origins: your Vercel URL (add after step 4; you can
+        edit the client later). Add `http://localhost:8000` only if you want to
+        test cloud mode locally.
+- [ ] Copy the **Client ID** and **Client secret**.
+
+### 3. Supabase dashboard
+- [ ] Authentication → Sign In / Providers → **Google** → enable, paste Client ID
+      + Secret, save.
+- [ ] Authentication → URL Configuration → **Site URL** = your Vercel URL; add it
+      (and `http://localhost:8000` if testing locally) under **Redirect URLs**.
+
+### 4. Vercel
+- [ ] Import the GitHub repo `Lavastic-Gaming/paper-finder` (New Project → Import).
+      Framework preset: **Other**. No build command needed.
+- [ ] Project → Settings → Environment Variables (Production + Preview):
+      - `SUPABASE_URL` = `https://gfigwnbkzkgwxcdoqxtz.supabase.co`
+      - `SUPABASE_PUBLISHABLE_KEY` = the `sb_publishable_…` key (Supabase →
+        Project Settings → API). Both are browser-safe.
+- [ ] Deploy. Note the URL: ____________
+- [ ] Go back to steps 2 + 3 and put that URL into Google "Authorized JavaScript
+      origins" and Supabase "Site URL" / "Redirect URLs".
+
+### 5. Verify
+- [ ] Open the Vercel URL → "Continue with Google" → consent → back, signed in.
+- [ ] Search "ball thrown horizontally" → results with question text + answer, no
+      PDF link.
+- [ ] Redeploy / visit again after a day → still up (the cron holds the pause off).
+
+### 6. Refreshing the corpus later
+- [ ] `paper-finder download … && paper-finder build && paper-finder publish`
+      (publish replaces everything — safe to re-run).

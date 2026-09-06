@@ -10,7 +10,7 @@ lookup from a photo of the question.
 - **Status:** early development — see [`PLAN.md`](PLAN.md) for the full roadmap
 - **Stack:** Python 3.11+, PyMuPDF, SQLite (FTS5), FastAPI
 
-## Web UI
+## Web UI (local)
 
 ```
 pip install -e ".[web]"
@@ -19,11 +19,25 @@ paper-finder serve            # http://127.0.0.1:8000
 
 Type a few words of a question; each result shows the paper (subject, session,
 year, paper/variant, question number), the question text, the marks, the
-mark-scheme answer, and a link that opens the PDF at the right page.
+mark-scheme answer, and a link that opens the PDF at the right page. Binds to
+localhost only; no login; reads the local `papers.db` and `data/raw/`.
 
-Binds to localhost only. If you ever host this anywhere public, run
-`paper-finder serve --no-pdfs` and do not deploy `data/raw/` — the past papers
-are copyright of Cambridge Assessment and must not be redistributed.
+## Deployed (Vercel + Supabase)
+
+The same app runs on Vercel in **cloud mode**: it serves only the static page,
+`/api/config` and `/api/health`; the browser signs in with Google (Supabase
+Auth) and queries a Supabase Postgres index directly. That index holds question
+text + answers **only** — never the PDFs, which stay on the author's machine.
+Any signed-in Google account can search ("allow all emails for now").
+
+```
+pip install -e ".[publish]"
+paper-finder publish          # push the question bank to Supabase (needs SUPABASE_DB_URL)
+```
+
+`supabase/migrations/0001_question_bank.sql` is the schema (RLS + a
+`search_questions` RPC). Full deploy runbook and the one-time Google/Supabase/
+Vercel setup: [`DEPLOY_PROGRESS.md`](DEPLOY_PROGRESS.md).
 
 ## Notes
 
