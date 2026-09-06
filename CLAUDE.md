@@ -15,8 +15,9 @@ tech stack, data reference, and database schema.
 
 ## Status
 
-Stages 1-5 done + Stage 4 downloader (as of 2026-09-06). Corpus: 9702 s24/w24/
-s25/w25/s26, Papers 1 & 2 = ~29 papers, ~691 questions, ~668 answers linked.
+Stages 1-5 + 7 done + Stage 4 downloader (as of 2026-09-06). Stage 6 (semantic
+search) still open. Corpus: 9702 s24/w24/s25/w25/s26, Papers 1 & 2 = ~29 papers,
+~691 questions, ~668 answers linked.
 `evaluate` = ~85% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 fell as
 near-duplicate questions across sessions appeared — the validation phrases are
 too generic; a job for Stage 6 + better phrases).
@@ -48,6 +49,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   (= `ingest` -> `extract` -> `segment` -> `answers`, each idempotent).
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
   `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`.
+- Web UI: `pip install -e ".[web]"` then `paper-finder serve [--host 127.0.0.1]
+  [--port 8000] [--no-pdfs]`. `fastapi`/`uvicorn` are the optional `web` extra;
+  `_cmd_serve` imports them lazily so every other command works without them.
 - Schema change during early dev = delete `papers.db` and re-run `build` (the FTS
   virtual table is not migrated).
 
@@ -80,7 +84,11 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   network errors), `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
   JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
-  per-question blocks), `search` (FTS5 + BM25), `evaluate`.
+  per-question blocks), `search` (FTS5 + BM25), `evaluate`,
+  `web` (`create_app(db_path, raw_dir, serve_pdfs)` — FastAPI JSON over `search()`
+  + a hand-written static page in `web/static/`; `/pdf/` gated on `parse_filename`
+  + a `papers` row + `serve_pdfs`; public deploy = `serve_pdfs=False` + omit
+  `data/raw/`).
 - `filenames.build_filename()` is the inverse of `parse_filename()`; the
   downloader uses it to enumerate candidates.
 - `segment.is_noise` filters page furniture: a regex list + barcode-font glyphs

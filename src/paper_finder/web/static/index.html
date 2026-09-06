@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Finder</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Paper Finder</h1>
+    <p class="tagline">Find the CIE past paper a question came from.</p>
+    <p id="corpus" class="corpus"></p>
+  </header>
+
+  <main>
+    <form id="search" autocomplete="off">
+      <input id="q" name="q" type="search" placeholder="A few words from the question&hellip;" autofocus>
+      <button type="submit">Search</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <ol id="results"></ol>
+  </main>
+
+  <footer>
+    <p>
+      Local study tool. Past papers are &copy; Cambridge Assessment &mdash;
+      for private study use, not redistribution.
+    </p>
+  </footer>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
