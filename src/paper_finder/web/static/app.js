@@ -1,12 +1,21 @@
 "use strict";
 
+const gateEl = document.getElementById("gate");
+const appEl = document.getElementById("app");
+const signinBtn = document.getElementById("signin");
+const gateStatus = document.getElementById("gate-status");
+const whoamiEl = document.getElementById("whoami");
 const form = document.getElementById("search");
 const input = document.getElementById("q");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const corpusEl = document.getElementById("corpus");
 
+const SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
+
 let controller = null;
+let sb = null; // Supabase client in cloud mode; null in local mode
+let ranInitial = false;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -23,13 +32,55 @@ function el(tag, className, text) {
   return node;
 }
 
+// --- search sources ------------------------------------------------------
+
+async function localSearch(q) {
+  const res = await fetch("/api/search?q=" + encodeURIComponent(q) + "&limit=10", {
+    signal: controller.signal,
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json(); // { query, count, results: [result_payload...] }
+}
+
+function cloudRow(d) {
+  const variant = d.paper == null ? "?" : `${d.paper}${d.variant ?? ""}`;
+  const sname = SESSION_NAMES[d.session] || d.session;
+  return {
+    title: `${d.subject_name || "?"} · ${sname} ${d.year} · Paper ${variant} · Q${d.question_number}`,
+    filename: d.filename,
+    question_text: d.question_text,
+    answer: d.answer_text,
+    marks: d.marks,
+    // no pdf_url — the deployed site has no PDFs
+  };
+}
+
+async function cloudSearch(q) {
+  const { data, error } = await sb.rpc("search_questions", { query: q, max_results: 5 });
+  if (error) throw new Error(error.message || "search failed");
+  return { count: data.length, results: data.map(cloudRow) };
+}
+
+function doSearch(q) {
+  return sb ? cloudSearch(q) : localSearch(q);
+}
+
+// --- stats -------------------------------------------------------------
+
 async function loadStats() {
   try {
-    const res = await fetch("/api/stats");
-    if (!res.ok) return;
-    const s = await res.json();
+    let s;
+    if (sb) {
+      const { data, error } = await sb.rpc("corpus_stats");
+      if (error) return;
+      s = data;
+    } else {
+      const res = await fetch("/api/stats");
+      if (!res.ok) return;
+      s = await res.json();
+    }
     const bits = [
-      `${s.questions.toLocaleString()} questions`,
+      `${Number(s.questions).toLocaleString()} questions`,
       `${s.question_papers} question papers`,
     ];
     if (s.subjects && s.subjects.length) bits.push(s.subjects.join(", "));
@@ -38,6 +89,8 @@ async function loadStats() {
     /* leave the corpus line blank; never block search */
   }
 }
+
+// --- rendering --------------------------------------------------------
 
 function answerBlock(answer) {
   const box = el("div", "answer");
@@ -96,18 +149,10 @@ async function run() {
   setStatus("Searching…");
   let data;
   try {
-    const res = await fetch(
-      "/api/search?q=" + encodeURIComponent(q) + "&limit=10",
-      { signal: controller.signal },
-    );
-    if (!res.ok) {
-      setStatus(`Search failed (HTTP ${res.status}).`);
-      return;
-    }
-    data = await res.json();
+    data = await doSearch(q);
   } catch (err) {
     if (err.name === "AbortError") return;
-    setStatus("Could not reach the server. Is `paper-finder serve` still running?");
+    setStatus(`Search failed: ${err.message || err}`);
     return;
   }
 
@@ -124,9 +169,85 @@ form.addEventListener("submit", (e) => {
   run();
 });
 
-const initial = new URLSearchParams(location.search).get("q");
-if (initial) {
-  input.value = initial;
-  run();
+// --- boot ------------------------------------------------------------
+
+function showApp(email) {
+  gateEl.hidden = true;
+  appEl.hidden = false;
+
+  if (email) {
+    whoamiEl.hidden = false;
+    whoamiEl.replaceChildren(document.createTextNode(`Signed in as ${email} · `));
+    const out = el("button", "linkbtn", "Sign out");
+    out.type = "button";
+    out.addEventListener("click", () => sb.auth.signOut());
+    whoamiEl.append(out);
+  } else {
+    whoamiEl.hidden = true;
+  }
+
+  loadStats();
+  if (!ranInitial) {
+    ranInitial = true;
+    const initial = new URLSearchParams(location.search).get("q");
+    if (initial) {
+      input.value = initial;
+      run();
+    }
+  }
 }
-loadStats();
+
+function showGate(msg) {
+  appEl.hidden = true;
+  gateEl.hidden = false;
+  gateStatus.textContent = msg || "";
+}
+
+async function boot() {
+  let cfg = {};
+  try {
+    cfg = await (await fetch("/api/config")).json();
+  } catch {
+    /* treat as local mode */
+  }
+
+  if (!cfg.supabase_url) {
+    showApp(null); // local mode: no login
+    return;
+  }
+
+  document.body.dataset.mode = "cloud";
+  if (!window.supabase || !window.supabase.createClient) {
+    showGate("Sign-in is unavailable — the auth library did not load. Reload to retry.");
+    signinBtn.disabled = true;
+    return;
+  }
+
+  sb = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
+
+  signinBtn.addEventListener("click", async () => {
+    signinBtn.disabled = true;
+    gateStatus.textContent = "Redirecting to Google…";
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname },
+    });
+    if (error) {
+      gateStatus.textContent = error.message;
+      signinBtn.disabled = false;
+    }
+  });
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    if (session) showApp(session.user.email);
+    else showGate("");
+  });
+
+  const {
+    data: { session },
+  } = await sb.auth.getSession();
+  if (session) showApp(session.user.email);
+  else showGate("");
+}
+
+boot();

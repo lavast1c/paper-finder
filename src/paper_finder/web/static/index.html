@@ -14,21 +14,34 @@
   </header>
 
   <main>
-    <form id="search" autocomplete="off">
-      <input id="q" name="q" type="search" placeholder="A few words from the question&hellip;" autofocus>
-      <button type="submit">Search</button>
-    </form>
-    <p id="status" role="status" aria-live="polite"></p>
-    <ol id="results"></ol>
+    <section id="gate" hidden>
+      <p>Sign in to search the question bank.</p>
+      <button id="signin" type="button">Continue with Google</button>
+      <p id="gate-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <div id="app" hidden>
+      <p id="whoami" class="whoami"></p>
+      <form id="search" autocomplete="off">
+        <input id="q" name="q" type="search" placeholder="A few words from the question&hellip;" autofocus>
+        <button type="submit">Search</button>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
+      <ol id="results"></ol>
+    </div>
   </main>
 
   <footer>
-    <p>
-      Local study tool. Past papers are &copy; Cambridge Assessment &mdash;
-      for private study use, not redistribution.
+    <p id="footer-note">
+      Past papers are &copy; Cambridge Assessment &mdash; for private study use,
+      not redistribution.
     </p>
   </footer>
 
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"
+    integrity="sha384-EyR2P0dlmjnEGcm9xcjdAn0VedZpRHEwDLP9oSS6wYMvzHBHkUrvgonveazJ/sSx"
+    crossorigin="anonymous"></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>
