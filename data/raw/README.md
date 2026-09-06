@@ -49,3 +49,13 @@ multiple variants of the same session.)
 
 Sources: GCE Guide, PapaCambridge, Physics & Maths Tutor, Dynamic Papers — any
 mirror. The filenames are identical everywhere.
+
+## Stage 5 shopping list (structured papers)
+
+To build written-answer (non-MCQ) support, add Physics 9702 structured papers —
+question paper *and* mark scheme:
+
+| Question paper       | Mark scheme          | Paper                       |
+|----------------------|----------------------|-----------------------------|
+| `9702_s26_qp_22.pdf` | `9702_s26_ms_22.pdf` | Paper 2 — AS structured     |
+| `9702_s26_qp_42.pdf` | `9702_s26_ms_42.pdf` | Paper 4 — A2 structured     |
