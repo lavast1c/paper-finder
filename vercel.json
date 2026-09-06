@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "src/paper_finder/web/static/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "regions": ["bom1"],
+  "crons": [
+    { "path": "/api/health", "schedule": "0 6 * * *" }
+  ]
+}
