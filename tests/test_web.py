@@ -139,3 +139,27 @@ def test_structured_answer_passed_through(client):
     assert top["question_number"] == 3
     assert top["marks"] == 9
     assert "resultant force is zero" in top["answer"]
+
+
+def test_config_empty_in_local_mode(client):
+    assert client.get("/api/config").json() == {}
+
+
+def test_config_populated_in_cloud_mode(client, monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co/")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
+    assert client.get("/api/config").json() == {
+        "supabase_url": "https://demo.supabase.co",  # trailing slash stripped
+        "supabase_key": "sb_publishable_x",
+    }
+
+
+def test_search_and_stats_are_501_in_cloud_mode(client, monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
+    assert client.get("/api/search", params={"q": "ball"}).status_code == 501
+    assert client.get("/api/stats").status_code == 501
+
+
+def test_health_ok_in_local_mode(client):
+    assert client.get("/api/health").json() == {"ok": True}
