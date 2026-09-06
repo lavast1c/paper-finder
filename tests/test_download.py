@@ -35,7 +35,8 @@ def _pdf(size=512):
 
 def test_mirror_url_is_flat():
     assert mirror_url("9702_s24_qp_12.pdf") == (
-        "https://dynamicpapers.com/wp-content/uploads/2015/09/9702_s24_qp_12.pdf"
+        "https://pastpapers.papacambridge.com/directories/CAIE/CAIE-pastpapers/upload/"
+        "9702_s24_qp_12.pdf"
     )
 
 
@@ -150,6 +151,49 @@ def test_csv_log_appends_across_runs(tmp_path):
     lines = (tmp_path / "log.csv").read_text(encoding="utf-8").strip().splitlines()
     assert lines[0].startswith("timestamp")  # header written once
     assert len(lines) == 1 + 8  # header + 4 + 4
+
+
+class _FakeResponse:
+    def __init__(self, url, status=200, body=b"%PDF-1.7\n"):
+        self._url = url
+        self.status = status
+        self._body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def geturl(self):
+        return self._url
+
+    def read(self):
+        return self._body
+
+
+def test_urllib_fetcher_maps_homepage_redirect_to_not_found(monkeypatch):
+    # PapaCambridge answers a missing paper with a 302 to its homepage; urllib
+    # follows it, so the final URL no longer ends in .pdf.
+    monkeypatch.setattr(
+        dl.urllib.request,
+        "urlopen",
+        lambda req, timeout=None: _FakeResponse("https://papacambridge.com/", body=b"<html>"),
+    )
+    result = dl._urllib_fetcher("https://example.test/9702_m26_qp_11.pdf")
+    assert result.status == 404
+    assert result.body == b""
+
+
+def test_urllib_fetcher_returns_pdf_when_not_redirected(monkeypatch):
+    monkeypatch.setattr(
+        dl.urllib.request,
+        "urlopen",
+        lambda req, timeout=None: _FakeResponse("https://example.test/9702_s26_qp_21.pdf"),
+    )
+    result = dl._urllib_fetcher("https://example.test/9702_s26_qp_21.pdf")
+    assert result.status == 200
+    assert result.body.startswith(b"%PDF")
 
 
 def test_sleeps_between_requests_not_before_first(tmp_path, monkeypatch):

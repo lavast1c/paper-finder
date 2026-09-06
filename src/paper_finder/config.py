@@ -45,10 +45,14 @@ PAPER_TYPES: dict[str, str] = {
 
 # --- Stage 4: automated download ---
 # Papers are fetched by generating their predictable URLs, not by scraping.
-# Dynamic Papers stores every PDF flat in one directory, so the URL is just
-# "{MIRROR_BASE_URL}/{filename}". To use a folder-structured mirror instead, edit
-# both this value and download.mirror_url.
-MIRROR_BASE_URL = "https://dynamicpapers.com/wp-content/uploads/2015/09"
+# PapaCambridge stores every PDF flat in one directory, so the URL is just
+# "{MIRROR_BASE_URL}/{filename}". A paper it does not hold is answered with a
+# 302 redirect to the site homepage rather than a 404 -- download._urllib_fetcher
+# treats "redirected away from the .pdf" as not-found. To use a folder-structured
+# mirror instead, edit both this value and download.mirror_url.
+# (The former mirror, dynamicpapers.com/wp-content/uploads/2015/09, began
+# returning HTTP 500 for every direct PDF request in 2026.)
+MIRROR_BASE_URL = "https://pastpapers.papacambridge.com/directories/CAIE/CAIE-pastpapers/upload"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -60,9 +64,9 @@ DOWNLOAD_LOG_PATH = DATA_DIR / "download_log.csv"
 # Default scope for `paper-finder download`; override per-run with CLI flags.
 DOWNLOAD_SCOPE: dict[str, list] = {
     "subjects": ["9702"],  # Physics only for now
-    "years": [2024, 2025],  # recent, reliably published on the mirror
-    "sessions": ["s", "w"],  # May/June, Oct/Nov (Physics has no "m")
+    "years": [2024, 2025, 2026],  # recent, reliably published on the mirror
+    "sessions": ["s", "w", "m"],  # May/June, Oct/Nov, Feb/March (9702 gained an "m" series)
     "papers": [1, 2],  # 1 = multiple choice, 2 = AS structured
-    "variants": [1, 2, 3],  # regional time zones
+    "variants": [1, 2, 3, 4],  # regional time zones (a 4th was added from 2026)
     "types": ["qp", "ms"],
 }

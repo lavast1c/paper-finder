@@ -4,9 +4,11 @@ A CIE filename is fully determined by (subject, session, year, paper, variant,
 type), so the whole configured scope can be turned into candidate URLs; we GET
 each one, save the PDFs, and skip 404s (that combination never existed).
 
-The mirror (GCE Guide) may refuse automated requests -- a 403, or a Cloudflare
-challenge page served with HTTP 200. A 404 is normal; anything else that repeats
-is treated as the mirror blocking us and the run aborts with a clear message.
+The mirror (PapaCambridge) may refuse automated requests -- a 403, or a Cloudflare
+challenge page served with HTTP 200. A missing paper is normal (a 404, or -- on
+PapaCambridge -- a 302 redirect to the site homepage, which the fetcher maps to
+404); anything else that repeats is treated as the mirror blocking us and the run
+aborts with a clear message.
 Files saved before an abort are kept, and re-running resumes (existing files are
 skipped). This module writes only PDFs and a CSV attempt log -- never the
 database; run ``paper-finder build`` afterwards.
@@ -47,6 +49,11 @@ def _urllib_fetcher(url: str) -> FetchResult:
     request = urllib.request.Request(url, headers={"User-Agent": config.USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=config.REQUEST_TIMEOUT_SECONDS) as response:
+            # PapaCambridge answers a paper it does not hold with a 302 to its
+            # homepage instead of a 404. urllib follows the redirect, so detect it
+            # by the final URL no longer pointing at the .pdf and report not-found.
+            if not response.geturl().lower().endswith(".pdf"):
+                return FetchResult(status=404, body=b"")
             return FetchResult(status=response.status, body=response.read())
     except urllib.error.HTTPError as exc:
         return FetchResult(status=exc.code, body=b"")
