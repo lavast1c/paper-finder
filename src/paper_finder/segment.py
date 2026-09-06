@@ -83,11 +83,11 @@ class SegmentReport:
     missing_json: list[str] = field(default_factory=list)
 
 
-def _is_noise(text: str) -> bool:
+def is_noise(text: str) -> bool:
     return bool(_NOISE.search(text))
 
 
-def _load_lines(json_path: Path) -> list[dict]:
+def load_lines(json_path: Path) -> list[dict]:
     data = json.loads(json_path.read_text(encoding="utf-8"))
     lines: list[dict] = []
     for page in data["pages"]:
@@ -161,7 +161,7 @@ def _format_question(block: list[dict]) -> str:
 
 
 def segment_mcq(lines: list[dict]) -> list[Question]:
-    content = [line for line in lines if line["in_body"] and not _is_noise(line["text"])]
+    content = [line for line in lines if line["in_body"] and not is_noise(line["text"])]
 
     starts: list[int] = []
     expected = 1
@@ -224,7 +224,7 @@ def segment_all(
                 report.no_text_layer.append(paper["filename"])
                 continue
 
-            lines = _load_lines(json_path)
+            lines = load_lines(json_path)
             if not looks_like_mcq(lines):
                 report.not_mcq.append(paper["filename"])
                 continue

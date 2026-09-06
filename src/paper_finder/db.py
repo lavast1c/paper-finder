@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS answers (
 CREATE VIRTUAL TABLE IF NOT EXISTS questions_fts USING fts5 (
     question_text,
     content='questions',
-    content_rowid='id'
+    content_rowid='id',
+    tokenize='porter unicode61'
 );
 """
 

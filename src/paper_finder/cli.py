@@ -4,6 +4,10 @@ paper-finder init-db     create papers.db and its schema
 paper-finder ingest      scan data/raw/ and record papers in the database
 paper-finder extract     pull text out of every recorded PDF into data/processed/
 paper-finder segment     split extracted question papers into questions
+paper-finder answers     read answers from mark schemes and link them
+paper-finder build       run ingest -> extract -> segment -> answers in one go
+paper-finder search      find the paper a question came from
+paper-finder evaluate    score search against eval/validation.tsv
 paper-finder papers      list what is currently recorded
 paper-finder questions   preview segmented questions
 """
@@ -14,8 +18,11 @@ import argparse
 import sys
 
 from paper_finder.db import connect, init_db
+from paper_finder.evaluate import evaluate, load_validation
 from paper_finder.extract import extract_all
 from paper_finder.ingest import ingest
+from paper_finder.marks import extract_answers_all
+from paper_finder.search import search
 from paper_finder.segment import segment_all
 
 
@@ -72,6 +79,62 @@ def _cmd_segment(_args: argparse.Namespace) -> None:
     if report.missing_json:
         print(f"Not extracted yet       : {', '.join(report.missing_json)}")
         print("    Run: paper-finder extract")
+
+
+def _cmd_answers(_args: argparse.Namespace) -> None:
+    report = extract_answers_all()
+    total = sum(report.linked.values())
+    print(f"Mark schemes read       : {len(report.linked)}")
+    for filename, count in report.linked.items():
+        flag = "" if count == 40 else "   <- expected 40"
+        print(f"    {filename}  ->  {count} answers linked{flag}")
+    print(f"Total answers linked    : {total}")
+    if report.not_mcq:
+        print(f"Not multiple choice     : {', '.join(report.not_mcq)} (not supported yet)")
+    if report.no_question_paper:
+        print(f"No matching question paper: {', '.join(report.no_question_paper)}")
+    if report.missing_json:
+        print(f"Not extracted yet       : {', '.join(report.missing_json)}  (run: extract)")
+
+
+def _cmd_build(_args: argparse.Namespace) -> None:
+    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers):
+        print(f"\n>>> {step.__name__.removeprefix('_cmd_')}")
+        step(_args)
+
+
+def _cmd_search(args: argparse.Namespace) -> None:
+    init_db()
+    hits = search(args.query, limit=args.limit)
+    if not hits:
+        print("No match. Have you run: paper-finder build ?")
+        return
+    for rank, hit in enumerate(hits, start=1):
+        marks = f"[{hit.marks} mark{'' if hit.marks == 1 else 's'}]" if hit.marks else ""
+        print(f"\n{rank}. {hit.label}  {marks}")
+        stem = hit.question_text.splitlines()[0]
+        if len(stem) > 200:
+            stem = stem[:197] + "..."
+        print(f"   {stem}")
+        if hit.answer:
+            print(f"   Answer: {hit.answer}")
+        location = f"{hit.filename}"
+        if hit.page_start:
+            location += f" (page {hit.page_start})"
+        print(f"   {location}")
+
+
+def _cmd_evaluate(_args: argparse.Namespace) -> None:
+    cases = load_validation()
+    result = evaluate(cases)
+    print(f"Validation cases : {result.total}")
+    print(f"Top-1 accuracy   : {result.top1_accuracy:.0%}  ({result.top1}/{result.total})")
+    print(f"Top-5 accuracy   : {result.top5_accuracy:.0%}  ({result.top5}/{result.total})")
+    if result.misses:
+        print("\nNot the #1 hit:")
+        for case, rank in result.misses:
+            where = f"rank {rank}" if rank != -1 else "not in top 5"
+            print(f"  [{where}] {case.phrase}  (want {case.filename} Q{case.question_number})")
 
 
 def _cmd_questions(args: argparse.Namespace) -> None:
@@ -159,6 +222,20 @@ def main(argv: list[str] | None = None) -> None:
 
     p_segment = sub.add_parser("segment", help="split question papers into questions")
     p_segment.set_defaults(func=_cmd_segment)
+
+    p_answers = sub.add_parser("answers", help="link mark-scheme answers to questions")
+    p_answers.set_defaults(func=_cmd_answers)
+
+    p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers")
+    p_build.set_defaults(func=_cmd_build)
+
+    p_search = sub.add_parser("search", help="find the paper a question came from")
+    p_search.add_argument("query", help="a few words of the question")
+    p_search.add_argument("--limit", type=int, default=5, help="number of results")
+    p_search.set_defaults(func=_cmd_search)
+
+    p_evaluate = sub.add_parser("evaluate", help="score search against eval/validation.tsv")
+    p_evaluate.set_defaults(func=_cmd_evaluate)
 
     p_questions = sub.add_parser("questions", help="preview segmented questions")
     p_questions.add_argument("--paper", help="filter by filename substring, e.g. qp_12")

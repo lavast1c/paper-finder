@@ -15,10 +15,13 @@ tech stack, data reference, and database schema.
 
 ## Status
 
-Stage 1 of `PLAN.md` in progress (as of 2026-09-05): project skeleton + filename
-parsing + `papers` table ingestion are done. Waiting on the user to download the
-first ~12 Physics 9702 PDFs into `data/raw/` (see `data/raw/README.md`), then
-`paper-finder ingest`. Stage 2 (PDF text extraction) is next.
+Stages 1-3 of `PLAN.md` done (as of 2026-09-06). Working end to end on 3 real
+papers (9702 s26, variants 11/12/13): 120 questions segmented, 120 mark-scheme
+answers linked, keyword search returns the right paper + answer. `evaluate` scores
+100% top-1/top-5 on `eval/validation.tsv` (22 cases).
+Next: Stage 4 (automated downloader) to scale the corpus, or Stage 6 (semantic
+search) — see `PLAN.md`. Only MCQ papers are supported; structured papers raise
+"not supported yet" in `segment`.
 
 ## Setup
 
@@ -28,11 +31,14 @@ first ~12 Physics 9702 PDFs into `data/raw/` (see `data/raw/README.md`), then
 
 ## Build / test / lint
 
-- Tests: `.venv\Scripts\python -m pytest`
-- Lint: `.venv\Scripts\ruff check .`   Format: `.venv\Scripts\ruff format .`
-- CLI: `paper-finder init-db` | `paper-finder ingest` | `paper-finder papers`
-- `paper-finder ingest` is idempotent — it upserts, and prunes rows whose PDF was
-  removed from `data/raw/`. All CLI commands create the schema if missing.
+- Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
+  Format: `.venv\Scripts\ruff format .`
+- Rebuild the whole question bank from `data/raw/`: `paper-finder build`
+  (= `ingest` -> `extract` -> `segment` -> `answers`, each idempotent).
+- Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
+  `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`.
+- Schema change during early dev = delete `papers.db` and re-run `build` (the FTS
+  virtual table is not migrated).
 
 ## Version control
 
@@ -57,3 +63,8 @@ first ~12 Physics 9702 PDFs into `data/raw/` (see `data/raw/README.md`), then
   `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.
 - CIE filename grammar and the parser live in `src/paper_finder/filenames.py`;
   the DB schema (all tables, created up front) in `src/paper_finder/db.py`.
+- Pipeline modules: `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
+  JSON in `data/processed/`, via PyMuPDF), `segment` (MCQ paper -> questions),
+  `marks` (mark scheme -> answers), `search` (FTS5 + BM25), `evaluate`.
+- `symbols.py` repairs Adobe Symbol-font PUA code points from PDF extraction —
+  extend `_SYMBOL` if new glyphs show up in a new subject.
