@@ -4,12 +4,14 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
-**NEXT:** Commit 1 — create & apply the Supabase schema migration.
+**NEXT:** Commit 2 — `paper-finder publish` (publish.py + cli + tests). Needs
+local `.env` `SUPABASE_DB_URL` (session pooler) before the real publish run;
+can build + test the code without it.
 
 ## Code commits (§7)
 
 - [x] 0 — Ignore `.env` / Vercel artefacts (`.gitignore`, `.env.example`, `.vercelignore`, this file)
-- [ ] 1 — Supabase schema: `supabase/migrations/0001_question_bank.sql`, applied via MCP, advisors clean
+- [x] 1 — Supabase schema `0001_question_bank` applied (migration file committed, advisors clean, anon locked out — verified via curl)
 - [ ] 2 — `paper-finder publish` (`publish.py`, cli, `publish` extra, `conftest.py`, `test_publish.py`)
 - [ ] 3 — `/api/config` + `/api/health` in `web/app.py` (+ `test_web.py` additions)
 - [ ] 4 — Google sign-in + Supabase search in `web/static/` (`index.html`, `app.js`, `style.css`)
@@ -18,10 +20,13 @@ No secrets in this file.
 
 ## Supabase state (project `gfigwnbkzkgwxcdoqxtz`, region ap-south-1)
 
-- [ ] migration `0001_question_bank` applied (`list_migrations`)
-- [ ] `get_advisors(security)` clean
+- [x] migration `0001_question_bank` applied
+- [x] `get_advisors(security)` clean (no lints)
 - [ ] `paper-finder publish` run — papers ____ / questions ____
-- [ ] anon `curl` to `rpc/search_questions` returns `[]` (RLS proof)
+- [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
+
+Project URL: `https://gfigwnbkzkgwxcdoqxtz.supabase.co`
+Publishable key id: `default` (`sb_publishable_…`) — value goes in Vercel env, not here.
 
 ## Manual steps (user only — see plan §5)
 
