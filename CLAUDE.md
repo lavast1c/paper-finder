@@ -16,11 +16,17 @@ tech stack, data reference, and database schema.
 ## Status
 
 Stages 1-5 + 7 done + Stage 4 downloader (as of 2026-09-06). Stage 6 (semantic
-search) still open. Corpus: 9702 s24/w24/s25/w25/s26, Papers 1 & 2 = ~29 papers,
-~691 questions, ~668 answers linked.
-`evaluate` = ~85% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 fell as
-near-duplicate questions across sessions appeared — the validation phrases are
-too generic; a job for Stage 6 + better phrases).
+search) still open. Corpus: 9702 s24/w24/s25/w25/s26 + m26 + s26 variant 4,
+Papers 1 & 2 = 34 question papers, 790 questions, 765 answers linked.
+`evaluate` = ~76% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
+falling as near-duplicate questions across sessions appear — the validation
+phrases are too generic; a job for Stage 6 + better phrases).
+Note (2026): CIE 9702 gained a **Feb/March ("m") series** and a **4th variant**
+(`s26_qp_14/24`); `filenames.py` already allowed both. The download mirror moved
+to **PapaCambridge** (`pastpapers.papacambridge.com/directories/CAIE/
+CAIE-pastpapers/upload/<file>`) — Dynamic Papers began 500ing every PDF. That
+mirror answers a missing paper with a 302 to its homepage; `download.
+_urllib_fetcher` maps "redirected off the .pdf" to not-found.
 Both MCQ and structured papers supported; `segment_paper` dispatches on
 `looks_like_mcq`.
 
@@ -42,8 +48,8 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
 - Fetch more papers: `paper-finder download [--dry-run] [--limit N]
-  [--subject 9702] [--years 2022-2024] [--sessions s,w] [--papers 1,2]
-  [--variants 1,2,3]` — scope defaults in `config.DOWNLOAD_SCOPE`; NOT part of
+  [--subject 9702] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
+  [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`; NOT part of
   `build` (network side effect). Idempotent (skips files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
   (= `ingest` -> `extract` -> `segment` -> `answers`, each idempotent).
