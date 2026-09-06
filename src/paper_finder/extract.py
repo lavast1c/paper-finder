@@ -23,6 +23,7 @@ import pymupdf
 
 from paper_finder import config
 from paper_finder.db import connect, init_db
+from paper_finder.symbols import normalise
 
 # Below this many characters per page on average, assume there is no usable text
 # layer (the PDF is scanned images) and flag it for OCR later.
@@ -74,8 +75,8 @@ class ExtractedPaper:
 
 
 def _clean(text: str) -> str:
-    # PDF lines often carry trailing spaces and stray NBSPs.
-    return text.replace("\xa0", " ").rstrip()
+    # Repair Symbol-font glyphs, then drop stray NBSPs and trailing spaces.
+    return normalise(text).replace("\xa0", " ").rstrip()
 
 
 def extract_paper(pdf_path: Path) -> ExtractedPaper:
