@@ -1,6 +1,6 @@
 import pytest
 
-from paper_finder.filenames import parse_filename
+from paper_finder.filenames import build_filename, parse_filename
 
 
 @pytest.mark.parametrize(
@@ -74,3 +74,47 @@ def test_unknown_subject_code_is_none():
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        (("9702", "s", 2023, "qp", 1, 2), "9702_s23_qp_12.pdf"),
+        (("9702", "w", 2021, "ms", 4, 2), "9702_w21_ms_42.pdf"),
+        (("9702", "s", 2002, "qp", 1), "9702_s02_qp_1.pdf"),
+        (("9702", "s", 2023, "gt"), "9702_s23_gt.pdf"),
+    ],
+)
+def test_build_filename(args, expected):
+    assert build_filename(*args) == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "9702_s23_qp_12.pdf",
+        "9702_w21_ms_42.pdf",
+        "9709_m22_qp_12.pdf",
+        "9702_s02_qp_1.pdf",
+        "9702_s23_gt.pdf",
+    ],
+)
+def test_build_filename_round_trips_with_parse(name):
+    p = parse_filename(name)
+    rebuilt = build_filename(p.subject_code, p.session, p.year, p.paper_type, p.paper, p.variant)
+    assert rebuilt == name
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("9702", "s", 2023, "qp", None, 2),  # variant without paper
+        ("9702", "x", 2023, "qp", 1),  # bad session
+        ("97020", "s", 2023, "qp", 1),  # 5-digit code
+        ("9702", "s", 1850, "qp", 1),  # year out of range
+        ("9702", "s", 2023, "QP", 1),  # non-lowercase type
+    ],
+)
+def test_build_filename_rejects_bad_input(args):
+    with pytest.raises(ValueError):
+        build_filename(*args)

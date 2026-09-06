@@ -66,6 +66,43 @@ def _yy_to_year(yy: int) -> int:
     return 2000 + yy if yy < 80 else 1900 + yy
 
 
+_MIN_YEAR, _MAX_YEAR = 1980, 2079  # matches the _yy_to_year pivot, so names round-trip
+
+
+def build_filename(
+    subject_code: str,
+    session: str,
+    year: int,
+    paper_type: str,
+    paper: int | None = None,
+    variant: int | None = None,
+) -> str:
+    """The inverse of :func:`parse_filename`: components -> ``9702_s23_qp_12.pdf``.
+
+    Raises :class:`ValueError` for anything :func:`parse_filename` could not
+    round-trip.
+    """
+    if not re.fullmatch(r"\d{4}", subject_code):
+        raise ValueError(f"subject_code must be 4 digits, got {subject_code!r}")
+    if session not in SESSIONS:
+        raise ValueError(f"session must be one of {sorted(SESSIONS)}, got {session!r}")
+    if not _MIN_YEAR <= year <= _MAX_YEAR:
+        raise ValueError(f"year must be {_MIN_YEAR}-{_MAX_YEAR}, got {year}")
+    if not re.fullmatch(r"[a-z]{2}", paper_type):
+        raise ValueError(f"paper_type must be 2 lowercase letters, got {paper_type!r}")
+    if paper is None and variant is not None:
+        raise ValueError("variant given without paper")
+    if paper is not None and not 0 <= paper <= 9:
+        raise ValueError(f"paper must be a single digit, got {paper}")
+    if variant is not None and not 0 <= variant <= 9:
+        raise ValueError(f"variant must be a single digit, got {variant}")
+
+    stem = f"{subject_code}_{session}{year % 100:02d}_{paper_type}"
+    if paper is not None:
+        stem += f"_{paper}{variant if variant is not None else ''}"
+    return stem + ".pdf"
+
+
 def parse_filename(name: str) -> PaperName | None:
     """Return a :class:`PaperName`, or ``None`` if ``name`` is not a CIE paper."""
     stem = name.strip()

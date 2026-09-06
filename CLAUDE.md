@@ -15,13 +15,20 @@ tech stack, data reference, and database schema.
 
 ## Status
 
-Stages 1-5 of `PLAN.md` done (as of 2026-09-06). Corpus: 5 real 9702 s26 papers
-(Paper 1 MCQ variants 11/12/13; Paper 2 structured variants 22/23) = 131
-questions, 131 mark-scheme answers linked. `evaluate` = 97% top-1 / 100% top-5 on
-`eval/validation.tsv` (33 cases). Both MCQ and structured (Paper 2/4) papers are
-supported; `segment_paper` dispatches on `looks_like_mcq`.
-Next: Stage 4 (automated downloader) to scale the corpus, or Stage 6 (semantic
-search) — see `PLAN.md`.
+Stages 1-5 done + Stage 4 downloader (as of 2026-09-06). Corpus: 9702 s24/w24/
+s25/w25/s26, Papers 1 & 2 = ~29 papers, ~691 questions, ~668 answers linked.
+`evaluate` = ~85% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 fell as
+near-duplicate questions across sessions appeared — the validation phrases are
+too generic; a job for Stage 6 + better phrases).
+Both MCQ and structured papers supported; `segment_paper` dispatches on
+`looks_like_mcq`.
+
+Known bug: some **landscape/rotated** Paper 2 mark-scheme pages (e.g.
+`9702_s24_ms_21/22/23`) extract with y-coords outside the page height, so
+`segment.load_lines`' body-band drops the `1(a)` labels and `marks.py` links 0
+answers. `extract.py` needs page-rotation handling. Question papers are fine.
+
+Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Setup
 
@@ -33,6 +40,10 @@ search) — see `PLAN.md`.
 
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
+- Fetch more papers: `paper-finder download [--dry-run] [--limit N]
+  [--subject 9702] [--years 2022-2024] [--sessions s,w] [--papers 1,2]
+  [--variants 1,2,3]` — scope defaults in `config.DOWNLOAD_SCOPE`; NOT part of
+  `build` (network side effect). Idempotent (skips files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
   (= `ingest` -> `extract` -> `segment` -> `answers`, each idempotent).
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
@@ -63,10 +74,15 @@ search) — see `PLAN.md`.
   `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.
 - CIE filename grammar and the parser live in `src/paper_finder/filenames.py`;
   the DB schema (all tables, created up front) in `src/paper_finder/db.py`.
-- Pipeline modules: `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
+- Pipeline modules: `download` (generate mirror URLs from `DOWNLOAD_SCOPE`, fetch
+  PDFs into `data/raw/`, CSV attempt log at `data/download_log.csv`; stdlib
+  `urllib`, injected `fetcher` for tests; aborts on 403 / challenge / repeated
+  network errors), `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
   JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
   per-question blocks), `search` (FTS5 + BM25), `evaluate`.
+- `filenames.build_filename()` is the inverse of `parse_filename()`; the
+  downloader uses it to enumerate candidates.
 - `segment.is_noise` filters page furniture: a regex list + barcode-font glyphs
   (Latin Extended) + control chars + junk symbols + a body-height band.
 - `symbols.py` repairs Adobe Symbol-font PUA code points from PDF extraction —

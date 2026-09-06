@@ -42,3 +42,27 @@ PAPER_TYPES: dict[str, str] = {
     "gt": "Grade Thresholds",
     "er": "Examiner Report",
 }
+
+# --- Stage 4: automated download ---
+# Papers are fetched by generating their predictable URLs, not by scraping.
+# Dynamic Papers stores every PDF flat in one directory, so the URL is just
+# "{MIRROR_BASE_URL}/{filename}". To use a folder-structured mirror instead, edit
+# both this value and download.mirror_url.
+MIRROR_BASE_URL = "https://dynamicpapers.com/wp-content/uploads/2015/09"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+)
+REQUEST_DELAY_SECONDS = 1.5
+REQUEST_TIMEOUT_SECONDS = 30
+DOWNLOAD_LOG_PATH = DATA_DIR / "download_log.csv"
+
+# Default scope for `paper-finder download`; override per-run with CLI flags.
+DOWNLOAD_SCOPE: dict[str, list] = {
+    "subjects": ["9702"],  # Physics only for now
+    "years": [2024, 2025],  # recent, reliably published on the mirror
+    "sessions": ["s", "w"],  # May/June, Oct/Nov (Physics has no "m")
+    "papers": [1, 2],  # 1 = multiple choice, 2 = AS structured
+    "variants": [1, 2, 3],  # regional time zones
+    "types": ["qp", "ms"],
+}

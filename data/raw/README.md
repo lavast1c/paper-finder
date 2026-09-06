@@ -17,6 +17,25 @@ After adding or removing files here, run:
 paper-finder ingest
 ```
 
+## Automated download
+
+```
+paper-finder download --dry-run     # preview the candidate list, fetch nothing
+paper-finder download --limit 4      # fetch a few (confirms the mirror works)
+paper-finder download                # the full default scope
+paper-finder build                   # then re-run the pipeline
+```
+
+Scope defaults live in `DOWNLOAD_SCOPE` in `src/paper_finder/config.py` (Physics
+9702, papers 1 & 2, recent years, sessions s & w, variants 1-3, qp + ms). Override
+per run with `--subject` / `--years` / `--sessions` / `--papers` / `--variants`.
+Every attempt is appended to `data/download_log.csv`.
+
+Files come from `MIRROR_BASE_URL` (Dynamic Papers). A 4xx/5xx just means that
+paper/variant isn't on the mirror. If the run prints `ABORTED` (HTTP 403 /
+challenge page / network errors) the mirror is blocking automated requests — swap
+`MIRROR_BASE_URL` / `USER_AGENT` in `config.py`, or download by hand.
+
 ## Filename convention
 
 ```

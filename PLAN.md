@@ -239,6 +239,13 @@ and question number are right for at least 8.
 **Done when:** the downloader can be re-run and downloads 0 new files (idempotent),
 and search still passes the validation set on the larger corpus.
 
+**Progress (2026-09):** `download.py` + `paper-finder download` implemented — pure
+URL generation (no scraping), stdlib `urllib`, injected `fetcher` for tests, small
+default `config.DOWNLOAD_SCOPE`, CSV attempt log at `data/download_log.csv`,
+`--dry-run` / `--limit`, aborts on 403 / challenge page / repeated network errors.
+GCE Guide's direct-download URLs are dead (JS app now); mirror is **Dynamic
+Papers** (flat `{base}/{filename}`), swappable via `config.MIRROR_BASE_URL`.
+
 ### Stage 5 — Answers from mark schemes
 
 - `marks.py`:

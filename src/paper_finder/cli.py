@@ -6,6 +6,7 @@ paper-finder extract     pull text out of every recorded PDF into data/processed
 paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
 paper-finder build       run ingest -> extract -> segment -> answers in one go
+paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder search      find the paper a question came from
 paper-finder evaluate    score search against eval/validation.tsv
 paper-finder papers      list what is currently recorded
@@ -17,7 +18,9 @@ from __future__ import annotations
 import argparse
 import sys
 
+from paper_finder import config
 from paper_finder.db import connect, init_db
+from paper_finder.download import download
 from paper_finder.evaluate import evaluate, load_validation
 from paper_finder.extract import extract_all
 from paper_finder.ingest import ingest
@@ -97,6 +100,63 @@ def _cmd_build(_args: argparse.Namespace) -> None:
     for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers):
         print(f"\n>>> {step.__name__.removeprefix('_cmd_')}")
         step(_args)
+
+
+def _parse_years(text: str) -> list[int]:
+    if "-" in text:
+        lo, hi = (int(part) for part in text.split("-", 1))
+        return list(range(lo, hi + 1))
+    return [int(text)]
+
+
+def _int_list(text: str) -> list[int]:
+    return [int(part) for part in text.split(",") if part.strip()]
+
+
+def _str_list(text: str) -> list[str]:
+    return [part.strip() for part in text.split(",") if part.strip()]
+
+
+def _scope_from_args(args: argparse.Namespace) -> dict:
+    scope = {key: list(value) for key, value in config.DOWNLOAD_SCOPE.items()}
+    if args.subject:
+        scope["subjects"] = list(args.subject)
+    if args.years:
+        scope["years"] = _parse_years(args.years)
+    if args.sessions:
+        scope["sessions"] = _str_list(args.sessions)
+    if args.papers:
+        scope["papers"] = _int_list(args.papers)
+    if args.variants:
+        scope["variants"] = _int_list(args.variants)
+    return scope
+
+
+def _cmd_download(args: argparse.Namespace) -> None:
+    report = download(scope=_scope_from_args(args), limit=args.limit, dry_run=args.dry_run)
+
+    if args.dry_run:
+        print(f"Would fetch : {len(report.would_fetch)}")
+        for url in report.would_fetch:
+            print(f"    {url}")
+        if report.skipped_existing:
+            print(f"Already in data/raw/ : {len(report.skipped_existing)}")
+        return
+
+    print(f"Downloaded           : {len(report.downloaded)}")
+    for name in report.downloaded:
+        print(f"    + {name}")
+    print(f"Already in data/raw/ : {len(report.skipped_existing)}")
+    print(f"Not on mirror (404)  : {len(report.not_found)}")
+    if report.failed:
+        print(f"Failed               : {len(report.failed)}")
+        for name, reason in report.failed:
+            print(f"    ! {name}  {reason}")
+
+    if report.aborted:
+        print(f"\nABORTED: {report.aborted}")
+    elif report.downloaded:
+        print("\nNew PDFs added. Now run:  paper-finder build")
 
 
 def _cmd_search(args: argparse.Namespace) -> None:
@@ -227,6 +287,25 @@ def main(argv: list[str] | None = None) -> None:
 
     p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers")
     p_build.set_defaults(func=_cmd_build)
+
+    p_download = sub.add_parser("download", help="fetch past papers from a mirror into data/raw/")
+    p_download.add_argument(
+        "--subject",
+        action="append",
+        metavar="CODE",
+        help="subject code, repeatable (default: config scope)",
+    )
+    p_download.add_argument("--years", help="e.g. 2022-2024 or 2023")
+    p_download.add_argument("--sessions", help="comma list, e.g. s,w")
+    p_download.add_argument("--papers", help="comma list, e.g. 1,2")
+    p_download.add_argument("--variants", help="comma list, e.g. 1,2,3")
+    p_download.add_argument(
+        "--limit", type=int, default=None, help="stop after N successful downloads"
+    )
+    p_download.add_argument(
+        "--dry-run", action="store_true", help="list candidate URLs, fetch nothing"
+    )
+    p_download.set_defaults(func=_cmd_download)
 
     p_search = sub.add_parser("search", help="find the paper a question came from")
     p_search.add_argument("query", help="a few words of the question")

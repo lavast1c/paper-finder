@@ -7,6 +7,7 @@ data/raw/*
 !data/raw/README.md
 data/processed/*
 !data/processed/.gitkeep
+data/download_log.csv
 *.pdf
 papers.db
 papers.db-journal
