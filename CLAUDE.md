@@ -15,13 +15,13 @@ tech stack, data reference, and database schema.
 
 ## Status
 
-Stages 1-3 of `PLAN.md` done (as of 2026-09-06). Working end to end on 3 real
-papers (9702 s26, variants 11/12/13): 120 questions segmented, 120 mark-scheme
-answers linked, keyword search returns the right paper + answer. `evaluate` scores
-100% top-1/top-5 on `eval/validation.tsv` (22 cases).
+Stages 1-5 of `PLAN.md` done (as of 2026-09-06). Corpus: 5 real 9702 s26 papers
+(Paper 1 MCQ variants 11/12/13; Paper 2 structured variants 22/23) = 131
+questions, 131 mark-scheme answers linked. `evaluate` = 97% top-1 / 100% top-5 on
+`eval/validation.tsv` (33 cases). Both MCQ and structured (Paper 2/4) papers are
+supported; `segment_paper` dispatches on `looks_like_mcq`.
 Next: Stage 4 (automated downloader) to scale the corpus, or Stage 6 (semantic
-search) — see `PLAN.md`. Only MCQ papers are supported; structured papers raise
-"not supported yet" in `segment`.
+search) — see `PLAN.md`.
 
 ## Setup
 
@@ -64,7 +64,10 @@ search) — see `PLAN.md`. Only MCQ papers are supported; structured papers rais
 - CIE filename grammar and the parser live in `src/paper_finder/filenames.py`;
   the DB schema (all tables, created up front) in `src/paper_finder/db.py`.
 - Pipeline modules: `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
-  JSON in `data/processed/`, via PyMuPDF), `segment` (MCQ paper -> questions),
-  `marks` (mark scheme -> answers), `search` (FTS5 + BM25), `evaluate`.
+  JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
+  structured), `marks` (mark scheme -> answers; MCQ letter table or structured
+  per-question blocks), `search` (FTS5 + BM25), `evaluate`.
+- `segment.is_noise` filters page furniture: a regex list + barcode-font glyphs
+  (Latin Extended) + control chars + junk symbols + a body-height band.
 - `symbols.py` repairs Adobe Symbol-font PUA code points from PDF extraction —
   extend `_SYMBOL` if new glyphs show up in a new subject.

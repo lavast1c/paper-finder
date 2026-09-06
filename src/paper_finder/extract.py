@@ -16,6 +16,7 @@ PDF with no embedded text extracts almost nothing and needs OCR (a later stage).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -74,9 +75,14 @@ class ExtractedPaper:
         return "\f\n".join(page_blocks)
 
 
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b-\x1f]")  # keep \t and \n; drop the rest
+
+
 def _clean(text: str) -> str:
-    # Repair Symbol-font glyphs, then drop stray NBSPs and trailing spaces.
-    return normalise(text).replace("\xa0", " ").rstrip()
+    # Repair Symbol-font glyphs, drop control chars (barcode glyphs extract as
+    # these), then normalise NBSPs and trailing space.
+    text = _CONTROL_CHARS.sub("", normalise(text))
+    return text.replace("\xa0", " ").rstrip()
 
 
 def extract_paper(pdf_path: Path) -> ExtractedPaper:
