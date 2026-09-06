@@ -1,0 +1,5 @@
+# Vercel deployment only. The deployed app serves the static page + /api/config
+# + /api/health; the browser queries Supabase directly. urllib is stdlib; no
+# psycopg (publish is local-only), no pymupdf, no uvicorn (Vercel's runtime
+# provides the ASGI server).
+fastapi>=0.110

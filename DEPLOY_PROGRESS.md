@@ -4,7 +4,8 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
-**NEXT:** Commit 5 — Vercel files (`api/index.py`, `requirements.txt`, `vercel.json`).
+**NEXT:** Commit 6 — docs (`CLAUDE.md`, `README.md`, `PLAN.md`). Then hand the
+user the manual steps below (Google Cloud, Supabase dashboard, Vercel, `.env`).
 
 ## Code commits (§7)
 
@@ -13,6 +14,8 @@ No secrets in this file.
 - [x] 2 — `paper-finder publish` — NOT yet run for real: needs the user's `.env` `SUPABASE_DB_URL` (session pooler). Local dry-run = 34 papers / 790 questions / 765 answered.
 - [x] 3 — `/api/config` + `/api/health` + cloud-mode 501 guards in `web/app.py` — 100 tests green
 - [x] 4 — Google sign-in + Supabase search in `web/static/` (supabase-js@2.115.0 pinned + SRI; `#gate` login screen; `cloudRow` adapter; local mode unchanged — verified via `paper-finder serve`)
+- [x] 5 — Vercel files: `api/index.py` (sys.path + create_app), `requirements.txt` (fastapi only), `vercel.json` (rewrites + includeFiles + bom1 + daily /api/health cron). Entrypoint import verified.
+- [ ] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`)
 - [ ] 5 — Vercel files (`api/index.py`, `requirements.txt`, `vercel.json`)
 - [ ] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`)
 
