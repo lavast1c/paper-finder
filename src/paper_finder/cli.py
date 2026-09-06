@@ -11,6 +11,7 @@ paper-finder search      find the paper a question came from
 paper-finder evaluate    score search against eval/validation.tsv
 paper-finder papers      list what is currently recorded
 paper-finder questions   preview segmented questions
+paper-finder serve       run the local web UI (needs the "web" extra)
 """
 
 from __future__ import annotations
@@ -255,6 +256,23 @@ def _cmd_papers(_args: argparse.Namespace) -> None:
     print(f"\n{len(rows)} papers")
 
 
+def _cmd_serve(args: argparse.Namespace) -> None:
+    try:
+        # Imported here so the other commands work without the optional web extra.
+        import uvicorn
+
+        from paper_finder.web.app import create_app
+    except ImportError:
+        print('Install the web extra:  pip install -e ".[web]"')
+        return
+
+    app = create_app(serve_pdfs=not args.no_pdfs)
+    print(f"Paper Finder  ->  http://{args.host}:{args.port}   (Ctrl-C to stop)")
+    if args.no_pdfs:
+        print("PDF serving disabled (--no-pdfs).")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+
+
 def _force_utf8_output() -> None:
     # CIE text contains Greek letters and maths symbols; the Windows console
     # defaults to cp1252 and would raise UnicodeEncodeError on print().
@@ -322,6 +340,16 @@ def main(argv: list[str] | None = None) -> None:
 
     p_papers = sub.add_parser("papers", help="list papers recorded in the database")
     p_papers.set_defaults(func=_cmd_papers)
+
+    p_serve = sub.add_parser("serve", help="run the local web UI")
+    p_serve.add_argument(
+        "--host", default="127.0.0.1", help="bind address (default: localhost only)"
+    )
+    p_serve.add_argument("--port", type=int, default=8000, help="port (default: 8000)")
+    p_serve.add_argument(
+        "--no-pdfs", action="store_true", help="do not serve PDFs (required for public hosting)"
+    )
+    p_serve.set_defaults(func=_cmd_serve)
 
     args = parser.parse_args(argv)
     args.func(args)

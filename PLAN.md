@@ -284,6 +284,14 @@ keyword-only.
 
 **Deliverable:** searchable in a browser on `localhost`.
 
+**Status (2026-09): done.** `paper_finder.web.create_app()` (FastAPI) +
+hand-written static page in `web/static/`. Routes: `GET /`, `/api/search?q=&limit=`
+(the page owns `/`), `/api/stats`, `/pdf/{filename}`. Run with
+`paper-finder serve [--host 127.0.0.1] [--port 8000] [--no-pdfs]`; `fastapi` /
+`uvicorn` are the optional `web` extra, lazily imported so the other commands work
+without them. PDF serving is gated on `parse_filename` + a `papers` row +
+`serve_pdfs`, and `--no-pdfs` / `serve_pdfs=False` is the deploy-safe mode.
+
 ### Stage 8 — Image input (future)
 
 - `POST /search-image`: accept an uploaded photo.
