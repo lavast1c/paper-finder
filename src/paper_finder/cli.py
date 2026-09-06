@@ -69,11 +69,10 @@ def _cmd_segment(_args: argparse.Namespace) -> None:
     total = sum(report.segmented.values())
     print(f"Papers segmented        : {len(report.segmented)}")
     for filename, count in report.segmented.items():
-        flag = "" if count == 40 else "   <- expected 40"
-        print(f"    {filename}  ->  {count} questions{flag}")
+        print(f"    {filename}  ->  {count} questions")
     print(f"Total questions         : {total}")
-    if report.not_mcq:
-        print(f"Not multiple choice     : {', '.join(report.not_mcq)} (not supported yet)")
+    if report.unparsed:
+        print(f"No questions found      : {', '.join(report.unparsed)}")
     if report.no_text_layer:
         print(f"No text layer           : {', '.join(report.no_text_layer)}")
     if report.missing_json:
@@ -86,11 +85,8 @@ def _cmd_answers(_args: argparse.Namespace) -> None:
     total = sum(report.linked.values())
     print(f"Mark schemes read       : {len(report.linked)}")
     for filename, count in report.linked.items():
-        flag = "" if count == 40 else "   <- expected 40"
-        print(f"    {filename}  ->  {count} answers linked{flag}")
+        print(f"    {filename}  ->  {count} answers linked")
     print(f"Total answers linked    : {total}")
-    if report.not_mcq:
-        print(f"Not multiple choice     : {', '.join(report.not_mcq)} (not supported yet)")
     if report.no_question_paper:
         print(f"No matching question paper: {', '.join(report.no_question_paper)}")
     if report.missing_json:
@@ -112,16 +108,19 @@ def _cmd_search(args: argparse.Namespace) -> None:
     for rank, hit in enumerate(hits, start=1):
         marks = f"[{hit.marks} mark{'' if hit.marks == 1 else 's'}]" if hit.marks else ""
         print(f"\n{rank}. {hit.label}  {marks}")
-        stem = hit.question_text.splitlines()[0]
-        if len(stem) > 200:
-            stem = stem[:197] + "..."
-        print(f"   {stem}")
+        print(f"   {_shorten(hit.question_text.splitlines()[0], 220)}")
         if hit.answer:
-            print(f"   Answer: {hit.answer}")
-        location = f"{hit.filename}"
+            answer = hit.answer if hit.answer.count("\n") == 0 else hit.answer.replace("\n", " ")
+            print(f"   Answer: {_shorten(answer, 240)}")
+        location = hit.filename
         if hit.page_start:
             location += f" (page {hit.page_start})"
         print(f"   {location}")
+
+
+def _shorten(text: str, limit: int) -> str:
+    text = text.strip()
+    return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
 
 
 def _cmd_evaluate(_args: argparse.Namespace) -> None:

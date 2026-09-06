@@ -1,15 +1,16 @@
 """Split extracted question papers into individual questions.
 
-Currently handles multiple-choice papers (CIE science Paper 1): questions numbered
-1..40, each with options A-D. Structured papers come in a later stage.
+Two paper shapes are handled:
 
-Two signals make question-number detection reliable:
+* **Multiple choice** (CIE science Paper 1) -- questions 1..40, each with options
+  A-D.
+* **Structured** (CIE science Paper 2 / 4) -- a handful of questions, each with
+  ``(a)``, ``(b)(i)`` ... sub-parts and a ``[Total: N]`` line at the end.
 
-* **x-position** — a real question number sits in the left margin (x0 well below
-  the body text), which rejects diagram labels like ``6 N`` and centred page
-  numbers.
-* **expected sequence** — numbers run 1, 2, 3, ...; a candidate that doesn't
-  continue the sequence is ignored.
+Question-number detection leans on three signals: the number sits in the left
+margin (small x0), it continues the 1, 2, 3 ... sequence, and -- for structured
+papers -- it appears at the top of a page right after the previous question's
+``[Total:]`` line.
 """
 
 from __future__ import annotations
@@ -23,12 +24,17 @@ from paper_finder import config
 from paper_finder.db import connect, init_db
 
 MCQ_QUESTION_COUNT = 40
-_MARGIN_X = 60.0  # question numbers sit at x0 ~= 49; body text starts ~= 70
+_MARGIN_X = 60.0  # question numbers sit at x0 ~= 49; body text starts ~= 72
 
 # Fraction-of-page-height band that holds real content. Outside it: the centred
-# page number (top) and the CIE / mirror-site footer block (bottom).
+# page number (top) and the CIE / mirror-site footer block (bottom). The bottom
+# edge sits just below a low ``[Total: N]`` line (~0.91) but above the copyright
+# footer (~0.95).
 _BODY_TOP = 0.055
-_BODY_BOTTOM = 0.90
+_BODY_BOTTOM = 0.93
+
+# A structured question number is near the very top of its page.
+_STRUCTURED_START_MAX_Y = 0.18
 
 # A line that is page furniture rather than question content.
 _NOISE = re.compile(
@@ -41,28 +47,48 @@ _NOISE = re.compile(
     | source:\ papacambridge
     | ^\N{COPYRIGHT SIGN}\ cambridge
     | ^cambridge\ international\ (as|education)
-    | ^\d{4}/\d{2}(/[a-z])*(/\d{2})?$          # 9702/11  or  9702/11/M/J/26
+    | ^cambridge\ international\ .+mark\ scheme        # MS running header
+    | ^\d{4}/\d{2}(/[a-z])*(/\d{2})?$                  # 9702/11  or  9702/11/M/J/26
     | ^\[turn\ over
+    | ^turn\ over$
     | ^this\ document\ (has|consists)
     | ^blank\ page$
-    | ^\d{4}/\d{2}\ (question\ paper|mark\ scheme)\b     # running header
-    | ^permission\ to\ reproduce                        # -- CIE end-of-paper block
+    | ^do\ not\ write\ in\ this\ margin
+    | ^dfd$
+    | ^\d{4}/\d{2}\ (question\ paper|mark\ scheme)\b   # running header
+    | ^\*[\s\d]+\*$                                    # barcode: * 0000800000004 *
+    | ^permission\ to\ reproduce                       # -- CIE end-of-paper block
     | ^reasonable\ effort\ has\ been\ made
     | ^have\ unwittingly\ been\ included
     | ^to\ avoid\ the\ issue\ of\ disclosure
     | ^acknowledgements\ booklet
     | ^live\ examination\ series
-    | ^university\ of\ cambridge\.?$                     # --
-    | ^\*\d+\*$                                 # barcode
-    | ^ib\d{2}\b                                # e.g. IB26 06_9702_11/FP_R
+    | ^university\ of\ cambridge\.?$                   # --
+    | ^published$                                      # -- MS front-matter
+    | ^maximum\ mark\s*:
+    | ^(general|science-specific)\ marking\ principles
+    | ^annotations?$
+    | ^abbreviations$
+    | ^mark\ categories$                               # --
+    | ^ib\d{2}\b                                       # e.g. IB26 06_9702_11/FP_R
     | www\.cambridgeinternational\.org
     | ^page\ \d+\ of\ \d+$
-    | ^(question|answer|marks)$                 # mark-scheme table header
+    | ^(question|answer|marks|guidance)$               # mark-scheme table header
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
+# Glyphs from the barcode font PyMuPDF renders as random Latin Extended letters;
+# CIE English physics papers never use this Unicode block in real text.
+_BARCODE_FONT = re.compile(r"[Ā-ɏ]")
+_JUNK_SYMBOLS = frozenset("¬¦¤¥§")
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b-\x1f]")
+
 _QSTART = re.compile(r"^(\d{1,2})(?:\s+(.*\S))?\s*$")
+_BARE_NUMBER = re.compile(r"^(\d{1,2})$")
+_TOTAL = re.compile(r"^\[\s*total\s*:\s*(\d+)\s*\]", re.IGNORECASE)
+_MARK_BRACKET = re.compile(r"\[\s*\d+\s*\]")
+_DOT_RUN = re.compile(r"\.{3,}")
 _OPTION_LETTERS = ("A", "B", "C", "D")
 
 
@@ -71,20 +97,29 @@ class Question:
     number: int
     text: str
     page_start: int
-    marks: int = 1
+    marks: int | None = 1
     is_mcq: bool = True
 
 
 @dataclass
 class SegmentReport:
     segmented: dict[str, int] = field(default_factory=dict)  # filename -> question count
-    not_mcq: list[str] = field(default_factory=list)
+    unparsed: list[str] = field(default_factory=list)  # produced no questions
     no_text_layer: list[str] = field(default_factory=list)
     missing_json: list[str] = field(default_factory=list)
 
 
 def is_noise(text: str) -> bool:
-    return bool(_NOISE.search(text))
+    stripped = _CONTROL_CHARS.sub("", text).strip()
+    if not stripped:
+        return True
+    if _NOISE.search(stripped):
+        return True
+    if _BARCODE_FONT.search(stripped):
+        return True
+    if any(ch in _JUNK_SYMBOLS for ch in stripped):
+        return True
+    return not stripped.strip(", \t")  # stray comma/whitespace lines
 
 
 def load_lines(json_path: Path) -> list[dict]:
@@ -99,6 +134,7 @@ def load_lines(json_path: Path) -> list[dict]:
                     "page": page["page"],
                     "text": line["text"],
                     "x0": line["x0"],
+                    "y_frac": line["y0"] / height,
                     "in_body": top <= line["y0"] <= bottom,
                 }
             )
@@ -108,6 +144,13 @@ def load_lines(json_path: Path) -> list[dict]:
 def looks_like_mcq(lines: list[dict]) -> bool:
     head = " ".join(line["text"] for line in lines[:40]).lower()
     return "multiple choice" in head
+
+
+def _collapse(parts: list[str]) -> str:
+    return re.sub(r"\s+", " ", " ".join(parts)).strip()
+
+
+# --------------------------------------------------------------------------- MCQ
 
 
 def _split_stem_and_options(texts: list[str]) -> tuple[list[str], dict[str, list[str]]]:
@@ -141,11 +184,7 @@ def _split_stem_and_options(texts: list[str]) -> tuple[list[str], dict[str, list
     }
 
 
-def _collapse(parts: list[str]) -> str:
-    return re.sub(r"\s+", " ", " ".join(parts)).strip()
-
-
-def _format_question(block: list[dict]) -> str:
+def _format_mcq_question(block: list[dict]) -> str:
     first = _QSTART.match(block[0]["text"])
     texts: list[str] = []
     if first and first.group(2):
@@ -183,11 +222,87 @@ def segment_mcq(lines: list[dict]) -> list[Question]:
         questions.append(
             Question(
                 number=idx + 1,
-                text=_format_question(block),
+                text=_format_mcq_question(block),
                 page_start=block[0]["page"],
             )
         )
     return questions
+
+
+# -------------------------------------------------------------------- structured
+
+
+def _looks_like_question_body(text: str) -> bool:
+    # the line right after a bare question number: a part label or a sentence
+    return text.startswith("(") or (text[:1].isalpha() and text[:1].isupper())
+
+
+def _format_structured_question(block: list[dict]) -> str:
+    parts: list[str] = []
+    for line in block[1:]:  # skip the bare number line
+        text = line["text"].strip()
+        if _TOTAL.match(text):
+            continue
+        text = _DOT_RUN.sub(" ", text)
+        text = _MARK_BRACKET.sub(" ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if text:
+            parts.append(text)
+    return " ".join(parts).strip()
+
+
+def _is_structured_question_start(content: list[dict], i: int, expected: int) -> bool:
+    line = content[i]
+    match = _BARE_NUMBER.match(line["text"].strip())
+    return bool(
+        match
+        and int(match.group(1)) == expected
+        and line["x0"] < _MARGIN_X
+        and line["y_frac"] < _STRUCTURED_START_MAX_Y
+        and i + 1 < len(content)
+        and _looks_like_question_body(content[i + 1]["text"].strip())
+    )
+
+
+def segment_structured(lines: list[dict]) -> list[Question]:
+    content = [line for line in lines if line["in_body"] and not is_noise(line["text"])]
+
+    starts: list[int] = []
+    expected = 1
+    for i in range(len(content)):
+        if _is_structured_question_start(content, i, expected):
+            starts.append(i)
+            expected += 1
+
+    questions: list[Question] = []
+    for idx, start_i in enumerate(starts):
+        end_i = starts[idx + 1] if idx + 1 < len(starts) else len(content)
+        block = content[start_i:end_i]
+        marks = next(
+            (
+                int(_TOTAL.match(line["text"].strip()).group(1))
+                for line in reversed(block)
+                if _TOTAL.match(line["text"].strip())
+            ),
+            None,
+        )
+        questions.append(
+            Question(
+                number=idx + 1,
+                text=_format_structured_question(block),
+                page_start=block[0]["page"],
+                marks=marks,
+                is_mcq=False,
+            )
+        )
+    return questions
+
+
+# ------------------------------------------------------------------------ driver
+
+
+def segment_paper(lines: list[dict]) -> list[Question]:
+    return segment_mcq(lines) if looks_like_mcq(lines) else segment_structured(lines)
 
 
 _UPSERT_QUESTION = """
@@ -215,8 +330,7 @@ def segment_all(
         ).fetchall()
 
         for paper in papers:
-            stem = Path(paper["filename"]).stem
-            json_path = processed_dir / f"{stem}.json"
+            json_path = processed_dir / f"{Path(paper['filename']).stem}.json"
             if not json_path.exists():
                 report.missing_json.append(paper["filename"])
                 continue
@@ -224,12 +338,11 @@ def segment_all(
                 report.no_text_layer.append(paper["filename"])
                 continue
 
-            lines = load_lines(json_path)
-            if not looks_like_mcq(lines):
-                report.not_mcq.append(paper["filename"])
+            questions = segment_paper(load_lines(json_path))
+            if not questions:
+                report.unparsed.append(paper["filename"])
                 continue
 
-            questions = segment_mcq(lines)
             conn.execute("DELETE FROM questions WHERE paper_id = ?", (paper["id"],))
             for question in questions:
                 conn.execute(
