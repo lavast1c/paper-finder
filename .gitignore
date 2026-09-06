@@ -28,6 +28,12 @@ __pycache__/
 build/
 dist/
 
+# --- Secrets / deployment ---
+.env
+.env.*
+!.env.example
+.vercel/
+
 # --- Editors / OS ---
 .vscode/
 .idea/

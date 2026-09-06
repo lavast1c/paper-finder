@@ -1,0 +1,16 @@
+# `vercel` CLI uploads the working directory, not the git tree — `.gitignore`
+# does NOT protect against this. Keep copyrighted PDFs, the question bank, and
+# secrets off Vercel.
+data/
+papers.db
+papers.db-*
+*.pdf
+*.npy
+.env
+.env.*
+eval/
+tests/
+.venv/
+.ruff_cache/
+.pytest_cache/
+__pycache__/
