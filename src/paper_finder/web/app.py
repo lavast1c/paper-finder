@@ -1,17 +1,24 @@
-"""FastAPI application: a local web UI over the existing question bank.
+"""FastAPI application: the web UI over the question bank.
 
-A thin JSON + static layer over ``search.search()``. Endpoints are plain ``def``
-so Starlette runs them in its threadpool -- ``search()`` is synchronous and opens
-its own SQLite connection per call, so there is no cross-thread connection to
-guard.
+A thin JSON + static layer. Endpoints are plain ``def`` so Starlette runs them in
+its threadpool -- ``search()`` is synchronous and opens its own SQLite connection
+per call, so there is no cross-thread connection to guard.
 
-Serving the past-paper PDFs is opt-out (``serve_pdfs=False``): the papers are
-copyright of Cambridge Assessment, so a public deployment must run without them
-and must not ship ``data/raw/``.
+Two modes, chosen by the browser from ``GET /api/config``:
+
+* **local** -- no Supabase env vars. ``/api/search`` / ``/api/stats`` / ``/pdf``
+  run against the local ``papers.db`` and ``data/raw/`` (this is ``paper-finder
+  serve``: full detail, PDF deep-links, no login).
+* **cloud** -- ``SUPABASE_URL`` + ``SUPABASE_PUBLISHABLE_KEY`` are set (the Vercel
+  deployment). The page loads ``supabase-js``, does the Google sign-in, and calls
+  the ``search_questions`` RPC directly; the Python app only serves the static
+  page, ``/api/config`` and ``/api/health``. No ``papers.db`` on the server.
 """
 
 from __future__ import annotations
 
+import os
+import urllib.request
 from dataclasses import asdict
 from pathlib import Path
 
@@ -28,6 +35,13 @@ from paper_finder.search import SearchHit, search
 STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
+
+
+def _supabase_env() -> tuple[str, str] | None:
+    """``(url, publishable_key)`` when both are set -- i.e. run in cloud mode."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
+    return (url.rstrip("/"), key) if url and key else None
 
 
 def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
@@ -103,8 +117,38 @@ def create_app(
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/api/config", include_in_schema=False)
+    def api_config() -> dict:
+        """Hands the browser the public Supabase creds in cloud mode, else ``{}``.
+
+        The publishable key is safe in the browser -- RLS + the ``authenticated``
+        grants are the real gate, and it can only reach ``search_questions`` /
+        ``corpus_stats`` after a Google sign-in.
+        """
+        env = _supabase_env()
+        return {"supabase_url": env[0], "supabase_key": env[1]} if env else {}
+
+    @app.get("/api/health", include_in_schema=False)
+    def api_health() -> dict:
+        """Cheap keep-warm: the Vercel cron hits this daily; in cloud mode it
+        pokes ``public.ping()`` so the free Supabase project doesn't auto-pause."""
+        env = _supabase_env()
+        if env:
+            request = urllib.request.Request(
+                f"{env[0]}/rest/v1/rpc/ping",
+                data=b"{}",
+                headers={"apikey": env[1], "Content-Type": "application/json"},
+            )
+            try:
+                urllib.request.urlopen(request, timeout=10).read()
+            except OSError:
+                return {"ok": False}
+        return {"ok": True}
+
     @app.get("/api/search")
     def api_search(q: str = "", limit: int = DEFAULT_LIMIT) -> dict:
+        if _supabase_env():  # cloud mode: the browser queries Supabase directly
+            raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         limit = max(1, min(limit, MAX_LIMIT))
         hits = search(q, limit=limit, db_path=db_path)
         return {
@@ -115,6 +159,8 @@ def create_app(
 
     @app.get("/api/stats")
     def api_stats() -> dict:
+        if _supabase_env():
+            raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         return corpus_stats(db_path)
 
     @app.get("/pdf/{filename}", include_in_schema=False)
