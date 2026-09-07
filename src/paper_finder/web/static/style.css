@@ -196,3 +196,5 @@ footer {
   color: var(--muted);
   font-size: 0.8rem;
 }
+.footer-note { margin: 0 0 0.5rem; }
+.footer-note:last-child { margin-bottom: 0; }

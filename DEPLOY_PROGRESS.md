@@ -144,8 +144,10 @@ first, brand-new emails get the second) — set each body to:
 <p style="font-size:24px;letter-spacing:3px;"><strong>{{ .Token }}</strong></p>
 <p>It expires in 1 hour. If you didn't request it, ignore this email.</p>
 ```
-Code length = **Authentication → Sign In / Providers → Email → Email OTP Length**
-(default 6). The `#code` input accepts up to 12 digits, so any length works.
+Code length = **Authentication → Sign In / Providers → Email → Email OTP Length**.
+The `#code` input is fixed at 6 digits (matches the current setting) — if you
+change the length there, also change `maxlength` / `pattern` on `#code` in
+`web/static/index.html`.
 Subject for both: `Your Paper Finder sign-in code`. Save each.
 
 **3c. Allow sign-ups** — **Authentication → Sign In / Providers → Email**:
@@ -214,7 +216,7 @@ it.
 
 1. Open the Vercel URL in a normal browser window → you see the **email prompt**,
    not the search box.
-2. Enter your email → **Send code** → check your inbox → enter the code →
+2. Enter your email → **Send code** → check your inbox → enter the 6-digit code →
    **Verify** → you're in ("Signed in as you@… · Sign out" + search box).
 3. Search `ball thrown horizontally` → result cards with paper / question number
    / question text / answer / marks — **no "open PDF" link**.
