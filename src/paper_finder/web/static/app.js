@@ -15,9 +15,47 @@ const whoamiEl = document.getElementById("whoami");
 const form = document.getElementById("search");
 const input = document.getElementById("q");
 const kindEl = document.getElementById("kind");
+const historyEl = document.getElementById("history"); // <datalist> of past queries
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const corpusEl = document.getElementById("corpus");
+
+// --- recent-search history (per-browser convenience, localStorage) ----------
+
+const HISTORY_KEY = "paper-finder.history";
+const HISTORY_MAX = 8;
+
+function loadHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function renderHistory(items) {
+  if (!historyEl) return;
+  historyEl.replaceChildren(
+    ...items.map((q) => {
+      const o = document.createElement("option");
+      o.value = q;
+      return o;
+    }),
+  );
+}
+
+function rememberQuery(q) {
+  const items = loadHistory().filter((s) => s.toLowerCase() !== q.toLowerCase());
+  items.unshift(q);
+  const trimmed = items.slice(0, HISTORY_MAX);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {
+    /* private mode / quota — the dropdown just won't persist */
+  }
+  renderHistory(trimmed);
+}
 
 const SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 
@@ -227,15 +265,20 @@ function renderResult(r, rank) {
   return li;
 }
 
+function resetSearch() {
+  if (controller) controller.abort();
+  clearResults();
+  setStatus("");
+  history.replaceState(null, "", location.pathname);
+}
+
 async function run() {
   const q = input.value.trim();
-  clearResults();
-
   if (!q) {
-    setStatus("Type a few words from the question.");
-    history.replaceState(null, "", location.pathname);
+    resetSearch();
     return;
   }
+  clearResults();
   history.replaceState(null, "", "?q=" + encodeURIComponent(q));
 
   if (controller) controller.abort();
@@ -257,12 +300,21 @@ async function run() {
   }
   setStatus(`${data.count} result${data.count === 1 ? "" : "s"}`);
   data.results.forEach((r, i) => resultsEl.append(renderResult(r, i + 1)));
+  rememberQuery(q);
 }
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   run();
 });
+
+// native "search" event fires on the type=search ✕ clear button and on Esc;
+// "input" covers typing the field empty. Either way: wipe the stale results.
+function onQueryInput() {
+  if (!input.value.trim()) resetSearch();
+}
+input.addEventListener("input", onQueryInput);
+input.addEventListener("search", onQueryInput);
 
 if (kindEl) {
   kindEl.addEventListener("change", () => {
@@ -288,6 +340,7 @@ function showApp(email) {
   }
 
   loadStats();
+  renderHistory(loadHistory());
   if (!ranInitial) {
     ranInitial = true;
     const initial = new URLSearchParams(location.search).get("q");
