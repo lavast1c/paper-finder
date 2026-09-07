@@ -17,7 +17,7 @@ import + 2 env vars, verify.
 - [x] 2 — `paper-finder publish` — NOT yet run for real: needs the user's `.env` `SUPABASE_DB_URL` (session pooler). Local dry-run = 34 papers / 790 questions / 765 answered.
 - [x] 3 — `/api/config` + `/api/health` + cloud-mode 501 guards in `web/app.py` — 100 tests green
 - [x] 4 — Email one-time-code sign-in + Supabase search in `web/static/` (supabase-js@2.115.0 pinned + SRI; `#gate` = email step then 6-digit-code step; `signInWithOtp`/`verifyOtp`; `cloudRow` adapter; local mode unchanged — verified via `paper-finder serve`). Was Google OAuth; switched 2026-09-07 because publishing a Google app needs a custom domain.
-- [x] 5 — Vercel files: `api/index.py` (sys.path + create_app), `requirements.txt` (fastapi only), `vercel.json` (rewrites + includeFiles + bom1 + daily /api/health cron). Entrypoint import verified.
+- [x] 5 — Vercel files: root `app.py` (Vercel FastAPI preset entrypoint; sys.path + create_app), `requirements.txt` (fastapi only — deployed import chain is pymupdf-free), `vercel.json` (region bom1 + daily /api/health cron). No `api/` dir, no rewrites (preset routes all paths). `app.py` import + routes verified. (Was `api/index.py` + rewrites; rebuilt 2026-09-07 for Vercel's current FastAPI preset, which ignores `api/`.)
 - [x] 6 — Docs (`CLAUDE.md`, `README.md`, `PLAN.md`) + this file's manual runbook
 
 ## Supabase state (project `gfigwnbkzkgwxcdoqxtz`, region ap-south-1)
@@ -164,22 +164,40 @@ Subject for both: `Your Paper Finder sign-in code`. Save each.
 
 ### Step 4 — Deploy to Vercel
 
+The repo is set up for Vercel's **FastAPI preset**: root `app.py` exposes the
+app, `requirements.txt` pins just `fastapi`, `vercel.json` sets the region + the
+keep-warm cron. You don't configure a framework or build command — Vercel detects
+it.
+
 1. <https://vercel.com> → sign in with GitHub.
 2. **Add New… → Project** → import `Lavastic-Gaming/paper-finder`. If it's not
    listed, "Adjust GitHub App Permissions" and grant access to the repo.
-3. Configure:
-   - **Framework Preset: Other.** Root Directory: repo root. Build/Output
-     settings: all blank (`vercel.json` handles it).
-   - **Environment Variables** (Production + Preview + Development):
+3. On the configure screen:
+   - **Framework Preset:** it should auto-detect **FastAPI**. If it shows "Other",
+     that's fine too — leave it; `app.py` is still the entrypoint.
+   - Root Directory: leave as the repo root.
+   - Build and Output Settings: leave **everything blank** — no build command, no
+     output dir, no install command override.
+   - **Environment Variables** — add both, for all environments:
      | Name | Value |
      |---|---|
      | `SUPABASE_URL` | `https://gfigwnbkzkgwxcdoqxtz.supabase.co` |
      | `SUPABASE_PUBLISHABLE_KEY` | Supabase → **Project Settings → API keys** → the **publishable** key (`sb_publishable_…`) |
    - **Do NOT add** `SUPABASE_DB_URL` or any `service_role` / secret key — those
      two are the only vars, and both are browser-safe.
-4. **Deploy.** Copy the URL, e.g. `https://paper-finder-xxxx.vercel.app`.
-5. Back in **Supabase → Authentication → URL Configuration → Site URL**: set it to
-   that Vercel URL. Add `https://paper-finder-xxxx.vercel.app/**` to Redirect URLs.
+4. **Deploy.** Watch the build log — it should `pip install fastapi …` (NOT
+   pymupdf) and finish "Deploying outputs…". Copy the URL, e.g.
+   `https://paper-finder-xxxx.vercel.app`.
+   - If it fails with **"No Python entrypoint found"**: the FastAPI preset didn't
+     see `fastapi` — check `requirements.txt` is at the repo root in the deployed
+     commit.
+   - If a page loads but `/` 404s: the preset isn't routing. Re-check the build
+     detected FastAPI; redeploy.
+5. Back in **Supabase → Authentication → URL Configuration**:
+   - **Site URL** = that Vercel URL.
+   - **Redirect URLs** → add `https://paper-finder-xxxx.vercel.app/**`.
+6. Visit `https://paper-finder-xxxx.vercel.app/api/health` → `{"ok":true}` and
+   `/api/config` → your URL + publishable key. Then do Step 5.
 
 - [ ] Step 4 done — Vercel URL: __________________________________
 

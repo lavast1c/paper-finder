@@ -308,15 +308,16 @@ one-time setup: `DEPLOY_PROGRESS.md`.
   authenticated using (true)`, `search_questions` / `corpus_stats` RPCs
   (`SECURITY INVOKER`, `search_path=''`, `EXECUTE` to `authenticated` only),
   `or_tsquery()` (OR-combine words — `websearch_to_tsquery` ANDs), `ping()`.
-- Deployed app (`api/index.py` -> `create_app()`) in **cloud mode**
+- Deployed app (root `app.py` -> `create_app()`, Vercel FastAPI preset) in **cloud mode**
   (`SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` env): serves the static page +
   `GET /api/config` + `GET /api/health`; the browser loads pinned `supabase-js`,
   signs in with an emailed 6-digit code (`signInWithOtp` + `verifyOtp`), calls
   the RPC with the user's JWT. `/api/search` + `/api/stats` -> 501 in cloud mode.
   No PDFs, no `papers.db` on Vercel.
-- `vercel.json`: rewrites, `includeFiles` for `web/static`, region `bom1`, a
-  daily `/api/health` cron (keeps the free project unpaused). `.vercelignore`
-  keeps `papers.db` / `data/raw/` off Vercel (the CLI uploads the working dir).
+- `vercel.json`: region `bom1`, a daily `/api/health` cron (keeps the free
+  project unpaused). No rewrites — Vercel's FastAPI preset routes every path to
+  `app`. `.vercelignore` keeps `papers.db` / `data/raw/` off Vercel (the CLI
+  uploads the working dir).
 - Supabase Auth: email provider on, a custom SMTP relay (built-in sender only
   emails team addresses), Magic Link template edited to contain `{{ .Token }}`
   (that's what makes `signInWithOtp` send a code, not a link). `SUPABASE_URL` +
