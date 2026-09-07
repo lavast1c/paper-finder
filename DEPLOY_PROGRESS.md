@@ -27,7 +27,7 @@ import + 2 env vars, verify.
 - [x] `paper-finder publish` run for real (2026-09-07) — 34 papers / 790 questions / 765 answered; `search_questions('ball thrown horizontally')` returns the right rows
 - [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
 - [ ] custom SMTP configured (Brevo) — USER, Step 3a
-- [ ] Magic Link email template contains `{{ .Token }}` (makes it a code, not a link) — USER, Step 3b
+- [ ] "Magic Link" + "Confirm sign up" email templates contain `{{ .Token }}` (makes it a code, not a link) — USER, Step 3b
 - [ ] Site URL set to the Vercel URL — USER, Step 4
 
 Project URL: `https://gfigwnbkzkgwxcdoqxtz.supabase.co`
@@ -134,16 +134,17 @@ All in the Supabase dashboard for project `gfigwnbkzkgwxcdoqxtz`.
 - Save. Use the **"Send test email"** button if present.
 
 **3b. Make the email send a CODE, not a link** — **Authentication → Emails →
-Templates → "Magic Link"**. By default the body only has `{{ .ConfirmationURL }}`
-(a link). Supabase sends a 6-digit code **only if the template contains
-`{{ .Token }}`.** Replace the body with something like:
+Templates**. Supabase sends a 6-digit code **only if the template body contains
+`{{ .Token }}`** (default templates only have `{{ .ConfirmationURL }}`, a link).
+Edit **both** "Magic Link" **and** "Confirm sign up" (existing users get the
+first, brand-new emails may get the second) — set each body to:
 ```html
 <h2>Your Paper Finder sign-in code</h2>
 <p>Enter this code to sign in:</p>
 <p style="font-size:24px;letter-spacing:3px;"><strong>{{ .Token }}</strong></p>
 <p>It expires in 1 hour. If you didn't request it, ignore this email.</p>
 ```
-Subject: `Your Paper Finder sign-in code`. Save.
+Subject for both: `Your Paper Finder sign-in code`. Save each.
 
 **3c. Allow sign-ups** — **Authentication → Sign In / Providers → Email**:
 - **Email** provider: enabled.
