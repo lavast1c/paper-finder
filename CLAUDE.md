@@ -51,8 +51,16 @@ Auth), and calls the `search_questions` RPC directly with the user's JWT. RLS on
 whole access model; anon gets nothing. No PDFs and no
 `papers.db` in the cloud. Local `paper-finder serve` (no Supabase env) is
 untouched: SQLite, no login, PDF deep-links. Supabase schema:
-`supabase/migrations/0001_question_bank.sql` (applied via the Supabase MCP;
-`get_advisors` clean). Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
+`supabase/migrations/0001_question_bank.sql` + `0002_search_kind_filter.sql`
+(applied via the Supabase MCP; `get_advisors` clean). Project ref
+`gfigwnbkzkgwxcdoqxtz` (ap-south-1).
+
+Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
+`kind` filter: `all` (default) / `mcq` (Paper 1) / `theory` (non-1 papers) —
+local splits on `questions.is_mcq`, cloud on `papers.paper` (no `is_mcq`
+column in the published index). The web UI exposes it as a `<select id="kind">`
+in the search form. Bare CIE mark codes (`B1`/`M1`/`A1`/`C1` alone on a line)
+are dropped from the rendered mark scheme (`app.js` `answerLong`).
 
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
@@ -128,7 +136,8 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   network errors), `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
   JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
-  per-question blocks), `search` (FTS5 + BM25), `evaluate`,
+  per-question blocks), `search` (FTS5 + BM25; `kind=all|mcq|theory` filter),
+  `evaluate`,
   `web` (`create_app(db_path, raw_dir, serve_pdfs)` — FastAPI + a hand-written
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
   theme-aware, full-bleed, IBM Plex type, a deliberate brick-red accent

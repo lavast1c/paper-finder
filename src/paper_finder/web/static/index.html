@@ -49,6 +49,12 @@
       <p id="whoami" class="whoami"></p>
       <form id="search" autocomplete="off">
         <input id="q" name="q" type="search" placeholder="A few words from the question&hellip;" autofocus>
+        <label class="sr-only" for="kind">Paper type</label>
+        <select id="kind" name="kind">
+          <option value="all">All papers</option>
+          <option value="mcq">Multiple choice</option>
+          <option value="theory">Theory</option>
+        </select>
         <button type="submit">Search</button>
       </form>
       <p id="status" role="status" aria-live="polite"></p>

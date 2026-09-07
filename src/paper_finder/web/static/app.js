@@ -14,6 +14,7 @@ const gateStatus = document.getElementById("gate-status");
 const whoamiEl = document.getElementById("whoami");
 const form = document.getElementById("search");
 const input = document.getElementById("q");
+const kindEl = document.getElementById("kind");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const corpusEl = document.getElementById("corpus");
@@ -42,10 +43,15 @@ function el(tag, className, text) {
 
 // --- search sources ------------------------------------------------------
 
+function kind() {
+  return kindEl && kindEl.value ? kindEl.value : "all";
+}
+
 async function localSearch(q) {
-  const res = await fetch("/api/search?q=" + encodeURIComponent(q) + "&limit=10", {
-    signal: controller.signal,
-  });
+  const res = await fetch(
+    "/api/search?q=" + encodeURIComponent(q) + "&limit=10&kind=" + kind(),
+    { signal: controller.signal },
+  );
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json(); // { query, count, results: [result_payload...] }
 }
@@ -64,7 +70,11 @@ function cloudRow(d) {
 }
 
 async function cloudSearch(q) {
-  const { data, error } = await sb.rpc("search_questions", { query: q, max_results: 5 });
+  const { data, error } = await sb.rpc("search_questions", {
+    query: q,
+    max_results: 5,
+    kind: kind(),
+  });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(cloudRow) };
 }
@@ -108,7 +118,7 @@ const ROMAN = new Set(["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "
 // a real part label is preceded by whitespace/start (so "1(a)" cross-refs don't match)
 const PART_RE = /(?:^|\s)\((?<tok>[a-z]{1,3}|[ivx]{1,4})\)(?=\s|$)/g;
 const MS_PART_RE = /^\d+\([a-z]\)(?:\([ivx]+\))*$/; // "2(a)", "2(b)(i)"
-const MS_MARK_RE = /^\(?[ABCM]\d\)?$/; // "B1", "M1", "(A1)", "C1"
+const MS_MARK_RE = /^\(?[ABCM]\d\)?$/; // "B1", "M1", "(A1)", "C1" — dropped from display
 
 function splitQuestionParts(text) {
   const matches = [...text.matchAll(PART_RE)];
@@ -164,7 +174,7 @@ function answerLong(box, answer) {
     } else if (line === "OR" || line === "ALTERNATIVE") {
       group.append(el("span", "ms-or", "OR"));
     } else if (MS_MARK_RE.test(line)) {
-      group.append(el("span", "ms-mark", line));
+      continue; // bare CIE mark code (B1/M1/A1/C1) — noise on its own line
     } else {
       group.append(el("div", "ms-line", line));
     }
@@ -253,6 +263,12 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   run();
 });
+
+if (kindEl) {
+  kindEl.addEventListener("change", () => {
+    if (input.value.trim()) run();
+  });
+}
 
 // --- boot ------------------------------------------------------------
 

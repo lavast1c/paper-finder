@@ -23,7 +23,8 @@ import + 2 env vars, verify.
 ## Supabase state (project `gfigwnbkzkgwxcdoqxtz`, region ap-south-1)
 
 - [x] migration `0001_question_bank` applied
-- [x] `get_advisors(security)` clean (no lints)
+- [x] migration `0002_search_kind_filter` applied (2026-09-07) — `search_questions` gains `kind text default 'all'` (`all`/`mcq`=Paper 1/`theory`=non-1); verified mcq→paper 1 only, theory→paper 2 only
+- [x] `get_advisors(security)` clean (only the unrelated `auth_leaked_password_protection` WARN — N/A, this project is OTP-only)
 - [x] `paper-finder publish` run for real (2026-09-07) — 34 papers / 790 questions / 765 answered; `search_questions('ball thrown horizontally')` returns the right rows
 - [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
 - [ ] custom SMTP configured (Brevo) — USER, Step 3a
