@@ -100,6 +100,78 @@ async function loadStats() {
 
 // --- rendering --------------------------------------------------------
 
+// Structured (theory) papers label sub-parts "(a) … (b) … (i) … (ii) …" inline
+// in the question, and "2(a)", "2(b)(i)" on their own line in the mark scheme.
+// Split those out so each sub-part is visually separated.
+
+const ROMAN = new Set(["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"]);
+// a real part label is preceded by whitespace/start (so "1(a)" cross-refs don't match)
+const PART_RE = /(?:^|\s)\((?<tok>[a-z]{1,3}|[ivx]{1,4})\)(?=\s|$)/g;
+const MS_PART_RE = /^\d+\([a-z]\)(?:\([ivx]+\))*$/; // "2(a)", "2(b)(i)"
+const MS_MARK_RE = /^\(?[ABCM]\d\)?$/; // "B1", "M1", "(A1)", "C1"
+
+function splitQuestionParts(text) {
+  const matches = [...text.matchAll(PART_RE)];
+  if (matches.length < 2) return null;
+  const parts = [];
+  const intro = text.slice(0, matches[0].index).trim();
+  if (intro) parts.push({ label: "", text: intro });
+  for (let i = 0; i < matches.length; i++) {
+    const tok = matches[i].groups.tok;
+    const start = matches[i].index + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    parts.push({ label: `(${tok})`, roman: ROMAN.has(tok), text: text.slice(start, end).trim() });
+  }
+  return parts;
+}
+
+function questionBlock(text) {
+  const box = el("div", "question");
+  const parts = text ? splitQuestionParts(text) : null;
+  if (!parts) {
+    box.textContent = text || "";
+    return box;
+  }
+  box.classList.add("question--parts");
+  for (const p of parts) {
+    if (!p.label) {
+      box.append(el("div", "qpart qpart--intro", p.text));
+      continue;
+    }
+    const row = el("div", "qpart" + (p.roman ? " qpart--sub" : ""));
+    row.append(el("span", "qpart-label", p.label));
+    if (p.text) row.append(el("span", "qpart-text", p.text));
+    else row.classList.add("qpart--group");
+    box.append(row);
+  }
+  return box;
+}
+
+function answerLong(box, answer) {
+  const lines = answer.split(/\r?\n/).map((l) => l.trim());
+  if (!lines.some((l) => MS_PART_RE.test(l))) {
+    box.append(el("span", "value", answer)); // no part headers -> keep as-is (pre-wrap)
+    return;
+  }
+  const wrap = el("div", "value ms");
+  let group = wrap;
+  for (const line of lines) {
+    if (!line) continue;
+    if (MS_PART_RE.test(line)) {
+      group = el("div", "ms-part");
+      group.append(el("span", "ms-part-label", line));
+      wrap.append(group);
+    } else if (line === "OR" || line === "ALTERNATIVE") {
+      group.append(el("span", "ms-or", "OR"));
+    } else if (MS_MARK_RE.test(line)) {
+      group.append(el("span", "ms-mark", line));
+    } else {
+      group.append(el("div", "ms-line", line));
+    }
+  }
+  box.append(wrap);
+}
+
 function answerBlock(answer) {
   const box = el("div", "answer");
   box.append(el("span", "label", "Answer"));
@@ -108,9 +180,14 @@ function answerBlock(answer) {
     box.append(el("span", "value", "No mark scheme answer linked."));
     return box;
   }
-  const single = answer.trim().length === 1;
-  box.className = single ? "answer answer--letter" : "answer answer--long";
-  box.append(el("span", "value", single ? answer.trim() : answer));
+  const trimmed = answer.trim();
+  if (trimmed.length === 1) {
+    box.className = "answer answer--letter";
+    box.append(el("span", "value", trimmed));
+    return box;
+  }
+  box.className = "answer answer--long";
+  answerLong(box, answer);
   return box;
 }
 
@@ -126,7 +203,7 @@ function renderResult(r, rank) {
   }
   li.append(title);
 
-  li.append(el("div", "question", r.question_text));
+  li.append(questionBlock(r.question_text));
   li.append(answerBlock(r.answer));
 
   if (r.pdf_url) {

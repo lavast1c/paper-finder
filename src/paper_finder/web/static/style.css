@@ -328,6 +328,31 @@ ol#results li {
   overflow-y: auto;
 }
 
+/* structured (theory) question — one row per sub-part */
+.question--parts {
+  white-space: normal;
+  display: grid;
+  gap: 0.45rem;
+}
+.qpart {
+  display: flex;
+  gap: 0.55rem;
+}
+.qpart--intro {
+  display: block;
+  color: var(--text-muted);
+}
+.qpart--sub { margin-left: 1.35rem; }
+.qpart-label {
+  flex: none;
+  min-width: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+.qpart--group .qpart-label { color: var(--text); }
+.qpart-text { flex: 1; min-width: 0; }
+
 .answer {
   margin: 0.7rem 0 0;
   padding: 0.7rem 0.85rem;
@@ -368,6 +393,50 @@ ol#results li {
   color: var(--text-muted);
   font-style: italic;
   border-left-color: var(--hairline);
+}
+
+/* structured mark scheme — one block per sub-part */
+.answer--long .value.ms {
+  white-space: normal;
+  font-size: 0.9rem;
+}
+.ms-part {
+  margin-top: 0.55rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--hairline);
+}
+.ms-part:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.ms-part-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+.ms-line { margin: 0.18rem 0; }
+.ms-mark {
+  display: inline-block;
+  margin: 0.15rem 0.3rem 0.1rem 0;
+  padding: 0.02rem 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+.ms-or {
+  display: block;
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
 
 .pdf-link {
