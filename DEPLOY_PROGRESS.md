@@ -134,16 +134,18 @@ All in the Supabase dashboard for project `gfigwnbkzkgwxcdoqxtz`.
 - Save. Use the **"Send test email"** button if present.
 
 **3b. Make the email send a CODE, not a link** — **Authentication → Emails →
-Templates**. Supabase sends a 6-digit code **only if the template body contains
+Templates**. Supabase sends a numeric code **only if the template body contains
 `{{ .Token }}`** (default templates only have `{{ .ConfirmationURL }}`, a link).
 Edit **both** "Magic Link" **and** "Confirm sign up" (existing users get the
-first, brand-new emails may get the second) — set each body to:
+first, brand-new emails get the second) — set each body to:
 ```html
 <h2>Your Paper Finder sign-in code</h2>
 <p>Enter this code to sign in:</p>
 <p style="font-size:24px;letter-spacing:3px;"><strong>{{ .Token }}</strong></p>
 <p>It expires in 1 hour. If you didn't request it, ignore this email.</p>
 ```
+Code length = **Authentication → Sign In / Providers → Email → Email OTP Length**
+(default 6). The `#code` input accepts up to 12 digits, so any length works.
 Subject for both: `Your Paper Finder sign-in code`. Save each.
 
 **3c. Allow sign-ups** — **Authentication → Sign In / Providers → Email**:
@@ -212,7 +214,7 @@ it.
 
 1. Open the Vercel URL in a normal browser window → you see the **email prompt**,
    not the search box.
-2. Enter your email → **Send code** → check your inbox → enter the 6-digit code →
+2. Enter your email → **Send code** → check your inbox → enter the code →
    **Verify** → you're in ("Signed in as you@… · Sign out" + search box).
 3. Search `ball thrown horizontally` → result cards with paper / question number
    / question text / answer / marks — **no "open PDF" link**.
