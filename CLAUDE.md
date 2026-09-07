@@ -58,9 +58,13 @@ untouched: SQLite, no login, PDF deep-links. Supabase schema:
 Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
 `kind` filter: `all` (default) / `mcq` (Paper 1) / `theory` (non-1 papers) —
 local splits on `questions.is_mcq`, cloud on `papers.paper` (no `is_mcq`
-column in the published index). The web UI exposes it as a `<select id="kind">`
-in the search form. Bare CIE mark codes (`B1`/`M1`/`A1`/`C1` alone on a line)
-are dropped from the rendered mark scheme (`app.js` `answerLong`).
+column in the published index). The web UI exposes it as a custom-styled
+`<select id="kind">` (`.select-wrap` + CSS chevron + solid `--field-bg` +
+themed `option`s). The search box has a recent-query dropdown (`<datalist
+id="history">` fed from `localStorage` `paper-finder.history`, last 8), and
+clearing the box wipes the stale results (`resetSearch`). Bare CIE mark codes
+(`B1`/`M1`/`A1`/`C1` alone on a line) are dropped from the rendered mark
+scheme (`app.js` `answerLong`).
 
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 

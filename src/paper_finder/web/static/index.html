@@ -48,13 +48,17 @@
     <div id="app" hidden>
       <p id="whoami" class="whoami"></p>
       <form id="search" autocomplete="off">
-        <input id="q" name="q" type="search" placeholder="A few words from the question&hellip;" autofocus>
+        <input id="q" name="q" type="search" list="history"
+               placeholder="A few words from the question&hellip;" autofocus>
+        <datalist id="history"></datalist>
         <label class="sr-only" for="kind">Paper type</label>
-        <select id="kind" name="kind">
-          <option value="all">All papers</option>
-          <option value="mcq">Multiple choice</option>
-          <option value="theory">Theory</option>
-        </select>
+        <div class="select-wrap">
+          <select id="kind" name="kind">
+            <option value="all">All papers</option>
+            <option value="mcq">Multiple choice (Paper 1)</option>
+            <option value="theory">Theory (Paper 2+)</option>
+          </select>
+        </div>
         <button type="submit">Search</button>
       </form>
       <p id="status" role="status" aria-live="polite"></p>

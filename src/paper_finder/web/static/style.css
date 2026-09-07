@@ -17,6 +17,7 @@
   --border: rgba(255, 255, 255, 0.7);
   --hairline: rgba(28, 22, 18, 0.14);
   --specular: rgba(255, 255, 255, 0.95);
+  --field-bg: #f6f4f2;            /* solid control fill (select + its option list) */
   --primary: #b23a2e;             /* decorative accents / focus only */
   --primary-ink: #ffffff;
   --btn: #a8352a;                 /* button fill — white text is AA (6.5:1) */
@@ -60,6 +61,7 @@
     --border: rgba(255, 255, 255, 0.24);
     --hairline: rgba(255, 255, 255, 0.14);
     --specular: rgba(255, 255, 255, 0.55);
+    --field-bg: #23201e;
     --primary: #e8705c;
     --primary-ink: #ffffff;
     --btn: #b23a2e;                /* white text is AA (5.9:1) */
@@ -257,17 +259,45 @@ form#search {
 }
 
 /* ---- question-type filter ---- */
-#kind {
+.select-wrap {
+  position: relative;
   flex: 0 0 auto;
-  padding: 0.7rem 0.9rem;
+  display: inline-flex;
+}
+/* custom chevron — the native one is invisible on the frosted tray */
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.35rem;
+  border-right: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+#kind {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  padding: 0.7rem 2.2rem 0.7rem 0.9rem;
   font: inherit;
   color: var(--text);
-  background: var(--surface-strong);
+  background: var(--field-bg);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
 }
+/* theme the native option list so it isn't a bare white box on dark */
+#kind option {
+  color: var(--text);
+  background: var(--field-bg);
+}
+#kind:hover { border-color: var(--accent-ink); }
 #kind:focus-visible {
   outline: none;
   border-color: var(--primary);
