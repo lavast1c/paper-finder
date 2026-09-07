@@ -25,10 +25,11 @@
       </form>
 
       <form id="code-form" hidden autocomplete="off">
-        <p>Enter the 6-digit code sent to <span id="code-email"></span>.</p>
+        <p>Enter the code sent to <span id="code-email"></span>.</p>
         <div class="gate-row">
           <input id="code" name="code" inputmode="numeric" pattern="[0-9]*"
-                 maxlength="6" required placeholder="123456" autocomplete="one-time-code">
+                 maxlength="12" required placeholder="code from the email"
+                 autocomplete="one-time-code">
           <button id="verify-code" type="submit">Verify</button>
         </div>
         <button id="code-back" type="button" class="linkbtn">Use a different email</button>

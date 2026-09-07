@@ -88,7 +88,8 @@ button[type="submit"] {
   border: 1px solid var(--rule);
   border-radius: 3px;
 }
-#code { letter-spacing: 0.3em; font-family: var(--mono); }
+#code { letter-spacing: 0.12em; font-family: var(--mono); }
+#code::placeholder { letter-spacing: normal; }
 #email:focus-visible, #code:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #gate button[type="submit"] {
   padding: 0.6rem 1.1rem;
