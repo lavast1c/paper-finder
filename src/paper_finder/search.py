@@ -52,6 +52,8 @@ def build_fts_query(text: str) -> str:
     return " OR ".join(f'"{token}"' for token in tokens)
 
 
+KINDS = ("all", "mcq", "theory")
+
 _SEARCH_SQL = """
 SELECT
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
@@ -62,19 +64,33 @@ FROM questions_fts
 JOIN questions q ON q.id = questions_fts.rowid
 JOIN papers p ON p.id = q.paper_id
 WHERE questions_fts MATCH :query
+  AND (:kind = 'all'
+       OR (:kind = 'mcq' AND q.is_mcq = 1)
+       OR (:kind = 'theory' AND q.is_mcq = 0))
 ORDER BY score
 LIMIT :limit
 """
 
 
-def search(query: str, limit: int = 5, db_path: Path | None = None) -> list[SearchHit]:
+def search(
+    query: str,
+    limit: int = 5,
+    db_path: Path | None = None,
+    kind: str = "all",
+) -> list[SearchHit]:
+    """Keyword search. ``kind`` filters by question type: ``all`` (default),
+    ``mcq`` (multiple-choice questions only) or ``theory`` (structured only)."""
     fts_query = build_fts_query(query)
     if not fts_query:
         return []
+    if kind not in KINDS:
+        kind = "all"
 
     init_db(db_path)
     with connect(db_path) as conn:
-        rows = conn.execute(_SEARCH_SQL, {"query": fts_query, "limit": limit}).fetchall()
+        rows = conn.execute(
+            _SEARCH_SQL, {"query": fts_query, "limit": limit, "kind": kind}
+        ).fetchall()
 
     return [
         SearchHit(

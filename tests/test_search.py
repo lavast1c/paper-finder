@@ -22,7 +22,7 @@ def populated_db(tmp_path):
         rows = [
             (1, 1, 1, "A ball is thrown horizontally with a speed of 10 m/s.", 1, 1, 4),
             (2, 1, 2, "What is an SI base quantity?", 1, 1, 3),
-            (3, 1, 3, "A book rests on a table with weight W.", 1, 1, 5),
+            (3, 1, 3, "A book rests on a table with weight W.", 1, 0, 5),
         ]
         conn.executemany(
             """INSERT INTO questions
@@ -55,3 +55,13 @@ def test_search_stemming_matches_word_variants(populated_db):
 
 def test_search_empty_query_returns_nothing(populated_db):
     assert search("???", db_path=populated_db) == []
+
+
+def test_search_kind_filter(populated_db):
+    q = "ball thrown quantity book table weight"  # matches all three questions
+    assert {h.question_number for h in search(q, db_path=populated_db)} == {1, 2, 3}
+    # q1/q2 are is_mcq=1, q3 is is_mcq=0
+    assert {h.question_number for h in search(q, db_path=populated_db, kind="mcq")} == {1, 2}
+    assert {h.question_number for h in search(q, db_path=populated_db, kind="theory")} == {3}
+    # an unknown kind falls back to 'all'
+    assert {h.question_number for h in search(q, db_path=populated_db, kind="bogus")} == {1, 2, 3}

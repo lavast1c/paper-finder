@@ -133,6 +133,19 @@ def test_pdfs_disabled(corpus):
     assert top["pdf_url"] is None
 
 
+def test_search_kind_filter(client):
+    q = "ball quantity block rests slope"  # spans q1/q2 (mcq) and q3 (theory)
+    all_nums = {r["question_number"] for r in client.get(
+        "/api/search", params={"q": q}).json()["results"]}
+    assert all_nums == {1, 2, 3}
+
+    mcq = client.get("/api/search", params={"q": q, "kind": "mcq"}).json()["results"]
+    assert {r["question_number"] for r in mcq} == {1, 2}
+
+    theory = client.get("/api/search", params={"q": q, "kind": "theory"}).json()["results"]
+    assert {r["question_number"] for r in theory} == {3}
+
+
 def test_structured_answer_passed_through(client):
     body = client.get("/api/search", params={"q": "block rests rough slope equilibrium"}).json()
     top = body["results"][0]

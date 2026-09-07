@@ -78,6 +78,17 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 html { min-height: 100%; }
 
 body {
@@ -245,6 +256,24 @@ form#search {
   box-shadow: var(--shadow-md), var(--edge);
 }
 
+/* ---- question-type filter ---- */
+#kind {
+  flex: 0 0 auto;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--edge);
+  cursor: pointer;
+}
+#kind:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--edge), 0 0 0 3px var(--focus-ring);
+}
+
 .whoami { margin: 0 0 1rem; color: var(--text-muted); font-size: 0.85rem; }
 .linkbtn {
   font: inherit;
@@ -405,17 +434,6 @@ ol#results li {
   color: var(--accent-ink);
 }
 .ms-line { margin: 0.18rem 0; }
-.ms-mark {
-  display: inline-block;
-  margin: 0.15rem 0.3rem 0.1rem 0;
-  padding: 0.02rem 0.45rem;
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-sm);
-}
 .ms-or {
   display: block;
   margin: 0.4rem 0 0.2rem;

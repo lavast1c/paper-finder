@@ -147,11 +147,11 @@ def create_app(
         return {"ok": True}
 
     @app.get("/api/search")
-    def api_search(q: str = "", limit: int = DEFAULT_LIMIT) -> dict:
+    def api_search(q: str = "", limit: int = DEFAULT_LIMIT, kind: str = "all") -> dict:
         if _supabase_env():  # cloud mode: the browser queries Supabase directly
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         limit = max(1, min(limit, MAX_LIMIT))
-        hits = search(q, limit=limit, db_path=db_path)
+        hits = search(q, limit=limit, db_path=db_path, kind=kind)
         return {
             "query": q,
             "count": len(hits),
