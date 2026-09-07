@@ -130,7 +130,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
   per-question blocks), `search` (FTS5 + BM25), `evaluate`,
   `web` (`create_app(db_path, raw_dir, serve_pdfs)` — FastAPI + a hand-written
-  static page in `web/static/`. Local mode: JSON over `search()`, `/pdf/` gated on
+  static page in `web/static/` (Liquid Glass aesthetic per the `design-language`
+  skill: token-driven `style.css`, theme-aware, full-bleed, opaque + reduced
+  -motion/-transparency fallbacks). Local mode: JSON over `search()`, `/pdf/` gated on
   `parse_filename` + a `papers` row + `serve_pdfs`. `GET /api/config` picks local
   vs cloud mode; in cloud mode `/api/search` + `/api/stats` return 501 and the
   browser calls the Supabase RPC instead), `publish` (local SQLite -> Supabase
