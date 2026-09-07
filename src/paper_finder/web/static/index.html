@@ -25,10 +25,10 @@
       </form>
 
       <form id="code-form" hidden autocomplete="off">
-        <p>Enter the code sent to <span id="code-email"></span>.</p>
+        <p>Enter the 6-digit code sent to <span id="code-email"></span>.</p>
         <div class="gate-row">
-          <input id="code" name="code" inputmode="numeric" pattern="[0-9]*"
-                 maxlength="12" required placeholder="code from the email"
+          <input id="code" name="code" inputmode="numeric" pattern="[0-9]{6}"
+                 maxlength="6" required placeholder="123456"
                  autocomplete="one-time-code">
           <button id="verify-code" type="submit">Verify</button>
         </div>
@@ -50,7 +50,12 @@
   </main>
 
   <footer>
-    <p id="footer-note">
+    <p class="footer-note">
+      Paper Finder is an independent index to help students organize revision
+      papers. It is not affiliated with, endorsed by, or sponsored by Cambridge
+      University Press &amp; Assessment or any other examination board.
+    </p>
+    <p class="footer-note">
       Past papers are &copy; Cambridge Assessment &mdash; for private study use,
       not redistribution.
     </p>

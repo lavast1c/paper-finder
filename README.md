@@ -45,3 +45,7 @@ Vercel setup: [`DEPLOY_PROGRESS.md`](DEPLOY_PROGRESS.md).
 Personal / extracurricular project. CIE past papers are copyright of Cambridge
 Assessment — the downloaded papers and the extracted question bank are **not**
 committed to this repository and are for private study use only.
+
+Paper Finder is an independent index to help students organize revision papers.
+It is not affiliated with, endorsed by, or sponsored by Cambridge University
+Press & Assessment or any other examination board.
