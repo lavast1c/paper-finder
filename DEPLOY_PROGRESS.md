@@ -4,10 +4,9 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
-**NEXT:** All 7 code commits (0–6) are done and pushed. Nothing left in code.
-Remaining work is the **Manual steps** section below — account/dashboard actions
-only the user can do (local `.env` + `paper-finder publish`, Google Cloud OAuth,
-Supabase Google provider + URL config, Vercel import + env vars).
+**NEXT:** Code done + pushed. Step 1 (publish) done — Supabase index is populated
+(34 / 790 / 765). Remaining = Steps 2–5 in **Manual steps**: Google Cloud OAuth
+client, Supabase Google provider + URL config, Vercel import + 2 env vars, verify.
 
 ## Code commits (§7)
 
@@ -23,7 +22,7 @@ Supabase Google provider + URL config, Vercel import + env vars).
 
 - [x] migration `0001_question_bank` applied
 - [x] `get_advisors(security)` clean (no lints)
-- [ ] `paper-finder publish` run for real — papers ____ / questions ____  (USER: needs `.env` SUPABASE_DB_URL)
+- [x] `paper-finder publish` run for real (2026-09-07) — 34 papers / 790 questions / 765 answered; `search_questions('ball thrown horizontally')` returns the right rows
 - [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
 
 Project URL: `https://gfigwnbkzkgwxcdoqxtz.supabase.co`
@@ -87,7 +86,7 @@ This is independent of everything else; do it first.
 4. Verify in the dashboard: **Table Editor** → `papers` (34 rows), `questions`
    (790 rows).
 
-- [ ] Step 1 done — published ____ papers / ____ questions
+- [x] Step 1 done (2026-09-07) — published 34 papers / 790 questions / 765 answered
 
 ---
 
