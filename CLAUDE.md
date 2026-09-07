@@ -40,8 +40,9 @@ answers. `extract.py` needs page-rotation handling. Question papers are fine.
 `DEPLOY_PROGRESS.md`). The local build pipeline is 100% unchanged (still SQLite).
 `paper-finder publish` (new, `[publish]` extra = psycopg) pushes `qp` papers +
 questions (text + flat `answer_text`, no PDFs, no source URLs) to a Supabase
-Postgres index. The deployed page (`api/index.py` → `create_app()`) runs in
-**cloud mode**: `GET /api/config` hands the browser `SUPABASE_URL` +
+Postgres index. The deployed page (root `app.py` → `create_app()`, Vercel's
+FastAPI preset) runs in **cloud mode**: `GET /api/config` hands the browser
+`SUPABASE_URL` +
 `SUPABASE_PUBLISHABLE_KEY`, the browser loads pinned `supabase-js`, signs the user
 in with an **emailed 6-digit code** (`signInWithOtp` + `verifyOtp`, Supabase
 Auth), and calls the `search_questions` RPC directly with the user's JWT. RLS on
@@ -80,11 +81,15 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   `paper-finder publish [--dry-run] [--db-url ...]` — reads `SUPABASE_DB_URL`
   (Supabase **session** pooler, port 5432) from the env or `.env` (gitignored).
   Replace-all, one transaction. NOT part of `build` (network side effect).
-- Deploy = Vercel (`api/index.py`, `vercel.json`, `requirements.txt` = fastapi
-  only). Env on Vercel: `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (both browser-
-  safe). Auth = Supabase email OTP; needs custom SMTP (the built-in sender only
-  emails project-team addresses) + a Magic Link template containing `{{ .Token }}`
-  — configured in the Supabase dashboard, see `DEPLOY_PROGRESS.md`.
+- Deploy = Vercel FastAPI preset: root `app.py` exposes `app = create_app()`
+  (puts `src/` on `sys.path`), `requirements.txt` = fastapi only (keeps PyMuPDF
+  out — the deployed import chain is pymupdf-free), `vercel.json` = region `bom1`
+  + a daily `/api/health` cron. No `api/` dir, no rewrites (the preset routes
+  every path to `app`). Env on Vercel: `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY`
+  (both browser-safe). Auth = Supabase email OTP; needs custom SMTP (the built-in
+  sender only emails project-team addresses) + "Magic Link" / "Confirm sign up"
+  templates containing `{{ .Token }}` — configured in the Supabase dashboard, see
+  `DEPLOY_PROGRESS.md`.
 - Local SQLite schema change during early dev = delete `papers.db` and re-run
   `build` (FTS5 virtual table not migrated). The Supabase schema IS migrated —
   edit `supabase/migrations/` and apply via the Supabase MCP / CLI.
