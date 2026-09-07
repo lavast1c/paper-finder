@@ -418,35 +418,24 @@ ol#results li {
   font-variant-numeric: tabular-nums;
   color: var(--accent-ink);
 }
-/* one creditworthy point: its answer line(s) + the trailing mark code */
-.ms-point {
-  margin: 0.4rem 0;
-  padding-left: 0.7rem;
-  border-left: 2px solid var(--hairline);
-}
 .ms-line { margin: 0.18rem 0; }
-
-/* mark code (A1 / B1 / C1 / M1, incl. parenthesised) — big coloured brackets,
-   set apart from the answer text it credits */
 .ms-mark {
-  display: block;
-  margin-top: 0.25rem;
-  text-align: right;
+  display: inline-block;
+  margin: 0.15rem 0.3rem 0.1rem 0;
+  padding: 0.02rem 0.45rem;
   font-family: var(--mono);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--accent-ink);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
 }
-.ms-mark::before { content: "\3010\00a0"; } /* 【 */
-.ms-mark::after { content: "\00a0\3011"; }  /* 】 */
-
 .ms-or {
   display: block;
-  margin: 0.5rem 0 0.3rem;
-  font-size: 0.74rem;
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
