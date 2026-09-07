@@ -60,7 +60,8 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
 
 - Python 3.11+ (developed on 3.14). `src/` layout, package `paper_finder`.
 - `python -m venv .venv` then `.venv\Scripts\python -m pip install -e ".[dev]"`
-  (PowerShell) — installs PyMuPDF plus pytest/ruff and the `paper-finder` CLI.
+  (PowerShell) — installs PyMuPDF + FastAPI plus pytest/ruff and the
+  `paper-finder` CLI.
 
 ## Build / test / lint
 
@@ -75,8 +76,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
   `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`.
 - Web UI: `pip install -e ".[web]"` then `paper-finder serve [--host 127.0.0.1]
-  [--port 8000] [--no-pdfs]`. `fastapi`/`uvicorn` are the optional `web` extra;
-  `_cmd_serve` imports them lazily so every other command works without them.
+  [--port 8000] [--no-pdfs]`. `fastapi` is a core dep (Vercel needs it); only
+  `uvicorn` is the optional `web` extra, lazily imported in `_cmd_serve` so every
+  other command works without it.
 - Publish to the deployed Supabase index: `pip install -e ".[publish]"` then
   `paper-finder publish [--dry-run] [--db-url ...]` — reads `SUPABASE_DB_URL`
   (Supabase **session** pooler, port 5432) from the env or `.env` (gitignored).
