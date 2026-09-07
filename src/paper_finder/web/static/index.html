@@ -15,8 +15,25 @@
 
   <main>
     <section id="gate" hidden>
-      <p>Sign in to search the question bank.</p>
-      <button id="signin" type="button">Continue with Google</button>
+      <form id="email-form" autocomplete="off">
+        <p>Enter your email and we&rsquo;ll send you a sign-in code.</p>
+        <div class="gate-row">
+          <input id="email" name="email" type="email" required
+                 placeholder="you@example.com" autocomplete="email">
+          <button id="send-code" type="submit">Send code</button>
+        </div>
+      </form>
+
+      <form id="code-form" hidden autocomplete="off">
+        <p>Enter the 6-digit code sent to <span id="code-email"></span>.</p>
+        <div class="gate-row">
+          <input id="code" name="code" inputmode="numeric" pattern="[0-9]*"
+                 maxlength="6" required placeholder="123456" autocomplete="one-time-code">
+          <button id="verify-code" type="submit">Verify</button>
+        </div>
+        <button id="code-back" type="button" class="linkbtn">Use a different email</button>
+      </form>
+
       <p id="gate-status" role="status" aria-live="polite"></p>
     </section>
 

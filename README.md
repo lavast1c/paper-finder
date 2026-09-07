@@ -25,10 +25,11 @@ localhost only; no login; reads the local `papers.db` and `data/raw/`.
 ## Deployed (Vercel + Supabase)
 
 The same app runs on Vercel in **cloud mode**: it serves only the static page,
-`/api/config` and `/api/health`; the browser signs in with Google (Supabase
-Auth) and queries a Supabase Postgres index directly. That index holds question
-text + answers **only** — never the PDFs, which stay on the author's machine.
-Any signed-in Google account can search ("allow all emails for now").
+`/api/config` and `/api/health`; the browser signs the user in with a 6-digit
+code emailed by Supabase Auth, then queries a Supabase Postgres index directly.
+That index holds question text + answers **only** — never the PDFs, which stay on
+the author's machine. Anyone who can receive a code at their email can search
+("allow all emails for now").
 
 ```
 pip install -e ".[publish]"
@@ -36,7 +37,7 @@ paper-finder publish          # push the question bank to Supabase (needs SUPABA
 ```
 
 `supabase/migrations/0001_question_bank.sql` is the schema (RLS + a
-`search_questions` RPC). Full deploy runbook and the one-time Google/Supabase/
+`search_questions` RPC). Full deploy runbook and the one-time Supabase / SMTP /
 Vercel setup: [`DEPLOY_PROGRESS.md`](DEPLOY_PROGRESS.md).
 
 ## Notes
