@@ -9,13 +9,18 @@ description = "Identify which past CIE exam paper a question came from"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    # fastapi powers both `paper-finder serve` and the Vercel deployment. It is a
+    # core dependency (not an extra) so Vercel installs it regardless of whether
+    # it reads this file or requirements.txt. pymupdf is only used by the local
+    # ingest/extract pipeline, but stays here so `paper-finder build` works from a
+    # bare install.
+    "fastapi>=0.115",
     "pymupdf>=1.24",
 ]
 
 [project.optional-dependencies]
 web = [
-    "fastapi>=0.110",
-    "uvicorn>=0.29",
+    "uvicorn>=0.29",  # local ASGI server for `paper-finder serve`; Vercel provides its own
 ]
 publish = [
     "psycopg[binary]>=3.1",  # paper-finder publish -> Supabase Postgres
@@ -23,7 +28,6 @@ publish = [
 dev = [
     "pytest>=8",
     "ruff>=0.6",
-    "fastapi>=0.110",
     "uvicorn>=0.29",
     "httpx>=0.27",  # required by fastapi.testclient.TestClient
     "psycopg[binary]>=3.1",

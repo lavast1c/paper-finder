@@ -1,5 +1,7 @@
-# Vercel deployment only. The deployed app serves the static page + /api/config
-# + /api/health; the browser queries Supabase directly. urllib is stdlib; no
-# psycopg (publish is local-only), no pymupdf, no uvicorn (Vercel's runtime
-# provides the ASGI server).
-fastapi>=0.110
+# Vercel runtime dependencies. The deployed app serves the static page +
+# /api/config + /api/health; the browser queries Supabase directly. The whole
+# deployed import chain (app.py -> paper_finder.web.app -> search/db/filenames/
+# config) is stdlib + fastapi only -- no pymupdf, no psycopg, no uvicorn (Vercel
+# provides the ASGI server). Kept in sync with pyproject.toml's [project]
+# dependency on fastapi.
+fastapi>=0.115
