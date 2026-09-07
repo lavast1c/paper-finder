@@ -154,19 +154,26 @@ function answerLong(box, answer) {
     return;
   }
   const wrap = el("div", "value ms");
-  let group = wrap;
+  let group = wrap; // current .ms-part
+  let point = null; // buffer of answer lines up to their mark code
+
   for (const line of lines) {
     if (!line) continue;
     if (MS_PART_RE.test(line)) {
+      point = null;
       group = el("div", "ms-part");
       group.append(el("span", "ms-part-label", line));
       wrap.append(group);
     } else if (line === "OR" || line === "ALTERNATIVE") {
-      group.append(el("span", "ms-or", "OR"));
+      point = null;
+      group.append(el("div", "ms-or", "OR"));
     } else if (MS_MARK_RE.test(line)) {
-      group.append(el("span", "ms-mark", line));
+      if (!point) group.append((point = el("div", "ms-point")));
+      point.append(el("span", "ms-mark", line)); // mark code -> big coloured brackets
+      point = null; // this creditworthy point is done
     } else {
-      group.append(el("div", "ms-line", line));
+      if (!point) group.append((point = el("div", "ms-point")));
+      point.append(el("div", "ms-line", line));
     }
   }
   box.append(wrap);
