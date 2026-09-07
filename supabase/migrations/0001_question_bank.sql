@@ -6,10 +6,10 @@
 -- `paper-finder publish` (replace-all). Contains no paper content in git — this
 -- file is schema only.
 --
--- Access model: every signed-in user (Google OAuth via Supabase Auth) may read
--- the whole corpus. anon may read nothing. "Allow all emails for now" — to add
--- an email allowlist later, swap `using (true)` for `(select private.is_member())`
--- and add that table + SECURITY DEFINER helper.
+-- Access model: every signed-in user (email one-time-code via Supabase Auth) may
+-- read the whole corpus. anon may read nothing. "Allow all emails for now" — to
+-- add an email allowlist later, swap `using (true)` for `(select
+-- private.is_member())` and add that table + SECURITY DEFINER helper.
 
 create table if not exists public.papers (
     id           integer primary key,      -- carried over from local SQLite

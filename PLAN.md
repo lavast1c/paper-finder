@@ -311,13 +311,16 @@ one-time setup: `DEPLOY_PROGRESS.md`.
 - Deployed app (`api/index.py` -> `create_app()`) in **cloud mode**
   (`SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` env): serves the static page +
   `GET /api/config` + `GET /api/health`; the browser loads pinned `supabase-js`,
-  does Google sign-in, calls the RPC with the user's JWT. `/api/search` +
-  `/api/stats` -> 501 in cloud mode. No PDFs, no `papers.db` on Vercel.
+  signs in with an emailed 6-digit code (`signInWithOtp` + `verifyOtp`), calls
+  the RPC with the user's JWT. `/api/search` + `/api/stats` -> 501 in cloud mode.
+  No PDFs, no `papers.db` on Vercel.
 - `vercel.json`: rewrites, `includeFiles` for `web/static`, region `bom1`, a
   daily `/api/health` cron (keeps the free project unpaused). `.vercelignore`
   keeps `papers.db` / `data/raw/` off Vercel (the CLI uploads the working dir).
-- Google OAuth + Auth redirect URLs configured in the Supabase dashboard;
-  `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` in the Vercel project env.
+- Supabase Auth: email provider on, a custom SMTP relay (built-in sender only
+  emails team addresses), Magic Link template edited to contain `{{ .Token }}`
+  (that's what makes `signInWithOtp` send a code, not a link). `SUPABASE_URL` +
+  `SUPABASE_PUBLISHABLE_KEY` in the Vercel project env.
 - Left for later: an email allowlist (swap the RLS `using (true)` for a
   `private.is_member()` check + `allowed_emails` table + a `before-user-created`
   hook).

@@ -2,7 +2,14 @@
 
 const gateEl = document.getElementById("gate");
 const appEl = document.getElementById("app");
-const signinBtn = document.getElementById("signin");
+const emailForm = document.getElementById("email-form");
+const emailInput = document.getElementById("email");
+const sendCodeBtn = document.getElementById("send-code");
+const codeForm = document.getElementById("code-form");
+const codeInput = document.getElementById("code");
+const codeEmailEl = document.getElementById("code-email");
+const verifyCodeBtn = document.getElementById("verify-code");
+const codeBackBtn = document.getElementById("code-back");
 const gateStatus = document.getElementById("gate-status");
 const whoamiEl = document.getElementById("whoami");
 const form = document.getElementById("search");
@@ -16,6 +23,7 @@ const SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 let controller = null;
 let sb = null; // Supabase client in cloud mode; null in local mode
 let ranInitial = false;
+let pendingEmail = null; // email awaiting its one-time code
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -200,6 +208,9 @@ function showApp(email) {
 function showGate(msg) {
   appEl.hidden = true;
   gateEl.hidden = false;
+  codeForm.hidden = true;
+  emailForm.hidden = false;
+  codeInput.value = "";
   gateStatus.textContent = msg || "";
 }
 
@@ -219,23 +230,58 @@ async function boot() {
   document.body.dataset.mode = "cloud";
   if (!window.supabase || !window.supabase.createClient) {
     showGate("Sign-in is unavailable — the auth library did not load. Reload to retry.");
-    signinBtn.disabled = true;
+    sendCodeBtn.disabled = true;
     return;
   }
 
   sb = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
 
-  signinBtn.addEventListener("click", async () => {
-    signinBtn.disabled = true;
-    gateStatus.textContent = "Redirecting to Google…";
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: location.origin + location.pathname },
+  emailForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    if (!email) return;
+    sendCodeBtn.disabled = true;
+    gateStatus.textContent = "Sending code…";
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
     });
+    sendCodeBtn.disabled = false;
     if (error) {
       gateStatus.textContent = error.message;
-      signinBtn.disabled = false;
+      return;
     }
+    pendingEmail = email;
+    codeEmailEl.textContent = email;
+    emailForm.hidden = true;
+    codeForm.hidden = false;
+    gateStatus.textContent = "";
+    codeInput.focus();
+  });
+
+  codeForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = codeInput.value.trim();
+    if (!token || !pendingEmail) return;
+    verifyCodeBtn.disabled = true;
+    gateStatus.textContent = "Verifying…";
+    const { error } = await sb.auth.verifyOtp({
+      email: pendingEmail,
+      token,
+      type: "email",
+    });
+    verifyCodeBtn.disabled = false;
+    if (error) {
+      gateStatus.textContent = error.message;
+      return;
+    }
+    // onAuthStateChange fires with the new session -> showApp()
+  });
+
+  codeBackBtn.addEventListener("click", () => {
+    pendingEmail = null;
+    showGate("");
+    emailInput.focus();
   });
 
   sb.auth.onAuthStateChange((_event, session) => {

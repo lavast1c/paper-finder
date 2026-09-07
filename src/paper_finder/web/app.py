@@ -10,9 +10,10 @@ Two modes, chosen by the browser from ``GET /api/config``:
   run against the local ``papers.db`` and ``data/raw/`` (this is ``paper-finder
   serve``: full detail, PDF deep-links, no login).
 * **cloud** -- ``SUPABASE_URL`` + ``SUPABASE_PUBLISHABLE_KEY`` are set (the Vercel
-  deployment). The page loads ``supabase-js``, does the Google sign-in, and calls
-  the ``search_questions`` RPC directly; the Python app only serves the static
-  page, ``/api/config`` and ``/api/health``. No ``papers.db`` on the server.
+  deployment). The page loads ``supabase-js``, signs the user in with an emailed
+  one-time code (Supabase Auth), and calls the ``search_questions`` RPC directly;
+  the Python app only serves the static page, ``/api/config`` and ``/api/health``.
+  No ``papers.db`` on the server.
 """
 
 from __future__ import annotations
@@ -123,7 +124,7 @@ def create_app(
 
         The publishable key is safe in the browser -- RLS + the ``authenticated``
         grants are the real gate, and it can only reach ``search_questions`` /
-        ``corpus_stats`` after a Google sign-in.
+        ``corpus_stats`` after an email one-time-code sign-in.
         """
         env = _supabase_env()
         return {"supabase_url": env[0], "supabase_key": env[1]} if env else {}

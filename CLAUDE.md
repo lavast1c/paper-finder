@@ -42,11 +42,12 @@ answers. `extract.py` needs page-rotation handling. Question papers are fine.
 questions (text + flat `answer_text`, no PDFs, no source URLs) to a Supabase
 Postgres index. The deployed page (`api/index.py` → `create_app()`) runs in
 **cloud mode**: `GET /api/config` hands the browser `SUPABASE_URL` +
-`SUPABASE_PUBLISHABLE_KEY`, the browser loads pinned `supabase-js`, does **Google
-sign-in** (Supabase Auth), and calls the `search_questions` RPC directly with the
-user's JWT. RLS on `public.papers`/`public.questions` (`for select to
-authenticated using (true)` — "allow all emails for now") + `EXECUTE` granted only
-to `authenticated` is the whole access model; anon gets nothing. No PDFs and no
+`SUPABASE_PUBLISHABLE_KEY`, the browser loads pinned `supabase-js`, signs the user
+in with an **emailed 6-digit code** (`signInWithOtp` + `verifyOtp`, Supabase
+Auth), and calls the `search_questions` RPC directly with the user's JWT. RLS on
+`public.papers`/`public.questions` (`for select to authenticated using (true)` —
+"allow all emails for now") + `EXECUTE` granted only to `authenticated` is the
+whole access model; anon gets nothing. No PDFs and no
 `papers.db` in the cloud. Local `paper-finder serve` (no Supabase env) is
 untouched: SQLite, no login, PDF deep-links. Supabase schema:
 `supabase/migrations/0001_question_bank.sql` (applied via the Supabase MCP;
@@ -81,8 +82,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   Replace-all, one transaction. NOT part of `build` (network side effect).
 - Deploy = Vercel (`api/index.py`, `vercel.json`, `requirements.txt` = fastapi
   only). Env on Vercel: `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (both browser-
-  safe). Google OAuth + Auth redirect URLs are configured in the Supabase
-  dashboard — see `DEPLOY_PROGRESS.md`.
+  safe). Auth = Supabase email OTP; needs custom SMTP (the built-in sender only
+  emails project-team addresses) + a Magic Link template containing `{{ .Token }}`
+  — configured in the Supabase dashboard, see `DEPLOY_PROGRESS.md`.
 - Local SQLite schema change during early dev = delete `papers.db` and re-run
   `build` (FTS5 virtual table not migrated). The Supabase schema IS migrated —
   edit `supabase/migrations/` and apply via the Supabase MCP / CLI.
@@ -107,7 +109,7 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   PDFs are never uploaded anywhere. `.vercelignore` (not `.gitignore`) is what
   keeps `papers.db` / `data/raw/` off Vercel — the `vercel` CLI uploads the
   working dir. The deployed Supabase index (question text + answers, no PDFs) is
-  gated behind Google login.
+  gated behind an email-code login.
 - Code style: ruff (`select = E, F, I, UP, B, DTZ`, line length 100); run
   `ruff format` before committing. Prefer functions that take an explicit
   `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.
