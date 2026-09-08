@@ -48,9 +48,14 @@
     <div id="app" hidden>
       <p id="whoami" class="whoami"></p>
       <form id="search" autocomplete="off">
-        <input id="q" name="q" type="search" list="history"
-               placeholder="A few words from the question&hellip;" autofocus>
-        <datalist id="history"></datalist>
+        <div class="search-field">
+          <input id="q" name="q" type="search"
+                 placeholder="A few words from the question&hellip;" autofocus
+                 role="combobox" aria-expanded="false" aria-controls="history"
+                 aria-autocomplete="list">
+          <div id="history" class="history-panel" role="listbox"
+               aria-label="Recent searches" hidden></div>
+        </div>
         <label class="sr-only" for="kind">Paper type</label>
         <div class="select-wrap">
           <select id="kind" name="kind">

@@ -15,12 +15,16 @@ const whoamiEl = document.getElementById("whoami");
 const form = document.getElementById("search");
 const input = document.getElementById("q");
 const kindEl = document.getElementById("kind");
-const historyEl = document.getElementById("history"); // <datalist> of past queries
+const historyEl = document.getElementById("history"); // custom recent-search panel
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const corpusEl = document.getElementById("corpus");
 
-// --- recent-search history (per-browser convenience, localStorage) ----------
+// --- recent-search history --------------------------------------------------
+//
+// A small custom dropdown under the search box (not a native <datalist>, which
+// renders like browser autofill and can't be styled). The list is kept in
+// localStorage as a per-device convenience — cleared with the ✕ Clear row.
 
 const HISTORY_KEY = "paper-finder.history";
 const HISTORY_MAX = 8;
@@ -34,27 +38,59 @@ function loadHistory() {
   }
 }
 
-function renderHistory(items) {
+function saveHistory(items) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+  } catch {
+    /* private mode / quota — history just won't persist */
+  }
+}
+
+let historyItems = loadHistory();
+
+function closeHistory() {
   if (!historyEl) return;
-  historyEl.replaceChildren(
-    ...items.map((q) => {
-      const o = document.createElement("option");
-      o.value = q;
-      return o;
-    }),
-  );
+  historyEl.hidden = true;
+  input.setAttribute("aria-expanded", "false");
+}
+
+function openHistory() {
+  if (!historyEl || historyItems.length === 0 || input.value.trim()) {
+    closeHistory();
+    return;
+  }
+  historyEl.replaceChildren();
+  historyItems.forEach((q) => {
+    const item = el("button", "history-item", q);
+    item.type = "button";
+    item.setAttribute("role", "option");
+    item.addEventListener("mousedown", (e) => {
+      e.preventDefault(); // keep focus on the input; don't fire blur first
+      input.value = q;
+      closeHistory();
+      run();
+    });
+    historyEl.append(item);
+  });
+  const clear = el("button", "history-clear", "✕ Clear recent searches");
+  clear.type = "button";
+  clear.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    historyItems = [];
+    saveHistory(historyItems);
+    closeHistory();
+  });
+  historyEl.append(clear);
+  historyEl.hidden = false;
+  input.setAttribute("aria-expanded", "true");
 }
 
 function rememberQuery(q) {
-  const items = loadHistory().filter((s) => s.toLowerCase() !== q.toLowerCase());
-  items.unshift(q);
-  const trimmed = items.slice(0, HISTORY_MAX);
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
-  } catch {
-    /* private mode / quota — the dropdown just won't persist */
-  }
-  renderHistory(trimmed);
+  historyItems = [q, ...historyItems.filter((s) => s.toLowerCase() !== q.toLowerCase())].slice(
+    0,
+    HISTORY_MAX,
+  );
+  saveHistory(historyItems);
 }
 
 const SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
@@ -103,6 +139,7 @@ function cloudRow(d) {
     question_text: d.question_text,
     answer: d.answer_text,
     marks: d.marks,
+    has_figure: d.has_figure,
     // no pdf_url — the deployed site has no PDFs
   };
 }
@@ -296,6 +333,10 @@ function renderResult(r, rank) {
   li.append(title);
 
   li.append(questionBlock(r.question_text));
+  if (r.has_figure) {
+    const tail = r.pdf_url ? "check the PDF" : "see the original paper";
+    li.append(el("p", "figure-note", `◧ Has a diagram, graph or table — ${tail}`));
+  }
   li.append(answerBlock(r.answer));
 
   if (r.pdf_url) {
@@ -357,10 +398,23 @@ form.addEventListener("submit", (e) => {
 // native "search" event fires on the type=search ✕ clear button and on Esc;
 // "input" covers typing the field empty. Either way: wipe the stale results.
 function onQueryInput() {
-  if (!input.value.trim()) resetSearch();
+  if (!input.value.trim()) {
+    resetSearch();
+    openHistory();
+  } else {
+    closeHistory();
+  }
 }
 input.addEventListener("input", onQueryInput);
 input.addEventListener("search", onQueryInput);
+input.addEventListener("focus", openHistory);
+input.addEventListener("blur", closeHistory);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !historyEl.hidden) {
+    e.stopPropagation();
+    closeHistory();
+  }
+});
 
 if (kindEl) {
   kindEl.addEventListener("change", () => {
@@ -386,7 +440,7 @@ function showApp(email) {
   }
 
   loadStats();
-  renderHistory(loadHistory());
+  historyItems = loadHistory();
   if (!ranInitial) {
     ranInitial = true;
     const initial = new URLSearchParams(location.search).get("q");

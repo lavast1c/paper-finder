@@ -2,6 +2,7 @@ from paper_finder.segment import (
     _split_stem_and_options,
     is_noise,
     looks_like_mcq,
+    mentions_figure,
     segment_mcq,
     segment_structured,
 )
@@ -93,6 +94,26 @@ def test_split_stem_uses_last_valid_option_block():
     assert "stem text?" in " ".join(stem)
     assert options["A"] == ["one"]
     assert options["D"] == ["four"]
+
+
+def test_mentions_figure():
+    assert mentions_figure("Fig. 1.1 shows the arrangement of the apparatus.")
+    assert mentions_figure("The diagram shows a metal block.")
+    assert mentions_figure("The graph shows the variation with time of the velocity.")
+    assert mentions_figure("Complete Table 7.1 to show the charges on each quark.")
+    assert not mentions_figure("A ball is thrown horizontally with a speed of 10 m/s.")
+    assert not mentions_figure("State what is meant by a fundamental particle.")
+
+
+def test_segment_sets_has_figure():
+    mcq = segment_mcq(_mcq_lines(n=2))
+    assert all(q.has_figure is False for q in mcq)  # "Stem for question N" — no figure
+
+    lines = _structured_lines()
+    lines[8] = _line("Fig. 2.1 shows a block on a rough slope.", page=6)
+    q1, q2 = segment_structured(lines)
+    assert q1.has_figure is False
+    assert q2.has_figure is True
 
 
 def test_noise_matches_furniture_but_not_questions():

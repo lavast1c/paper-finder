@@ -34,7 +34,7 @@ ORDER BY p.id
 """
 
 _QUESTIONS_SQL = """
-SELECT q.id, q.paper_id, q.question_number, q.question_text, q.marks,
+SELECT q.id, q.paper_id, q.question_number, q.question_text, q.marks, q.has_figure,
        (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1)
 FROM questions q
 JOIN papers p ON p.id = q.paper_id
@@ -49,8 +49,8 @@ _INSERT_PAPERS = (
 )
 _INSERT_QUESTIONS = (
     "INSERT INTO public.questions "
-    "(id, paper_id, question_number, question_text, marks, answer_text) "
-    "VALUES (%s, %s, %s, %s, %s, %s)"
+    "(id, paper_id, question_number, question_text, marks, has_figure, answer_text) "
+    "VALUES (%s, %s, %s, %s, %s, %s, %s)"
 )
 
 
@@ -122,7 +122,7 @@ def publish(
     report = PublishReport(
         papers=len(papers),
         questions=len(questions),
-        answers=sum(1 for q in questions if q[5] is not None),
+        answers=sum(1 for q in questions if q[6] is not None),
         dry_run=dry_run,
     )
     if dry_run:

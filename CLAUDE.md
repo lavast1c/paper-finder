@@ -19,7 +19,7 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open. Corpus: 9702
 s24/w24/s25/w25/s26 + m26, Papers 1 & 2, variants 1-4 where they exist
 (s25/w25/s26 all have a 4th variant `qp_14/24`) = 38 question papers,
-883 questions, 858 answers linked.
+883 questions, 858 answers linked, 272 flagged `has_figure`.
 `evaluate` = ~76% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
@@ -41,8 +41,8 @@ answers. `extract.py` needs page-rotation handling. Question papers are fine.
 **Stage 7b — deployed** to Vercel + Supabase (`~/.claude/plans/yes-can-you-...md`,
 `DEPLOY_PROGRESS.md`). The local build pipeline is 100% unchanged (still SQLite).
 `paper-finder publish` (new, `[publish]` extra = psycopg) pushes `qp` papers +
-questions (text + flat `answer_text`, no PDFs, no source URLs) to a Supabase
-Postgres index. The deployed page (root `app.py` → `create_app()`, Vercel's
+questions (text + flat `answer_text` + `has_figure`, no PDFs, no source URLs)
+to a Supabase Postgres index. The deployed page (root `app.py` → `create_app()`, Vercel's
 FastAPI preset) runs in **cloud mode**: `GET /api/config` hands the browser
 `SUPABASE_URL` +
 `SUPABASE_PUBLISHABLE_KEY`, the browser loads pinned `supabase-js`, signs the user
@@ -54,7 +54,9 @@ whole access model; anon gets nothing. No PDFs and no
 `papers.db` in the cloud. Local `paper-finder serve` (no Supabase env) is
 untouched: SQLite, no login, PDF deep-links. Supabase schema:
 `supabase/migrations/0001_question_bank.sql` + `0002_search_kind_filter.sql`
-(applied via the Supabase MCP; `get_advisors` clean). Project ref
++ `0003_question_has_figure.sql` (adds `questions.has_figure` + the RPC's
+`has_figure` column; applied via the Supabase MCP; `get_advisors` clean —
+re-run `paper-finder publish` to populate the column). Project ref
 `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
 Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
@@ -62,13 +64,19 @@ Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
 local splits on `questions.is_mcq`, cloud on `papers.paper` (no `is_mcq`
 column in the published index). The web UI exposes it as a custom-styled
 `<select id="kind">` (`.select-wrap` + CSS chevron + solid `--field-bg` +
-themed `option`s). The search box has a recent-query dropdown (`<datalist
-id="history">` fed from `localStorage` `paper-finder.history`, last 8), and
-clearing the box wipes the stale results (`resetSearch`). Bare CIE mark codes
-(`B1`/`M1`/`A1`/`C1` alone on a line) are dropped from the rendered mark
-scheme (`app.js` `answerLong`). Question text `<mark>`s the runs that matched
-the query (`setQueryTerms` + `appendText`, `--hl-bg`/`--hl-ink` tokens,
-`\b(term)\w{0,3}\b` so "force" also hits "forces"); answers aren't highlighted.
+themed `option`s). The search box has a **custom** recent-search dropdown
+(`#history` div, not a native `<datalist>` — that looked like browser
+autofill and couldn't be styled): `openHistory`/`closeHistory` on focus/blur,
+`historyItems` persisted in `localStorage` `paper-finder.history` (last 8),
+with a "✕ Clear recent searches" row. Clearing the box wipes stale results
+(`resetSearch`). Bare CIE mark codes (`B1`/`M1`/`A1`/`C1` alone on a line) are
+dropped from the rendered mark scheme (`app.js` `answerLong`). Question text
+`<mark>`s the runs that matched the query (`setQueryTerms` + `appendText`,
+`--hl-bg`/`--hl-ink` tokens, `\b(term)\w{0,3}\b` so "force" also hits
+"forces"); answers aren't highlighted. Results whose question refers to a
+diagram/graph/table (`questions.has_figure`, set in `segment` by the
+`_FIGURE_REF` text heuristic — "Fig. 1.1", "the diagram shows", "Table 7.1"…)
+show a `◧ Has a diagram, graph or table — check the PDF` note (`.figure-note`).
 
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 

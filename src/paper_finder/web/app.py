@@ -49,7 +49,7 @@ def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
     """A :class:`SearchHit` as the JSON object the browser consumes."""
     page = hit.page_start or 1
     session_name = SESSIONS.get(hit.session, hit.session)
-    data = asdict(hit)  # the 12 dataclass fields (raw bm25 ``score`` included)
+    data = asdict(hit)  # every dataclass field, incl. has_figure + raw bm25 ``score``
     data["session_name"] = session_name
     data["paper_variant"] = hit.paper_variant
     data["page"] = page

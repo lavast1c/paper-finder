@@ -84,6 +84,30 @@ _BARCODE_FONT = re.compile(r"[Ā-ɏ]")
 _JUNK_SYMBOLS = frozenset("¬¦¤¥§")
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b-\x1f]")
 
+# The question leans on something the text extraction can't carry: a labelled
+# figure, a diagram/graph, or a table. Used to flag "check the original PDF" in
+# the UI. Tuned against the 9702 corpus (CIE is rigid about "Fig. 1.1" labels
+# and "The diagram shows" / "The graph shows" phrasing).
+_FIGURE_REF = re.compile(
+    r"""
+      \bfig(?:s|ure|ures)?\.?\s*\d                          # Fig. 1.1 / Figure 2 / Figs 1.1
+    | \bdiagram\b
+    | \bgraph\s+(?:shows|below|above|is\ shown|represents)
+    | \b(?:table)\s+\d                                      # Table 1.1 (extraction mangles tables)
+    | \bshows?\s+(?:the\s+)?(?:variation|arrangement|apparatus|circuit|path|
+                              forces?|set-?up|shape|structure)
+    | \bshown\s+(?:in\s+the\s+)?(?:diagram|figure|graph|circuit|arrangement|below)
+    | \bimage\b | \bphotograph\b
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def mentions_figure(text: str) -> bool:
+    """Whether a question's text points at a diagram/graph/table (see ``_FIGURE_REF``)."""
+    return bool(_FIGURE_REF.search(text))
+
+
 _QSTART = re.compile(r"^(\d{1,2})(?:\s+(.*\S))?\s*$")
 _BARE_NUMBER = re.compile(r"^(\d{1,2})$")
 _TOTAL = re.compile(r"^\[\s*total\s*:\s*(\d+)\s*\]", re.IGNORECASE)
@@ -99,6 +123,7 @@ class Question:
     page_start: int
     marks: int | None = 1
     is_mcq: bool = True
+    has_figure: bool = False
 
 
 @dataclass
@@ -219,11 +244,13 @@ def segment_mcq(lines: list[dict]) -> list[Question]:
     for idx, start_i in enumerate(starts):
         end_i = starts[idx + 1] if idx + 1 < len(starts) else len(content)
         block = content[start_i:end_i]
+        text = _format_mcq_question(block)
         questions.append(
             Question(
                 number=idx + 1,
-                text=_format_mcq_question(block),
+                text=text,
                 page_start=block[0]["page"],
+                has_figure=mentions_figure(text),
             )
         )
     return questions
@@ -286,13 +313,15 @@ def segment_structured(lines: list[dict]) -> list[Question]:
             ),
             None,
         )
+        text = _format_structured_question(block)
         questions.append(
             Question(
                 number=idx + 1,
-                text=_format_structured_question(block),
+                text=text,
                 page_start=block[0]["page"],
                 marks=marks,
                 is_mcq=False,
+                has_figure=mentions_figure(text),
             )
         )
     return questions
@@ -306,13 +335,15 @@ def segment_paper(lines: list[dict]) -> list[Question]:
 
 
 _UPSERT_QUESTION = """
-INSERT INTO questions (paper_id, question_number, question_text, marks, is_mcq, page_start)
-VALUES (:paper_id, :number, :text, :marks, :is_mcq, :page_start)
+INSERT INTO questions
+    (paper_id, question_number, question_text, marks, is_mcq, page_start, has_figure)
+VALUES (:paper_id, :number, :text, :marks, :is_mcq, :page_start, :has_figure)
 ON CONFLICT(paper_id, question_number) DO UPDATE SET
     question_text = excluded.question_text,
     marks         = excluded.marks,
     is_mcq        = excluded.is_mcq,
-    page_start    = excluded.page_start
+    page_start    = excluded.page_start,
+    has_figure    = excluded.has_figure
 """
 
 
@@ -354,6 +385,7 @@ def segment_all(
                         "marks": question.marks,
                         "is_mcq": 1 if question.is_mcq else 0,
                         "page_start": question.page_start,
+                        "has_figure": 1 if question.has_figure else 0,
                     },
                 )
             report.segmented[paper["filename"]] = len(questions)

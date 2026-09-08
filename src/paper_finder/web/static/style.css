@@ -262,6 +262,61 @@ form#search {
   box-shadow: var(--shadow-md), var(--edge);
 }
 
+/* ---- search box + its recent-search dropdown ---- */
+.search-field {
+  position: relative;
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+}
+.search-field #q { flex: 1 1 auto; }
+
+.history-panel {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0.3rem;
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-md), var(--edge);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.history-item,
+.history-clear {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-item:hover,
+.history-item:focus-visible {
+  background: var(--surface-strong);
+  box-shadow: none;
+}
+.history-clear {
+  margin-top: 0.2rem;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.history-clear:hover { color: var(--accent-ink); box-shadow: none; }
+
 /* ---- question-type filter ---- */
 .select-wrap {
   position: relative;
@@ -374,6 +429,17 @@ ol#results li {
   box-shadow: var(--edge);
   max-height: 20em;
   overflow-y: auto;
+}
+
+/* "this question leans on a diagram the text can't show" */
+.figure-note {
+  margin: 0.5rem 0 0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--accent-ink);
+  background: var(--surface-strong);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
 }
 
 /* runs of the question text that matched the user's search */

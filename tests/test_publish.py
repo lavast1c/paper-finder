@@ -23,11 +23,12 @@ def local_db(tmp_path):
         )
         conn.executemany(
             """INSERT INTO questions
-                   (id, paper_id, question_number, question_text, marks, is_mcq, page_start)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (id, paper_id, question_number, question_text, marks, is_mcq,
+                    page_start, has_figure)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             [
-                (1, 1, 1, "A ball is thrown horizontally.", 1, 1, 4),
-                (2, 1, 2, "A block rests on a slope.", 9, 0, 5),
+                (1, 1, 1, "A ball is thrown horizontally.", 1, 1, 4, 0),
+                (2, 1, 2, "A block rests on a slope, as shown in Fig. 2.1.", 9, 0, 5, 1),
             ],
         )
         conn.execute(
@@ -89,8 +90,9 @@ def test_read_local_only_qp_with_questions(local_db):
     assert [p[7] for p in papers] == ["9702_s26_qp_11.pdf"]  # not the ms, not the empty qp
     assert len(questions) == 2
     assert questions[0][3] == "A ball is thrown horizontally."
-    assert questions[0][5] == "C"  # answer_text flattened in
-    assert questions[1][5] is None
+    assert (questions[0][5], questions[1][5]) == (0, 1)  # has_figure carried through
+    assert questions[0][6] == "C"  # answer_text flattened in, last column
+    assert questions[1][6] is None
 
 
 def test_dry_run_counts_and_sends_nothing(local_db):

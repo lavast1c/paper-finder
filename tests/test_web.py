@@ -24,12 +24,13 @@ def corpus(tmp_path):
         )
         conn.executemany(
             """INSERT INTO questions
-                   (id, paper_id, question_number, question_text, marks, is_mcq, page_start)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (id, paper_id, question_number, question_text, marks, is_mcq,
+                    page_start, has_figure)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             [
-                (1, 1, 1, "A ball is thrown horizontally with a speed of 10 m/s.", 1, 1, 4),
-                (2, 1, 2, "What is an SI base quantity?\nA. ampere\nB. charge", 1, 1, 3),
-                (3, 1, 3, "A block rests on a rough slope in equilibrium.", 9, 0, 5),
+                (1, 1, 1, "A ball is thrown horizontally with a speed of 10 m/s.", 1, 1, 4, 0),
+                (2, 1, 2, "What is an SI base quantity?\nA. ampere\nB. charge", 1, 1, 3, 0),
+                (3, 1, 3, "A block rests on a rough slope in equilibrium.", 9, 0, 5, 1),
             ],
         )
         conn.executemany(
@@ -73,6 +74,14 @@ def test_search_returns_expected_hit(client):
     assert top["paper_variant"] == "11"
     assert top["title"] == "Physics · May/June 2026 · Paper 11 · Q1"
     assert top["pdf_url"] == "/pdf/9702_s26_qp_11.pdf#page=4"
+    assert top["has_figure"] is False
+
+
+def test_search_payload_flags_figure_questions(client):
+    body = client.get("/api/search", params={"q": "block rests rough slope equilibrium"}).json()
+    top = body["results"][0]
+    assert top["question_number"] == 3
+    assert top["has_figure"] is True
 
 
 @pytest.mark.parametrize("q", ["", "   ", "!!!", "()"])
@@ -135,8 +144,9 @@ def test_pdfs_disabled(corpus):
 
 def test_search_kind_filter(client):
     q = "ball quantity block rests slope"  # spans q1/q2 (mcq) and q3 (theory)
-    all_nums = {r["question_number"] for r in client.get(
-        "/api/search", params={"q": q}).json()["results"]}
+    all_nums = {
+        r["question_number"] for r in client.get("/api/search", params={"q": q}).json()["results"]
+    }
     assert all_nums == {1, 2, 3}
 
     mcq = client.get("/api/search", params={"q": q, "kind": "mcq"}).json()["results"]
