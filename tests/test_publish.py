@@ -90,7 +90,7 @@ def test_read_local_only_qp_with_questions(local_db):
     assert [p[7] for p in papers] == ["9702_s26_qp_11.pdf"]  # not the ms, not the empty qp
     assert len(questions) == 2
     assert questions[0][3] == "A ball is thrown horizontally."
-    assert (questions[0][5], questions[1][5]) == (0, 1)  # has_figure carried through
+    assert (questions[0][5], questions[1][5]) == (False, True)  # has_figure -> real bool
     assert questions[0][6] == "C"  # answer_text flattened in, last column
     assert questions[1][6] is None
 
