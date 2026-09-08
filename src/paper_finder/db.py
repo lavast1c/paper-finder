@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS questions (
     marks           INTEGER,
     is_mcq          INTEGER,
     page_start      INTEGER,
+    has_figure      INTEGER NOT NULL DEFAULT 0,   -- question refers to a diagram/graph/table
     UNIQUE (paper_id, question_number)
 );
 

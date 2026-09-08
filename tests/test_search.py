@@ -44,6 +44,7 @@ def test_search_finds_expected_question_first(populated_db):
     assert hits[0].question_number == 1
     assert hits[0].answer == "C"
     assert hits[0].page_start == 4
+    assert hits[0].has_figure is False
     assert hits[0].label == "Physics 2026 s paper 11 Q1"
 
 

@@ -24,6 +24,7 @@ class SearchHit:
     marks: int | None
     answer: str | None
     page_start: int | None
+    has_figure: bool
     score: float
 
     @property
@@ -57,7 +58,7 @@ KINDS = ("all", "mcq", "theory")
 _SEARCH_SQL = """
 SELECT
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
-    q.question_number, q.question_text, q.marks, q.page_start,
+    q.question_number, q.question_text, q.marks, q.page_start, q.has_figure,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     bm25(questions_fts) AS score
 FROM questions_fts
@@ -105,6 +106,7 @@ def search(
             marks=row["marks"],
             answer=row["answer"],
             page_start=row["page_start"],
+            has_figure=bool(row["has_figure"]),
             score=row["score"],
         )
         for row in rows
