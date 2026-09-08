@@ -70,8 +70,16 @@ def read_local(db_path: Path | None = None) -> tuple[list[tuple], list[tuple]]:
     """
     with connect(db_path) as conn:
         papers = [tuple(row) for row in conn.execute(_PAPERS_SQL)]
-        questions = [tuple(row) for row in conn.execute(_QUESTIONS_SQL)]
+        questions = [_question_row(row) for row in conn.execute(_QUESTIONS_SQL)]
     return papers, questions
+
+
+def _question_row(row: tuple) -> tuple:
+    """SQLite row -> INSERT tuple: coerce ``has_figure`` (col 5, stored 0/1) to
+    a real ``bool`` so it lands in the Postgres ``boolean`` column."""
+    values = list(row)
+    values[5] = bool(values[5])
+    return tuple(values)
 
 
 def _read_dotenv(path: Path) -> dict[str, str]:
