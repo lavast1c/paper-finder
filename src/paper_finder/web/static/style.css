@@ -23,6 +23,8 @@
   --btn: #a8352a;                 /* button fill — white text is AA (6.5:1) */
   --accent-ink: #9c2f24;          /* accent text on light panel (AA, 6.6:1) */
   --focus-ring: rgba(178, 58, 46, 0.4);
+  --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
+  --hl-ink: #1c1a18;              /* dark ink on the highlight (AA) */
 
   /* backdrop mesh — static, warm */
   --blob-1: rgba(190, 74, 58, 0.3);
@@ -67,6 +69,8 @@
     --btn: #b23a2e;                /* white text is AA (5.9:1) */
     --accent-ink: #f08a78;         /* accent text on dark panel (AA, 7.3:1) */
     --focus-ring: rgba(240, 138, 120, 0.5);
+    --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
+    --hl-ink: #100e0d;
     --blob-1: rgba(180, 55, 42, 0.4);
     --blob-2: rgba(150, 78, 42, 0.34);
     --blob-3: rgba(140, 52, 54, 0.32);
@@ -370,6 +374,14 @@ ol#results li {
   box-shadow: var(--edge);
   max-height: 20em;
   overflow-y: auto;
+}
+
+/* runs of the question text that matched the user's search */
+.question mark {
+  background: var(--hl-bg);
+  color: var(--hl-ink);
+  border-radius: 2px;
+  padding: 0 1px;
 }
 
 /* structured (theory) question — one row per sub-part */

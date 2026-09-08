@@ -146,6 +146,50 @@ async function loadStats() {
   }
 }
 
+// --- query-term highlighting -----------------------------------------
+
+const STOPWORDS = new Set(
+  "the a an of is in on at to and or with for as by from that this it".split(" "),
+);
+let queryTerms = []; // lowercased search tokens for the current query
+
+function setQueryTerms(q) {
+  const seen = new Set();
+  queryTerms = (q.toLowerCase().match(/[0-9a-z]+/g) || []).filter((t) => {
+    if (t.length < 2 || STOPWORDS.has(t) || seen.has(t)) return false;
+    seen.add(t);
+    return true;
+  });
+}
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Append `text` to `node`, wrapping each run that matches a query term (plus a
+// short suffix, so "force" also lights up "forces"/"forced") in a <mark>.
+function appendText(node, text) {
+  if (!text) return;
+  if (!queryTerms.length) {
+    node.append(document.createTextNode(text));
+    return;
+  }
+  const re = new RegExp("\\b(?:" + queryTerms.map(escapeRegExp).join("|") + ")\\w{0,3}\\b", "gi");
+  let last = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    if (m.index > last) node.append(document.createTextNode(text.slice(last, m.index)));
+    node.append(el("mark", null, m[0]));
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) node.append(document.createTextNode(text.slice(last)));
+}
+
+function textEl(tag, className, text) {
+  const node = el(tag, className);
+  appendText(node, text || "");
+  return node;
+}
+
 // --- rendering --------------------------------------------------------
 
 // Structured (theory) papers label sub-parts "(a) … (b) … (i) … (ii) …" inline
@@ -177,18 +221,18 @@ function questionBlock(text) {
   const box = el("div", "question");
   const parts = text ? splitQuestionParts(text) : null;
   if (!parts) {
-    box.textContent = text || "";
+    appendText(box, text || "");
     return box;
   }
   box.classList.add("question--parts");
   for (const p of parts) {
     if (!p.label) {
-      box.append(el("div", "qpart qpart--intro", p.text));
+      box.append(textEl("div", "qpart qpart--intro", p.text));
       continue;
     }
     const row = el("div", "qpart" + (p.roman ? " qpart--sub" : ""));
     row.append(el("span", "qpart-label", p.label));
-    if (p.text) row.append(el("span", "qpart-text", p.text));
+    if (p.text) row.append(textEl("span", "qpart-text", p.text));
     else row.classList.add("qpart--group");
     box.append(row);
   }
@@ -267,6 +311,7 @@ function renderResult(r, rank) {
 
 function resetSearch() {
   if (controller) controller.abort();
+  queryTerms = [];
   clearResults();
   setStatus("");
   history.replaceState(null, "", location.pathname);
@@ -279,6 +324,7 @@ async function run() {
     return;
   }
   clearResults();
+  setQueryTerms(q);
   history.replaceState(null, "", "?q=" + encodeURIComponent(q));
 
   if (controller) controller.abort();
