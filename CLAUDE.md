@@ -17,15 +17,15 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open. Corpus: 9702
-m24/s24/w24 + s25/w25 + s26 + m26, Papers 1 & 2, variants 1-4 where they
+m24/s24/w24 + m25/s25/w25 + s26 + m26, Papers 1 & 2, variants 1-4 where they
 exist (s25/w25/s26 have a 4th variant `qp_14/24`; the "m" series is
-variant 2 only — `9702_m24_qp_12/22`, `9702_m26_qp_12/22`) = 40 question
-papers, 931 questions, 906 answers linked, 285 flagged `has_figure`.
+variant 2 only — `9702_m24/m25/m26_qp_12/22`) = 42 question
+papers, 978 questions, 953 answers linked, 300 flagged `has_figure`.
 `evaluate` = ~73% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
 Note: CIE 9702 has a **Feb/March ("m") series** (India zone, variant 2 only —
-`m24` and `m26` are both on the mirror) and a **4th variant** (`qp_14/24`, on
+`m24`, `m25`, `m26` all on the mirror) and a **4th variant** (`qp_14/24`, on
 the mirror for s25/w25/s26 — `9702_s24_qp_14/24` etc. 404, they were never
 published); `filenames.py` allows both. The download mirror moved
 to **PapaCambridge** (`pastpapers.papacambridge.com/directories/CAIE/
