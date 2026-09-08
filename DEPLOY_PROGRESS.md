@@ -24,8 +24,10 @@ import + 2 env vars, verify.
 
 - [x] migration `0001_question_bank` applied
 - [x] migration `0002_search_kind_filter` applied (2026-09-07) — `search_questions` gains `kind text default 'all'` (`all`/`mcq`=Paper 1/`theory`=non-1); verified mcq→paper 1 only, theory→paper 2 only
+- [x] migration `0003_question_has_figure` applied (2026-09-08) — `questions.has_figure boolean` + the RPC returns it; verified the function signature
 - [x] `get_advisors(security)` clean (only the unrelated `auth_leaked_password_protection` WARN — N/A, this project is OTP-only)
 - [x] `paper-finder publish` run for real (2026-09-07) — 34 papers / 790 questions / 765 answered; `search_questions('ball thrown horizontally')` returns the right rows
+- [ ] **re-publish pending** — local corpus is now 40 papers / 931 questions / 906 answered and `has_figure` is populated locally but all-`false` in the cloud until `paper-finder publish` is re-run
 - [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
 - [ ] custom SMTP configured (Brevo) — USER, Step 3a
 - [ ] "Magic Link" + "Confirm sign up" email templates contain `{{ .Token }}` (makes it a code, not a link) — USER, Step 3b
