@@ -66,7 +66,9 @@ themed `option`s). The search box has a recent-query dropdown (`<datalist
 id="history">` fed from `localStorage` `paper-finder.history`, last 8), and
 clearing the box wipes the stale results (`resetSearch`). Bare CIE mark codes
 (`B1`/`M1`/`A1`/`C1` alone on a line) are dropped from the rendered mark
-scheme (`app.js` `answerLong`).
+scheme (`app.js` `answerLong`). Question text `<mark>`s the runs that matched
+the query (`setQueryTerms` + `appendText`, `--hl-bg`/`--hl-ink` tokens,
+`\b(term)\w{0,3}\b` so "force" also hits "forces"); answers aren't highlighted.
 
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
