@@ -17,13 +17,15 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open. Corpus: 9702
-s24/w24/s25/w25/s26 + m26 + s26 variant 4, Papers 1 & 2 = 34 question papers,
-790 questions, 765 answers linked.
+s24/w24/s25/w25/s26 + m26, Papers 1 & 2, variants 1-4 where they exist
+(s25/w25/s26 all have a 4th variant `qp_14/24`) = 38 question papers,
+883 questions, 858 answers linked.
 `evaluate` = ~76% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
 Note (2026): CIE 9702 gained a **Feb/March ("m") series** and a **4th variant**
-(`s26_qp_14/24`); `filenames.py` already allowed both. The download mirror moved
+(the 4th variant is on the mirror for s25/w25/s26 — `9702_s25_qp_14/24` etc. —
+not just 2026); `filenames.py` already allowed both. The download mirror moved
 to **PapaCambridge** (`pastpapers.papacambridge.com/directories/CAIE/
 CAIE-pastpapers/upload/<file>`) — Dynamic Papers began 500ing every PDF. That
 mirror answers a missing paper with a 302 to its homepage; `download.
