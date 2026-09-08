@@ -26,7 +26,7 @@ import + 2 env vars, verify.
 - [x] migration `0002_search_kind_filter` applied (2026-09-07) — `search_questions` gains `kind text default 'all'` (`all`/`mcq`=Paper 1/`theory`=non-1); verified mcq→paper 1 only, theory→paper 2 only
 - [x] migration `0003_question_has_figure` applied (2026-09-08) — `questions.has_figure boolean` + the RPC returns it; verified the function signature
 - [x] `get_advisors(security)` clean (only the unrelated `auth_leaked_password_protection` WARN — N/A, this project is OTP-only)
-- [x] `paper-finder publish` run for real — last run 2026-09-08: **40 papers / 931 questions / 906 answered / 285 has_figure** (replace-all, one txn). Cloud row counts verified via `execute_sql`; `search_questions('ball thrown horizontally projectile')` returns 2024 papers with correct `has_figure`. May/June = 22 papers (s24 v1-3, s25/s26 v1-4), Oct/Nov = 14, Feb/March = 4 (m24 + m26, variant 2)
+- [x] `paper-finder publish` run for real — last run 2026-09-08: **42 papers / 978 questions / 953 answered / 300 has_figure** (replace-all, one txn). Cloud row counts verified via `execute_sql`; `search_questions(...)` returns the right rows with correct `has_figure`. Feb/March = 2024/2025/2026 (variant 2), May/June = s24 v1-3 + s25/s26 v1-4, Oct/Nov = w24 v1-3 + w25 v1-4
 - [x] anon curl: table read + `rpc/search_questions` both `permission denied`; `rpc/ping` → `"ok"`
 - [ ] custom SMTP configured (Brevo) — USER, Step 3a
 - [ ] "Magic Link" + "Confirm sign up" email templates contain `{{ .Token }}` (makes it a code, not a link) — USER, Step 3b
