@@ -332,6 +332,24 @@ def test_api_browse_unknown_codes_degrade_to_empty(client):
     assert body["results"] == []
 
 
+def test_api_browse_variant_year_session_filters(client):
+    # the fixture corpus is one s26 Paper 11 (year 2026, session s, variant 1)
+    base = {"topics": "s01,s02,s03,s04"}
+    assert client.get("/api/browse", params={**base, "variants": "1"}).json()["count"] == 3
+    assert client.get("/api/browse", params={**base, "variants": "2"}).json()["count"] == 0
+    assert client.get("/api/browse", params={**base, "years": "2026"}).json()["count"] == 3
+    assert client.get("/api/browse", params={**base, "years": "2024"}).json()["count"] == 0
+    assert client.get("/api/browse", params={**base, "sessions": "w"}).json()["count"] == 0
+    # a hand-edited junk value is dropped, not a 500
+    assert client.get("/api/browse", params={**base, "variants": "abc"}).status_code == 200
+
+
+def test_api_search_variant_filter(client):
+    q = "ball thrown horizontally"
+    assert client.get("/api/search", params={"q": q, "variants": "1"}).json()["count"] >= 1
+    assert client.get("/api/search", params={"q": q, "variants": "3"}).json()["count"] == 0
+
+
 def test_topic_endpoints_501_in_cloud_mode(client, monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")

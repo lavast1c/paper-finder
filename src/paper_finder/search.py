@@ -72,7 +72,7 @@ _TOPIC_CODES_SUBQUERY = (
     "(SELECT group_concat(qt.topic_code) FROM question_topics qt WHERE qt.question_id = q.id)"
 )
 
-_SEARCH_SQL = f"""
+_SEARCH_SELECT = f"""
 SELECT
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
@@ -84,8 +84,6 @@ JOIN questions q ON q.id = questions_fts.rowid
 JOIN papers p ON p.id = q.paper_id
 WHERE questions_fts MATCH :query
   AND {_KIND_FILTER}
-ORDER BY score
-LIMIT :limit
 """
 
 
@@ -99,20 +97,30 @@ def search(
     limit: int = 5,
     db_path: Path | None = None,
     kind: str = "all",
+    years: Sequence[int] | None = None,
+    sessions: Sequence[str] | None = None,
+    variants: Sequence[int] | None = None,
 ) -> list[SearchHit]:
     """Keyword search. ``kind`` filters by question type: ``all`` (default),
-    ``mcq`` (multiple-choice questions only) or ``theory`` (structured only)."""
+    ``mcq`` (multiple-choice questions only) or ``theory`` (structured only).
+    ``years`` / ``sessions`` / ``variants`` narrow to matching papers; an empty
+    or missing axis places no restriction on it."""
     fts_query = build_fts_query(query)
     if not fts_query:
         return []
     if kind not in KINDS:
         kind = "all"
 
+    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    sql = _SEARCH_SELECT
+    if scope_where:
+        sql += "  AND " + "\n  AND ".join(scope_where) + "\n"
+    sql += "ORDER BY score\nLIMIT :limit"
+    params = {"query": fts_query, "limit": limit, "kind": kind, **scope_params}
+
     init_db(db_path)
     with connect(db_path) as conn:
-        rows = conn.execute(
-            _SEARCH_SQL, {"query": fts_query, "limit": limit, "kind": kind}
-        ).fetchall()
+        rows = conn.execute(sql, params).fetchall()
 
     return [
         SearchHit(
@@ -152,11 +160,36 @@ def _in_clause(prefix: str, values: Sequence) -> tuple[str, dict]:
     return "(" + ", ".join(f":{k}" for k in params) + ")", params
 
 
+def _paper_scope(
+    years: Sequence[int] | None,
+    sessions: Sequence[str] | None,
+    variants: Sequence[int] | None,
+) -> tuple[list[str], dict]:
+    """WHERE clauses + bind params restricting ``p`` (papers) by year / session /
+    variant. An empty or missing axis places no restriction on it."""
+    where: list[str] = []
+    params: dict = {}
+    if years:
+        sql, p = _in_clause("y", [int(y) for y in years])
+        where.append(f"p.year IN {sql}")
+        params.update(p)
+    if sessions:
+        sql, p = _in_clause("s", list(sessions))
+        where.append(f"p.session IN {sql}")
+        params.update(p)
+    if variants:
+        sql, p = _in_clause("v", [int(v) for v in variants])
+        where.append(f"p.variant IN {sql}")
+        params.update(p)
+    return where, params
+
+
 def _browse_filters(
     topic_codes: Sequence[str],
     kind: str,
     years: Sequence[int] | None,
     sessions: Sequence[str] | None,
+    variants: Sequence[int] | None,
 ) -> tuple[str, dict]:
     """Shared WHERE fragment + params for ``browse_by_topic`` and its COUNT."""
     codes_sql, params = _in_clause("t", topic_codes)
@@ -166,14 +199,9 @@ def _browse_filters(
         _KIND_FILTER,
     ]
     params["kind"] = kind
-    if years:
-        years_sql, year_params = _in_clause("y", [int(y) for y in years])
-        where.append(f"p.year IN {years_sql}")
-        params.update(year_params)
-    if sessions:
-        sess_sql, sess_params = _in_clause("s", list(sessions))
-        where.append(f"p.session IN {sess_sql}")
-        params.update(sess_params)
+    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    where.extend(scope_where)
+    params.update(scope_params)
     return " AND ".join(where), params
 
 
@@ -183,6 +211,7 @@ def browse_by_topic(
     kind: str = "all",
     years: Sequence[int] | None = None,
     sessions: Sequence[str] | None = None,
+    variants: Sequence[int] | None = None,
     limit: int = 20,
     offset: int = 0,
     db_path: Path | None = None,
@@ -197,7 +226,7 @@ def browse_by_topic(
     if kind not in KINDS:
         kind = "all"
 
-    where, params = _browse_filters(codes, kind, years, sessions)
+    where, params = _browse_filters(codes, kind, years, sessions, variants)
     init_db(db_path)
     with connect(db_path) as conn:
         total = conn.execute(
@@ -238,6 +267,7 @@ def topic_counts(
     kind: str = "all",
     years: Sequence[int] | None = None,
     sessions: Sequence[str] | None = None,
+    variants: Sequence[int] | None = None,
     db_path: Path | None = None,
 ) -> dict:
     """Per-topic question count under the current filters, every topic present
@@ -255,14 +285,9 @@ def topic_counts(
 
     where = [_KIND_FILTER]
     params: dict = {"kind": kind}
-    if years:
-        years_sql, year_params = _in_clause("y", [int(y) for y in years])
-        where.append(f"p.year IN {years_sql}")
-        params.update(year_params)
-    if sessions:
-        sess_sql, sess_params = _in_clause("s", list(sessions))
-        where.append(f"p.session IN {sess_sql}")
-        params.update(sess_params)
+    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    where.extend(scope_where)
+    params.update(scope_params)
     filt = " AND ".join(where)
 
     init_db(db_path)

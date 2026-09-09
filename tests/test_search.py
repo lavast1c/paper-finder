@@ -206,3 +206,76 @@ def test_topic_counts_respects_kind_filter(topic_db):
     assert by_code["s07"]["count"] == 2  # q3, q4
     assert by_code["s08"]["count"] == 1  # q4
     assert result["total"] == 3
+
+
+# ----------------------------------------------------- variant / year / session
+
+
+@pytest.fixture
+def variant_db(tmp_path):
+    """Three s26 Paper-1 papers, variants 1/2/3, one Waves question each."""
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, '9702', 'Physics', ?, ?, 1, ?, 'qp', ?)""",
+            [
+                (1, 2026, "s", 1, "9702_s26_qp_11.pdf"),
+                (2, 2026, "s", 2, "9702_s26_qp_12.pdf"),
+                (3, 2025, "m", 2, "9702_m25_qp_12.pdf"),
+            ],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, 'A transverse wave travels along a string.', 1, 1)""",
+            [(1, 1), (2, 2), (3, 3)],
+        )
+        conn.executemany(
+            "INSERT INTO question_topics (question_id, topic_code) VALUES (?, 's07')",
+            [(1,), (2,), (3,)],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    return db_path
+
+
+def test_search_variant_filter(variant_db):
+    q = "transverse wave string"
+    assert {h.variant for h in search(q, db_path=variant_db)} == {1, 2}
+    assert {h.filename for h in search(q, db_path=variant_db, variants=[2])} == {
+        "9702_s26_qp_12.pdf",
+        "9702_m25_qp_12.pdf",
+    }
+    assert {h.filename for h in search(q, db_path=variant_db, variants=["1"])} == {
+        "9702_s26_qp_11.pdf"
+    }
+
+
+def test_search_year_and_session_filter(variant_db):
+    q = "transverse wave string"
+    assert {h.filename for h in search(q, db_path=variant_db, years=[2025])} == {
+        "9702_m25_qp_12.pdf"
+    }
+    assert {h.filename for h in search(q, db_path=variant_db, sessions=["m"])} == {
+        "9702_m25_qp_12.pdf"
+    }
+    # combined filters intersect
+    assert search(q, db_path=variant_db, years=[2026], sessions=["m"]) == []
+
+
+def test_browse_variant_filter(variant_db):
+    _, total = browse_by_topic(["s07"], db_path=variant_db)
+    assert total == 3
+    page, total = browse_by_topic(["s07"], variants=[2], db_path=variant_db)
+    assert total == 2
+    assert {h.filename for h in page} == {"9702_s26_qp_12.pdf", "9702_m25_qp_12.pdf"}
+
+
+def test_topic_counts_variant_filter(variant_db):
+    result = topic_counts(variants=[1], db_path=variant_db)
+    by_code = {t["code"]: t for t in result["topics"]}
+    assert by_code["s07"]["count"] == 1
+    assert result["total"] == 1
