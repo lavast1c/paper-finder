@@ -90,35 +90,29 @@
         </div>
         <div class="filterbar-fields">
           <div class="fb-field">
-            <label class="fb-label" for="f-paper">Paper(s)</label>
-            <span class="select-wrap">
-              <select id="f-paper">
-                <option value="">Any paper</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
-            </span>
+            <span class="fb-label" id="lbl-paper">Paper(s)</span>
+            <div class="fb-toggles" id="f-paper" role="group" aria-labelledby="lbl-paper">
+              <button type="button" class="fb-toggle" data-v="1" aria-pressed="false">1</button>
+              <button type="button" class="fb-toggle" data-v="2" aria-pressed="false">2</button>
+              <button type="button" class="fb-toggle" data-v="3" aria-pressed="false">3</button>
+              <button type="button" class="fb-toggle" data-v="4" aria-pressed="false">4</button>
+            </div>
           </div>
           <div class="fb-field">
-            <label class="fb-label" for="f-year">Year(s)</label>
-            <span class="select-wrap">
-              <select id="f-year">
-                <option value="">Any year</option>
-              </select>
-            </span>
+            <span class="fb-label" id="lbl-year">Year(s)</span>
+            <div class="fb-toggles" id="f-year" role="group" aria-labelledby="lbl-year">
+              <button type="button" class="fb-toggle" data-v="2026" aria-pressed="false">2026</button>
+              <button type="button" class="fb-toggle" data-v="2025" aria-pressed="false">2025</button>
+              <button type="button" class="fb-toggle" data-v="2024" aria-pressed="false">2024</button>
+            </div>
           </div>
           <div class="fb-field">
-            <label class="fb-label" for="f-season">Season(s)</label>
-            <span class="select-wrap">
-              <select id="f-season">
-                <option value="">Any season</option>
-                <option value="s">May/June</option>
-                <option value="m">Feb/March</option>
-                <option value="w">Oct/Nov</option>
-              </select>
-            </span>
+            <span class="fb-label" id="lbl-season">Season(s)</span>
+            <div class="fb-toggles" id="f-season" role="group" aria-labelledby="lbl-season">
+              <button type="button" class="fb-toggle" data-v="s" aria-pressed="false">May/June</button>
+              <button type="button" class="fb-toggle" data-v="m" aria-pressed="false">Feb/March</button>
+              <button type="button" class="fb-toggle" data-v="w" aria-pressed="false">Oct/Nov</button>
+            </div>
           </div>
           <div class="fb-field fb-field--topic">
             <label class="fb-label" for="f-topic">Topic</label>

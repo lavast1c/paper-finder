@@ -148,22 +148,6 @@ header {
 }
 h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
 .corpus { width: 100%; margin: 0.15rem 0 0; color: var(--text-muted); font-size: 0.8rem; }
-#corpus-updated { margin-left: auto; }  /* float the freshness badge to the right of the title */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  padding: 0.28em 0.75em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--accent-ink);
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  box-shadow: var(--edge);
-}
 
 /* ---- main content column ---- */
 main {
@@ -584,9 +568,6 @@ ol#results li {
 
 /* ---------- topic-browse page ---------- */
 
-/* The Topic dropdown gets a little more room than the scope filters beside it. */
-.fb-field--topic { flex: 1.6 1 12rem; }
-
 /* ---- filter bar (curriculum / subject + paper / year / season / topic) ---- */
 .filterbar {
   display: flex;
@@ -635,14 +616,16 @@ ol#results li {
 .filterbar-fields {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem 0.7rem;
+  align-items: flex-start;
+  gap: 0.7rem 1.1rem;
 }
 .fb-field {
-  flex: 1 1 8.5rem;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
 }
+.fb-field--topic { flex: 1 1 11rem; }  /* the lone <select> — grow to fill the row */
 .fb-label {
   font-size: 0.72rem;
   font-weight: 700;
@@ -652,6 +635,33 @@ ol#results li {
 }
 .fb-field .select-wrap { display: flex; }
 .filterbar .linkbtn { align-self: flex-start; }
+
+/* multi-select toggles — Paper(s) / Year(s) / Season(s): tap to add, tap to drop */
+.fb-toggles { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.fb-toggle {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.42rem 0.7rem;
+  color: var(--text);
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--edge);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out);
+}
+.fb-toggle:hover { border-color: var(--accent-ink); }
+.fb-toggle[aria-pressed="true"] {
+  color: var(--primary-ink);
+  background: var(--btn);
+  border-color: var(--btn);
+}
+.fb-toggle:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--edge), 0 0 0 3px var(--focus-ring);
+}
 
 .card {
   margin-top: 1rem;
@@ -783,6 +793,7 @@ footer {
   button[type="submit"],
   #send-code,
   #verify-code,
+  .fb-toggle,
   .card-arrow { transition: none; }
   button:active { transform: none; }
 }
