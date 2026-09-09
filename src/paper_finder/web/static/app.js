@@ -7,9 +7,9 @@ const { el } = PF;
 
 const form = document.getElementById("search");
 const input = document.getElementById("q");
-const paperEl = document.getElementById("f-paper"); // CIE variant number
-const yearEl = document.getElementById("f-year");
-const seasonEl = document.getElementById("f-season"); // CIE session letter
+const paperEl = document.getElementById("f-paper"); // toggle group: CIE variant numbers
+const yearEl = document.getElementById("f-year"); // toggle group: years
+const seasonEl = document.getElementById("f-season"); // toggle group: CIE session letters
 const historyEl = document.getElementById("history"); // custom recent-search panel
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
@@ -103,10 +103,15 @@ function clearResults() {
 // --- search sources ------------------------------------------------------
 
 // The filter bar: Paper(s) = CIE variant number, Season(s) = session letter.
-// Empty = no restriction on that axis.
+// Each is a group of multi-select toggle buttons; no button pressed = no
+// restriction on that axis.
+function pressed(groupEl) {
+  return groupEl
+    ? [...groupEl.querySelectorAll('.fb-toggle[aria-pressed="true"]')].map((b) => b.dataset.v)
+    : [];
+}
 function scope() {
-  const one = (el) => (el && el.value ? [el.value] : []);
-  return { variants: one(paperEl), years: one(yearEl), sessions: one(seasonEl) };
+  return { variants: pressed(paperEl), years: pressed(yearEl), sessions: pressed(seasonEl) };
 }
 
 async function localSearch(q) {
@@ -229,12 +234,14 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-for (const sel of [paperEl, yearEl, seasonEl]) {
-  if (sel) {
-    sel.addEventListener("change", () => {
-      if (input.value.trim()) run();
-    });
-  }
+for (const group of [paperEl, yearEl, seasonEl]) {
+  if (!group) continue;
+  group.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fb-toggle");
+    if (!btn || !group.contains(btn)) return;
+    btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    if (input.value.trim()) run();
+  });
 }
 
 // --- boot ------------------------------------------------------------

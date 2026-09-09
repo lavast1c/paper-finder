@@ -8,9 +8,9 @@
 
 const { el } = PF;
 
-const paperEl = document.getElementById("f-paper"); // CIE variant number
-const seasonEl = document.getElementById("f-season"); // CIE session letter
-const yearEl = document.getElementById("f-year");
+const paperEl = document.getElementById("f-paper"); // toggle group: CIE variant numbers
+const seasonEl = document.getElementById("f-season"); // toggle group: CIE session letters
+const yearEl = document.getElementById("f-year"); // toggle group: years
 const topicEl = document.getElementById("f-topic"); // syllabus section; deck stays hidden until one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
@@ -33,13 +33,15 @@ const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
 const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this close to the end
-const YEARS = [2026, 2025, 2024]; // corpus range; a one-line change when it grows
 
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
 let selected = new Set(); // the picked topic (0 or 1 code); a Set keeps the deck/browse plumbing unchanged
-// Paper(s) = CIE variant number, Season(s) = session letter. "" = no restriction.
-const filters = { variant: "", season: "", year: "" };
+// Multi-select scope filters. Paper(s) = CIE variant numbers, Season(s) = session
+// letters, Year(s) = years. An empty array = no restriction on that axis.
+const filters = { variants: [], seasons: [], years: [] };
+
+const csv = (s) => (s || "").split(",").map((x) => x.trim()).filter(Boolean);
 let deck = [];
 let total = 0;
 let idx = 0;
@@ -60,10 +62,10 @@ let controller = null;
 
 function readUrl() {
   const p = new URLSearchParams(location.search);
-  const codes = (p.get("topics") || "").split(",").map((s) => s.trim()).filter(Boolean);
-  filters.variant = p.get("variant") || "";
-  filters.season = p.get("season") || "";
-  filters.year = p.get("year") || "";
+  const codes = csv(p.get("topics"));
+  filters.variants = csv(p.get("variant"));
+  filters.seasons = csv(p.get("season"));
+  filters.years = csv(p.get("year"));
   const i = parseInt(p.get("i") || "0", 10);
   return { codes, i: Number.isFinite(i) && i > 0 ? i : 0 };
 }
@@ -71,9 +73,9 @@ function readUrl() {
 function writeUrl() {
   const p = new URLSearchParams();
   if (selected.size) p.set("topics", [...selected].join(","));
-  if (filters.variant) p.set("variant", filters.variant);
-  if (filters.season) p.set("season", filters.season);
-  if (filters.year) p.set("year", filters.year);
+  if (filters.variants.length) p.set("variant", filters.variants.join(","));
+  if (filters.seasons.length) p.set("season", filters.seasons.join(","));
+  if (filters.years.length) p.set("year", filters.years.join(","));
   if (idx > 0) p.set("i", String(idx));
   const qs = p.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
@@ -82,20 +84,20 @@ function writeUrl() {
 // --- data sources ------------------------------------------------------
 
 function yearsParam() {
-  return filters.year ? [Number(filters.year)] : [];
+  return filters.years.map(Number);
 }
 function sessionsParam() {
-  return filters.season ? [filters.season] : [];
+  return filters.seasons.slice();
 }
 function variantsParam() {
-  return filters.variant ? [Number(filters.variant)] : [];
+  return filters.variants.map(Number);
 }
 // local /api/* query string for the current scope filters
 function scopeQuery(extra) {
   const p = new URLSearchParams(extra || {});
-  if (filters.year) p.set("years", filters.year);
-  if (filters.season) p.set("sessions", filters.season);
-  if (filters.variant) p.set("variants", filters.variant);
+  if (filters.years.length) p.set("years", filters.years.join(","));
+  if (filters.seasons.length) p.set("sessions", filters.seasons.join(","));
+  if (filters.variants.length) p.set("variants", filters.variants.join(","));
   return p;
 }
 
@@ -466,21 +468,41 @@ async function refresh() {
 
 // --- wiring --------------------------------------------------------
 
-paperEl.addEventListener("change", () => {
-  filters.variant = paperEl.value;
-  idx = 0;
-  refresh();
-});
-seasonEl.addEventListener("change", () => {
-  filters.season = seasonEl.value;
-  idx = 0;
-  refresh();
-});
-yearEl.addEventListener("change", () => {
-  filters.year = yearEl.value;
-  idx = 0;
-  refresh();
-});
+// Paint every toggle button's aria-pressed from the current `filters` arrays.
+function syncToggleUI() {
+  for (const [group, key] of [
+    [paperEl, "variants"],
+    [yearEl, "years"],
+    [seasonEl, "seasons"],
+  ]) {
+    if (!group) continue;
+    for (const btn of group.querySelectorAll(".fb-toggle")) {
+      btn.setAttribute("aria-pressed", filters[key].includes(btn.dataset.v) ? "true" : "false");
+    }
+  }
+}
+
+// A group of multi-select toggle buttons -> the `filters[key]` array: click to add,
+// click again to drop.
+function wireToggleGroup(groupEl, key) {
+  if (!groupEl) return;
+  groupEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fb-toggle");
+    if (!btn || !groupEl.contains(btn)) return;
+    const v = btn.dataset.v;
+    const arr = filters[key];
+    const at = arr.indexOf(v);
+    if (at >= 0) arr.splice(at, 1);
+    else arr.push(v);
+    btn.setAttribute("aria-pressed", at >= 0 ? "false" : "true");
+    idx = 0;
+    refresh();
+  });
+}
+wireToggleGroup(paperEl, "variants");
+wireToggleGroup(yearEl, "years");
+wireToggleGroup(seasonEl, "seasons");
+
 topicEl.addEventListener("change", () => {
   selected.clear();
   if (topicEl.value) selected.add(topicEl.value);
@@ -489,13 +511,11 @@ topicEl.addEventListener("change", () => {
 });
 clearAllBtn.addEventListener("click", () => {
   selected.clear();
-  filters.variant = "";
-  filters.season = "";
-  filters.year = "";
-  paperEl.value = "";
-  seasonEl.value = "";
-  yearEl.value = "";
+  filters.variants = [];
+  filters.seasons = [];
+  filters.years = [];
   topicEl.value = "";
+  syncToggleUI();
   idx = 0;
   refresh();
 });
@@ -514,7 +534,7 @@ showTextBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
   const tag = (e.target && e.target.tagName) || "";
-  if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;
+  if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
   if (cardEl.hidden) return;
   if (e.key === "ArrowLeft") {
     e.preventDefault();
@@ -530,10 +550,6 @@ document.addEventListener("keydown", (e) => {
 
 // --- boot ---------------------------------------------------------
 
-for (const y of YEARS) {
-  yearEl.append(new Option(String(y), String(y)));
-}
-
 let ranInitial = false;
 
 function onReady(email, client) {
@@ -543,9 +559,7 @@ function onReady(email, client) {
   ranInitial = true; // onAuthStateChange fires more than once
 
   const { codes, i } = readUrl();
-  paperEl.value = filters.variant;
-  seasonEl.value = filters.season;
-  yearEl.value = filters.year;
+  syncToggleUI();
   idx = i;
   selected = new Set(codes.slice(0, 1)); // single-select now; pruned in refresh()
   refresh();

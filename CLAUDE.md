@@ -94,10 +94,14 @@ the param stays for compatibility. The **filter bar** (`.filterbar`, on both
 a context row of **Curriculum** / **Subject** dropdowns (one option each,
 `#curriculum` / `#subject` — wired for a future multi-subject corpus, not read
 yet) above three real scope filters — **Paper(s)** = CIE variant number
-(`#f-paper`, Any / 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
+(`#f-paper`, 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
 `s`=May/June `m`=Feb/March `w`=Oct/Nov) — plus, on the browse page only, the
-single-select **Topic** (`#f-topic`) dropdown. `search.py._paper_scope()` turns
-`years` / `sessions` / `variants` into `p.year/session/variant IN (…)` clauses on
+single-select **Topic** (`#f-topic`) dropdown. Paper/Year/Season are each a
+`.fb-toggles` group of `.fb-toggle` multi-select buttons (`aria-pressed`, tap to
+add, tap to drop, none pressed = no restriction on that axis), **not** `<select>`s —
+`app.js` `pressed()` / `topics.js` `wireToggleGroup()` collect the pressed
+`data-v`s, serialized to the URL as comma lists (`?variant=1,2&season=s,w`).
+There is no corpus-freshness badge. `search.py._paper_scope()` turns
 both `search()` and `browse_by_topic()` / `topic_counts()`; the local endpoints
 parse them with `_int_csv` / `_csv_param`, cloud passes them straight to the RPCs.
 The search box has a **custom** recent-search dropdown
