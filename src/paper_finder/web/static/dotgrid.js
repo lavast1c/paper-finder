@@ -2,8 +2,11 @@
 
 // Interactive dot-grid backdrop (the surface the frosted panels refract).
 // A dependency-free port of react-bits' <DotGrid />: dots sit dim at rest and
-// light up toward the page accent (--primary) near the pointer; a fast swipe
-// or a click shoves nearby dots and they spring back.
+// light up toward the page accent (--primary) near the pointer. A deliberate
+// fast swipe nudges nearby dots; a click bursts every dot in range radially
+// outward. Displaced dots ride a frame-rate-independent damped spring home
+// (one soft overshoot, then still) — a slow aiming move leaves the grid
+// perfectly quiet.
 //
 // Honours prefers-reduced-motion (static grid, no reactivity) and pauses while
 // the tab is hidden. Loaded as a plain <script defer> on every page; owns only
@@ -18,12 +21,26 @@
   // --- tunables ---------------------------------------------------------
   const DOT_SIZE = 4; // px, at 1x
   const GAP = 26; // px between dot centres minus DOT_SIZE
-  const PROXIMITY = 150; // px: pointer influence radius (colour)
-  const SPEED_TRIGGER = 90; // px/s pointer speed that starts shoving dots
-  const SHOCK_RADIUS = 240; // px: click shockwave reach
-  const SHOCK_STRENGTH = 4; // click push multiplier
-  const SPRING = 0.12; // pull back to home
-  const DAMP = 0.72; // velocity damping per frame
+  const PROXIMITY = 150; // px: pointer influence radius (colour glow)
+
+  // motion: a frame-rate-independent damped spring (semi-implicit Euler).
+  // STIFFNESS pulls a displaced dot home; DAMPING < critical leaves a soft
+  // single overshoot — the "burst and settle".
+  const STIFFNESS = 46;
+  const DAMPING = 5.6;
+  const MAX_DT = 1 / 30; // clamp long frames (tab refocus) so the spring can't blow up
+  const MAX_OFFSET = 42; // px a dot may stray from home
+  const MAX_VELOCITY = 560; // px/s cap so repeated clicks can't fling dots away
+
+  // pointer flick: only a deliberate fast swipe nudges dots — a slow aiming
+  // move must leave the grid perfectly still.
+  const SPEED_TRIGGER = 650; // px/s
+  const FLICK_STRENGTH = 55; // impulse (px/s) at the pointer, tapering over PROXIMITY
+  const FLICK_COOLDOWN = 450; // ms before the same dot can be flicked again
+
+  // click burst: every dot in range gets shoved radially outward, then springs back
+  const SHOCK_RADIUS = 260; // px
+  const SHOCK_STRENGTH = 190; // impulse (px/s) at the epicentre
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -91,7 +108,15 @@
     dots = [];
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
-        dots.push({ cx: startX + x * cell, cy: startY + y * cell, ox: 0, oy: 0, vx: 0, vy: 0 });
+        dots.push({
+          cx: startX + x * cell,
+          cy: startY + y * cell,
+          ox: 0,
+          oy: 0,
+          vx: 0,
+          vy: 0,
+          flickT: 0,
+        });
       }
     }
   }
@@ -101,12 +126,13 @@
 
   function onMove(e) {
     const now = performance.now();
-    const dt = pointer.lastT ? now - pointer.lastT : 16;
+    const dt = pointer.lastT ? Math.max(now - pointer.lastT, 1) : 16;
     const dx = e.clientX - pointer.lastX;
     const dy = e.clientY - pointer.lastY;
     pointer.vx = (dx / dt) * 1000;
     pointer.vy = (dy / dt) * 1000;
-    pointer.speed = Math.hypot(pointer.vx, pointer.vy);
+    // low-pass the speed so one noisy throttled sample can't spike past the trigger
+    pointer.speed = pointer.speed * 0.4 + Math.hypot(pointer.vx, pointer.vy) * 0.6;
     pointer.lastT = now;
     pointer.lastX = e.clientX;
     pointer.lastY = e.clientY;
@@ -116,13 +142,17 @@
     if (pointer.speed <= SPEED_TRIGGER) return;
     const proxSq = PROXIMITY * PROXIMITY;
     for (const dot of dots) {
+      if (now - dot.flickT < FLICK_COOLDOWN) continue;
       const ddx = dot.cx - pointer.x;
       const ddy = dot.cy - pointer.y;
       const dsq = ddx * ddx + ddy * ddy;
-      if (dsq > proxSq) continue;
-      const f = (1 - Math.sqrt(dsq) / PROXIMITY) * 0.09;
-      dot.vx += ddx * f + pointer.vx * 0.0006;
-      dot.vy += ddy * f + pointer.vy * 0.0006;
+      if (dsq > proxSq || dsq < 1) continue;
+      const dist = Math.sqrt(dsq);
+      const taper = 1 - dist / PROXIMITY;
+      const impulse = (FLICK_STRENGTH * taper) / dist;
+      dot.vx += ddx * impulse;
+      dot.vy += ddy * impulse;
+      dot.flickT = now;
     }
   }
 
@@ -133,17 +163,18 @@
       const ddx = dot.cx - cx;
       const ddy = dot.cy - cy;
       const dist = Math.hypot(ddx, ddy);
-      if (dist >= SHOCK_RADIUS) continue;
-      const falloff = 1 - dist / SHOCK_RADIUS;
-      dot.vx += ddx * SHOCK_STRENGTH * falloff * 0.02;
-      dot.vy += ddy * SHOCK_STRENGTH * falloff * 0.02;
+      if (dist >= SHOCK_RADIUS || dist < 0.001) continue;
+      const falloff = Math.pow(1 - dist / SHOCK_RADIUS, 0.55);
+      const impulse = (SHOCK_STRENGTH * falloff) / dist;
+      dot.vx += ddx * impulse;
+      dot.vy += ddy * impulse;
     }
   }
 
   let moveQueued = 0;
   function throttledMove(e) {
     const now = performance.now();
-    if (now - moveQueued < 40) return;
+    if (now - moveQueued < 32) return;
     moveQueued = now;
     onMove(e);
   }
@@ -151,19 +182,40 @@
   // --- draw ----------------------------------------------------------
   const TAU = Math.PI * 2;
 
-  function paint(interactive) {
+  function paint(dt) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const proxSq = PROXIMITY * PROXIMITY;
     const { r: br, g: bg, b: bb, a: ba } = baseRgb;
     const { r: ar, g: ag, b: ab, a: aa } = activeRgb;
+    const animate = dt > 0;
 
     for (const dot of dots) {
-      if (interactive) {
-        // spring the offset back home
-        dot.vx = (dot.vx - dot.ox * SPRING) * DAMP;
-        dot.vy = (dot.vy - dot.oy * SPRING) * DAMP;
-        dot.ox += dot.vx;
-        dot.oy += dot.vy;
+      if (animate && (dot.ox || dot.oy || dot.vx || dot.vy)) {
+        // damped spring back to home, integrated frame-rate-independently
+        dot.vx += (-STIFFNESS * dot.ox - DAMPING * dot.vx) * dt;
+        dot.vy += (-STIFFNESS * dot.oy - DAMPING * dot.vy) * dt;
+
+        const v = Math.hypot(dot.vx, dot.vy);
+        if (v > MAX_VELOCITY) {
+          const s = MAX_VELOCITY / v;
+          dot.vx *= s;
+          dot.vy *= s;
+        }
+
+        dot.ox += dot.vx * dt;
+        dot.oy += dot.vy * dt;
+
+        const off = Math.hypot(dot.ox, dot.oy);
+        if (off > MAX_OFFSET) {
+          const s = MAX_OFFSET / off;
+          dot.ox *= s;
+          dot.oy *= s;
+        }
+
+        // settle: once the wobble is sub-pixel, snap to rest so nothing jitters
+        if (Math.abs(dot.ox) < 0.05 && Math.abs(dot.oy) < 0.05 && v < 1.5) {
+          dot.ox = dot.oy = dot.vx = dot.vy = 0;
+        }
       }
 
       let cr = br;
@@ -171,7 +223,7 @@
       let cb = bb;
       let ca = ba;
       let radius = DOT_SIZE / 2;
-      if (interactive) {
+      if (animate) {
         const ddx = dot.cx - pointer.x;
         const ddy = dot.cy - pointer.y;
         const dsq = ddx * ddx + ddy * ddy;
@@ -182,7 +234,7 @@
           cg = bg + (ag - bg) * t;
           cb = bb + (ab - bb) * t;
           ca = ba + (aa - ba) * t;
-          radius += radius * t * 0.6; // active dots bloom a little
+          radius += radius * t * 0.45; // active dots bloom a little
         }
       }
 
@@ -195,13 +247,18 @@
 
   // --- lifecycle ---------------------------------------------------
   let rafId = 0;
-  function loop() {
-    paint(true);
+  let lastFrame = 0;
+  function loop(now) {
+    let dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+    if (!(dt > 0) || dt > MAX_DT) dt = MAX_DT;
+    paint(dt);
     rafId = requestAnimationFrame(loop);
   }
 
   function start() {
     if (rafId || reduceMotion.matches) return;
+    lastFrame = performance.now();
     rafId = requestAnimationFrame(loop);
   }
   function stop() {
@@ -214,7 +271,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       buildGrid();
-      if (reduceMotion.matches) paint(false);
+      if (reduceMotion.matches) paint(0);
     }, 120);
   }
 
@@ -223,7 +280,7 @@
     if (reduceMotion.matches) {
       window.removeEventListener("mousemove", throttledMove);
       window.removeEventListener("click", onClick);
-      paint(false);
+      paint(0);
     } else {
       window.addEventListener("mousemove", throttledMove, { passive: true });
       window.addEventListener("click", onClick);
@@ -243,7 +300,7 @@
   const schemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const onScheme = () => {
     readColors();
-    if (reduceMotion.matches) paint(false);
+    if (reduceMotion.matches) paint(0);
   };
   if (schemeQuery.addEventListener) schemeQuery.addEventListener("change", onScheme);
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", applyMotionMode);
