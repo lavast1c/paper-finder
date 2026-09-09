@@ -92,6 +92,7 @@ def test_static_assets_served(client):
         "/static/app.js",
         "/static/common.js",
         "/static/topics.js",
+        "/static/dotgrid.js",
         "/static/style.css",
         "/static/index.html",
     ):

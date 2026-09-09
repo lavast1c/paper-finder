@@ -269,8 +269,16 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
   theme-aware, full-bleed, IBM Plex type, a light-blue accent
   (`--primary` `#2563eb` light / `#60a5fa` dark, `--btn` / `--accent-ink`
-  siblings; `--hl-bg` stays amber — highlighter, not chrome), cool backdrop, no
-  decorative motion; opaque + reduced-transparency fallbacks). The styled-select
+  siblings; `--hl-bg` stays amber — highlighter, not chrome); opaque +
+  reduced-transparency fallbacks). The backdrop the glass refracts is an
+  **interactive dot grid** — `#bg-dots` canvas (first child of `<body>`, `z-index:
+  -1`, `pointer-events: none`) driven by `dotgrid.js`, a dependency-free port of
+  react-bits' `<DotGrid />` (no gsap; a hand-rolled per-dot spring). Dots sit at
+  `--dot-base` and lerp to `--primary` within ~150px of the pointer; a fast swipe
+  / click shoves nearby dots and they spring back. `prefers-reduced-motion` → a
+  static grid, no loop or listeners; pauses while the tab is hidden; re-reads the
+  CSS colours on a theme change. It replaced the old static `--blob-*`
+  radial-gradient mesh (`body::before`, removed). The styled-select
   rule is `.select-wrap select` (`appearance:none` + one CSS chevron on every
   filter select). Local mode: JSON over
   `search()`, `/pdf/` gated on
