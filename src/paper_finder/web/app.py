@@ -56,6 +56,18 @@ def _csv_param(raw: str) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
+def _int_csv(raw: str) -> list[int]:
+    """``"2025, 2026, x"`` -> ``[2025, 2026]`` -- non-numeric tokens are dropped
+    so a hand-edited query string degrades to "no filter" rather than a 500."""
+    out: list[int] = []
+    for part in _csv_param(raw):
+        try:
+            out.append(int(part))
+        except ValueError:
+            pass
+    return out
+
+
 def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
     """A :class:`SearchHit` as the JSON object the browser consumes."""
     page = hit.page_start or 1
@@ -192,11 +204,26 @@ def create_app(
         return {"ok": True}
 
     @app.get("/api/search")
-    def api_search(q: str = "", limit: int = DEFAULT_LIMIT, kind: str = "all") -> dict:
+    def api_search(
+        q: str = "",
+        limit: int = DEFAULT_LIMIT,
+        kind: str = "all",
+        years: str = "",
+        sessions: str = "",
+        variants: str = "",
+    ) -> dict:
         if _supabase_env():  # cloud mode: the browser queries Supabase directly
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         limit = max(1, min(limit, MAX_LIMIT))
-        hits = search(q, limit=limit, db_path=db_path, kind=kind)
+        hits = search(
+            q,
+            limit=limit,
+            db_path=db_path,
+            kind=kind,
+            years=_int_csv(years) or None,
+            sessions=_csv_param(sessions) or None,
+            variants=_int_csv(variants) or None,
+        )
         return {
             "query": q,
             "count": len(hits),
@@ -210,14 +237,17 @@ def create_app(
         return corpus_stats(db_path)
 
     @app.get("/api/topics")
-    def api_topics(kind: str = "all", years: str = "", sessions: str = "") -> dict:
+    def api_topics(
+        kind: str = "all", years: str = "", sessions: str = "", variants: str = ""
+    ) -> dict:
         """Per-topic counts under the current filters -- feeds the topic chips."""
         if _supabase_env():
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         return topic_counts(
             kind=kind,
-            years=[int(y) for y in _csv_param(years)] or None,
+            years=_int_csv(years) or None,
             sessions=_csv_param(sessions) or None,
+            variants=_int_csv(variants) or None,
             db_path=db_path,
         )
 
@@ -227,6 +257,7 @@ def create_app(
         kind: str = "all",
         years: str = "",
         sessions: str = "",
+        variants: str = "",
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> dict:
@@ -240,8 +271,9 @@ def create_app(
         hits, total = browse_by_topic(
             _csv_param(topics),
             kind=kind,
-            years=[int(y) for y in _csv_param(years)] or None,
+            years=_int_csv(years) or None,
             sessions=_csv_param(sessions) or None,
+            variants=_int_csv(variants) or None,
             limit=limit,
             offset=offset,
             db_path=db_path,
