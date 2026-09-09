@@ -213,6 +213,7 @@ function cloudRow(d) {
   return {
     title: `${d.subject_name || "?"} · ${sname} ${d.year} · Paper ${variant} · Q${d.question_number}`,
     filename: d.filename,
+    question_number: d.question_number, // topics.js builds the crop filename from this
     question_text: d.question_text,
     answer: d.answer_text,
     marks: d.marks,
