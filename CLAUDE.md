@@ -76,14 +76,26 @@ re-upserts `public.topics` from `topics.py`)
 the **private** `question-crops` Storage bucket + an `authenticated`-only read
 policy on `storage.objects`; `publish` carries `crop_count`, and
 `paper-finder publish-figures` uploads the PNGs — needs `SUPABASE_SERVICE_ROLE_KEY`).
++ `0006_paper_scope_filters.sql` (`drop function` + recreates `search_questions`
+/ `browse_questions` / `topic_counts` with `years integer[]` / `sessions text[]` /
+`variants integer[]` params, each `is null or cardinality = 0` = no restriction on
+that axis).
 Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
-Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
-`kind` filter: `all` (default) / `mcq` (Paper 1) / `theory` (non-1 papers) —
-local splits on `questions.is_mcq`, cloud on `papers.paper` (no `is_mcq`
-column in the published index). The web UI exposes it as a custom-styled
-`<select id="kind">` (`.select-wrap` + CSS chevron + solid `--field-bg` +
-themed `option`s). The search box has a **custom** recent-search dropdown
+Both `/api/search` (local) and the `search_questions` RPC (cloud) still take a
+`kind` filter (`all` / `mcq` (Paper 1) / `theory` (non-1 papers) — local on
+`questions.is_mcq`, cloud on `papers.paper`), but it is **no longer in the UI**;
+the param stays for compatibility. The **filter bar** (`.filterbar`, on both
+`index.html` and `topics.html`, styled from the `Ref Photos/` mock) replaces it:
+a context row of **Curriculum** / **Subject** dropdowns (one option each,
+`#curriculum` / `#subject` — wired for a future multi-subject corpus, not read
+yet) above three real scope filters — **Paper(s)** = CIE variant number
+(`#f-paper`, Any / 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
+`s`=May/June `m`=Feb/March `w`=Oct/Nov). `search.py._paper_scope()` turns
+`years` / `sessions` / `variants` into `p.year/session/variant IN (…)` clauses on
+both `search()` and `browse_by_topic()` / `topic_counts()`; the local endpoints
+parse them with `_int_csv` / `_csv_param`, cloud passes them straight to the RPCs.
+The search box has a **custom** recent-search dropdown
 (`#history` div, not a native `<datalist>` — that looked like browser
 autofill and couldn't be styled): `openHistory`/`closeHistory` on focus/blur,
 `historyItems` persisted in `localStorage` `paper-finder.history` (last 8),
@@ -109,9 +121,9 @@ classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
 `SearchHit` gains `topic_codes`. New `/topics` page (`web/static/topics.html` +
 `topics.js`, shared code hoisted to `common.js`) = a flashcard deck: pick topics
 (union), one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden until
-revealed, filters for kind + year/session. Local endpoints `/api/topics` +
-`/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
-`topic_counts` RPCs. Search page unchanged.
+revealed, plus the shared filter bar (paper/year/season — see above). Local
+endpoints `/api/topics` + `/api/browse` (501 in cloud mode); cloud uses the
+`browse_questions` / `topic_counts` RPCs.
 
 **Stage 2 done — local AND cloud, verified in-browser.** The flashcard shows a
 PNG crop of the real question (`crop_count > 0` → image; `= 0` → the old text +
@@ -236,14 +248,18 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   PyMuPDF; part of `build`, idempotent, `crop_path` derives `qNN_pK.png` from
   `(stem, qnum, ordinal)`; skips `page.rotation != 0`; never imported from
   `web/app.py`), `search` (FTS5 + BM25;
-  `kind=all|mcq|theory` filter; `browse_by_topic` + `topic_counts` for `/topics`;
+  `kind=all|mcq|theory` filter + `_paper_scope()` year/session/variant filter;
+  `browse_by_topic` + `topic_counts` for `/topics`;
   `SearchHit` carries `topic_codes` + `crop_count`),
   `evaluate`,
   `web` (`create_app(db_path, raw_dir, crop_dir, serve_pdfs)` — FastAPI + a hand-written
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
-  theme-aware, full-bleed, IBM Plex type, a deliberate brick-red accent
-  (`#9c2f24`/`#f08a78`, all pairs WCAG-AA), static warm backdrop, no decorative
-  motion; opaque + reduced-transparency fallbacks). Local mode: JSON over
+  theme-aware, full-bleed, IBM Plex type, a light-blue accent
+  (`--primary` `#2563eb` light / `#60a5fa` dark, `--btn` / `--accent-ink`
+  siblings; `--hl-bg` stays amber — highlighter, not chrome), cool backdrop, no
+  decorative motion; opaque + reduced-transparency fallbacks). The styled-select
+  rule is `.select-wrap select` (`appearance:none` + one CSS chevron on every
+  filter select). Local mode: JSON over
   `search()`, `/pdf/` gated on
   `parse_filename` + a `papers` row + `serve_pdfs`; `/figure/{filename}/{crop}`
   serves `data/crops/` behind the same flag (`resolve_crop`). `GET /api/config`
