@@ -2,17 +2,26 @@ import pytest
 from fastapi.testclient import TestClient
 
 from paper_finder.db import connect, init_db
-from paper_finder.web.app import create_app, resolve_pdf
+from paper_finder.web.app import create_app, resolve_crop, resolve_pdf
 
 QP = "9702_s26_qp_11.pdf"
+STEM = QP[:-4]
+
+# The three crop files the fixture writes: q1 has one page, q3 has two, q2 none.
+CROP_FILES = ["q01_p1.png", "q03_p1.png", "q03_p2.png"]
+_PNG = b"\x89PNG\r\n\x1a\n" + b"fake png body"
 
 
 @pytest.fixture
 def corpus(tmp_path):
     db_path = tmp_path / "papers.db"
     raw_dir = tmp_path / "raw"
+    crop_dir = tmp_path / "crops"
     raw_dir.mkdir()
     (raw_dir / QP).write_bytes(b"%PDF-1.4\n%fake pdf\n")
+    (crop_dir / STEM).mkdir(parents=True)
+    for name in CROP_FILES:
+        (crop_dir / STEM / name).write_bytes(_PNG)
 
     init_db(db_path)
     with connect(db_path) as conn:
@@ -25,12 +34,12 @@ def corpus(tmp_path):
         conn.executemany(
             """INSERT INTO questions
                    (id, paper_id, question_number, question_text, marks, is_mcq,
-                    page_start, has_figure)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    page_start, has_figure, crop_count)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
-                (1, 1, 1, "A ball is thrown horizontally with a speed of 10 m/s.", 1, 1, 4, 0),
-                (2, 1, 2, "What is an SI base quantity?\nA. ampere\nB. charge", 1, 1, 3, 0),
-                (3, 1, 3, "A block rests on a rough slope in equilibrium.", 9, 0, 5, 1),
+                (1, 1, 1, "A ball is thrown horizontally with a speed of 10 m/s.", 1, 1, 4, 0, 1),
+                (2, 1, 2, "What is an SI base quantity?\nA. ampere\nB. charge", 1, 1, 3, 0, 0),
+                (3, 1, 3, "A block rests on a rough slope in equilibrium.", 9, 0, 5, 1, 2),
             ],
         )
         conn.executemany(
@@ -46,13 +55,13 @@ def corpus(tmp_path):
         )
         conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
         conn.commit()
-    return db_path, raw_dir
+    return db_path, raw_dir, crop_dir
 
 
 @pytest.fixture
 def client(corpus):
-    db_path, raw_dir = corpus
-    return TestClient(create_app(db_path=db_path, raw_dir=raw_dir))
+    db_path, raw_dir, crop_dir = corpus
+    return TestClient(create_app(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir))
 
 
 def test_index_serves_html(client):
@@ -147,16 +156,85 @@ def test_pdf_404_for_garbage_name(client, name):
     "name", ["../papers.db", "..%2Fpapers.db", "", "/etc/passwd", "9702_S26_QP_11"]
 )
 def test_resolve_pdf_rejects_bad_names(corpus, name):
-    db_path, raw_dir = corpus
+    db_path, raw_dir, _crop_dir = corpus
     assert resolve_pdf(name, raw_dir=raw_dir, db_path=db_path) is None
 
 
 def test_pdfs_disabled(corpus):
-    db_path, raw_dir = corpus
-    client = TestClient(create_app(db_path=db_path, raw_dir=raw_dir, serve_pdfs=False))
+    db_path, raw_dir, crop_dir = corpus
+    client = TestClient(
+        create_app(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir, serve_pdfs=False)
+    )
     assert client.get(f"/pdf/{QP}").status_code == 404
     top = client.get("/api/search", params={"q": "ball thrown"}).json()["results"][0]
     assert top["pdf_url"] is None
+    assert top["crop_base"] is None
+    assert client.get(f"/figure/{QP}/q01_p1.png").status_code == 404
+
+
+# ------------------------------------------------------------------ question crops
+
+
+def test_figure_served_for_recorded_crop(client):
+    r = client.get(f"/figure/{QP}/q01_p1.png")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert r.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_search_payload_carries_crop_base(client):
+    top = client.get("/api/search", params={"q": "ball thrown horizontally"}).json()["results"][0]
+    assert top["question_number"] == 1
+    assert top["crop_count"] == 1
+    assert top["crop_base"] == f"/figure/{QP}"
+
+
+def test_browse_payload_carries_crop_fields(client):
+    top = client.get("/api/browse", params={"topics": "s03,s04"}).json()["results"][0]
+    assert top["question_number"] == 3
+    assert top["crop_count"] == 2
+    assert top["crop_base"] == f"/figure/{QP}"
+
+
+def test_no_crop_base_when_question_has_no_crops(client):
+    top = client.get("/api/search", params={"q": "SI base quantity ampere"}).json()["results"][0]
+    assert top["question_number"] == 2
+    assert top["crop_count"] == 0
+    assert top["crop_base"] is None
+
+
+def test_figure_404_for_valid_name_not_in_db(client):
+    assert client.get("/figure/9702_s26_qp_12.pdf/q01_p1.png").status_code == 404
+
+
+def test_figure_404_for_crop_file_not_on_disk(client):
+    # Recorded paper + well-formed crop name, but that file was never rendered.
+    assert client.get(f"/figure/{QP}/q09_p1.png").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "name", ["../papers.db", "..%2Fpapers.db", "", "/etc/passwd", "9702_S26_QP_11"]
+)
+def test_resolve_crop_rejects_bad_filenames(corpus, name):
+    db_path, _raw_dir, crop_dir = corpus
+    assert resolve_crop(name, "q01_p1.png", crop_dir=crop_dir, db_path=db_path) is None
+
+
+@pytest.mark.parametrize(
+    "crop",
+    [
+        "../../papers.db",
+        "q7_p1.png",  # question number not zero-padded
+        "q07_p1.webp",  # wrong extension (PyMuPDF has no WebP encoder)
+        "q07_p1.png.bak",
+        "q07_p12.png",  # ordinal is a single digit
+        "..%2Fq01_p1.png",
+        "",
+    ],
+)
+def test_resolve_crop_rejects_bad_crop_segment(corpus, crop):
+    db_path, _raw_dir, crop_dir = corpus
+    assert resolve_crop(QP, crop, crop_dir=crop_dir, db_path=db_path) is None
 
 
 def test_search_kind_filter(client):

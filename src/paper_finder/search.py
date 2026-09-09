@@ -34,6 +34,7 @@ class SearchHit:
     has_figure: bool
     score: float
     topic_codes: tuple[str, ...] = field(default_factory=tuple)
+    crop_count: int = 0  # number of question-image crops; 0 = show text only
 
     @property
     def paper_variant(self) -> str:
@@ -74,7 +75,7 @@ _TOPIC_CODES_SUBQUERY = (
 _SEARCH_SQL = f"""
 SELECT
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
-    q.question_number, q.question_text, q.marks, q.page_start, q.has_figure,
+    q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_TOPIC_CODES_SUBQUERY} AS topic_codes,
     bm25(questions_fts) AS score
@@ -129,6 +130,7 @@ def search(
             has_figure=bool(row["has_figure"]),
             score=row["score"],
             topic_codes=_split_codes(row["topic_codes"]),
+            crop_count=row["crop_count"],
         )
         for row in rows
     ]
@@ -136,7 +138,7 @@ def search(
 
 _BROWSE_COLUMNS = f"""
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
-    q.question_number, q.question_text, q.marks, q.page_start, q.has_figure,
+    q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_TOPIC_CODES_SUBQUERY} AS topic_codes
 """
@@ -224,6 +226,7 @@ def browse_by_topic(
             has_figure=bool(row["has_figure"]),
             score=0.0,
             topic_codes=_split_codes(row["topic_codes"]),
+            crop_count=row["crop_count"],
         )
         for row in rows
     ]

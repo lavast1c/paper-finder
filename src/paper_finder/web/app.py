@@ -19,6 +19,7 @@ Two modes, chosen by the browser from ``GET /api/config``:
 from __future__ import annotations
 
 import os
+import re
 import urllib.request
 from dataclasses import asdict
 from pathlib import Path
@@ -36,6 +37,11 @@ from paper_finder.search import SearchHit, browse_by_topic, search, topic_counts
 STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 50
+
+# A question crop filename, exactly as `figures.crop_path` writes it: q07_p1.png.
+# A whitelist, not a sanitiser -- anything else (traversal, other extensions) is
+# a 404.
+_CROP_NAME = re.compile(r"^q\d{2}_p\d\.png$")
 
 
 def _supabase_env() -> tuple[str, str] | None:
@@ -63,6 +69,10 @@ def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
         f"Paper {hit.paper_variant} · Q{hit.question_number}"
     )
     data["pdf_url"] = f"/pdf/{hit.filename}#page={page}" if serve_pdfs else None
+    # One base per question; the browser appends `/q{NN}_p{k}.png` for k in
+    # 1..crop_count. Gated by the same flag as the PDFs -- a crop of a page is
+    # the same copyright profile as the page.
+    data["crop_base"] = f"/figure/{hit.filename}" if serve_pdfs and hit.crop_count else None
     return data
 
 
@@ -83,6 +93,30 @@ def resolve_pdf(filename: str, *, raw_dir: Path, db_path: Path | None) -> Path |
         return None
 
     path = raw_dir / parsed.filename
+    return path if path.is_file() else None
+
+
+def resolve_crop(filename: str, crop: str, *, crop_dir: Path, db_path: Path | None) -> Path | None:
+    """The on-disk crop image for a request, or ``None`` if it must not be served.
+
+    Same gauntlet as :func:`resolve_pdf`: the filename must parse and round-trip
+    exactly (kills ``../``, ``%2F``, odd suffixes), be a ``qp``, and have a
+    ``papers`` row; the crop segment must match ``_CROP_NAME`` exactly; the file
+    must exist under ``crop_dir/<stem>/``.
+    """
+    if not _CROP_NAME.match(crop):
+        return None
+    parsed = parse_filename(filename)
+    if parsed is None or parsed.filename != filename.lower() or parsed.paper_type != "qp":
+        return None
+
+    init_db(db_path)
+    with connect(db_path) as conn:
+        row = conn.execute("SELECT 1 FROM papers WHERE filename = ?", (parsed.filename,)).fetchone()
+    if row is None:
+        return None
+
+    path = crop_dir / Path(parsed.filename).stem / crop
     return path if path.is_file() else None
 
 
@@ -112,9 +146,11 @@ def create_app(
     *,
     db_path: Path | None = None,
     raw_dir: Path | None = None,
+    crop_dir: Path | None = None,
     serve_pdfs: bool = True,
 ) -> FastAPI:
     raw_dir = Path(raw_dir) if raw_dir is not None else config.RAW_DIR
+    crop_dir = Path(crop_dir) if crop_dir is not None else config.CROP_DIR
 
     app = FastAPI(title="Paper Finder", docs_url=None, redoc_url=None)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -225,5 +261,16 @@ def create_app(
         if path is None:
             raise HTTPException(status_code=404)
         return FileResponse(path, media_type="application/pdf")
+
+    @app.get("/figure/{filename}/{crop}", include_in_schema=False)
+    def figure(filename: str, crop: str) -> FileResponse:
+        # A crop of a page has the same copyright profile as the page, so it is
+        # gated by the same flag as the PDFs.
+        if not serve_pdfs:
+            raise HTTPException(status_code=404)
+        path = resolve_crop(filename, crop, crop_dir=crop_dir, db_path=db_path)
+        if path is None:
+            raise HTTPException(status_code=404)
+        return FileResponse(path, media_type="image/png")
 
     return app

@@ -384,7 +384,7 @@ def _cmd_serve(args: argparse.Namespace) -> None:
     app = create_app(serve_pdfs=not args.no_pdfs)
     print(f"Paper Finder  ->  http://{args.host}:{args.port}   (Ctrl-C to stop)")
     if args.no_pdfs:
-        print("PDF serving disabled (--no-pdfs).")
+        print("PDF and question-crop serving disabled (--no-pdfs).")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
 
@@ -499,7 +499,9 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_serve.add_argument("--port", type=int, default=8000, help="port (default: 8000)")
     p_serve.add_argument(
-        "--no-pdfs", action="store_true", help="do not serve PDFs (required for public hosting)"
+        "--no-pdfs",
+        action="store_true",
+        help="do not serve PDFs or question-crop images (required for public hosting)",
     )
     p_serve.set_defaults(func=_cmd_serve)
 
