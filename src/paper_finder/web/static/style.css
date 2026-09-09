@@ -1,8 +1,9 @@
 /* Paper Finder — frosted-panel UI, theme-aware, full-bleed.
    A study-reference tool: IBM Plex type, a deliberate light-blue accent
-   (#1d4ed8 light / #93c5fd dark — every text/bg pair WCAG-AA checked), a
-   static cool backdrop the panels refract. Depth-driven hierarchy with a
-   specular edge highlight; no decorative motion. Opaque + reduced
+   (#1d4ed8 light / #93c5fd dark — every text/bg pair WCAG-AA checked). The
+   backdrop the panels refract is an interactive dot grid (`#bg-dots` canvas,
+   `dotgrid.js`) — dots light up with `--primary` near the pointer. Static
+   grid, no reactivity, under `prefers-reduced-motion`. Opaque + reduced
    -transparency fallbacks below. */
 
 :root {
@@ -27,11 +28,8 @@
   --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
   --hl-ink: #16191d;              /* dark ink on the highlight (AA) */
 
-  /* backdrop mesh — static, cool */
-  --blob-1: rgba(59, 130, 246, 0.28);
-  --blob-2: rgba(96, 165, 250, 0.24);
-  --blob-3: rgba(37, 99, 235, 0.2);
-  --blob-4: rgba(125, 211, 252, 0.2);
+  /* backdrop dot grid — dim at rest, `--primary` under the pointer */
+  --dot-base: rgba(37, 99, 235, 0.18);
 
   /* radii — a tight, deliberate scale */
   --r-lg: 14px;
@@ -73,10 +71,7 @@
     --rule: rgba(96, 165, 250, 0.4);
     --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
     --hl-ink: #0b0e13;
-    --blob-1: rgba(37, 99, 235, 0.4);
-    --blob-2: rgba(29, 78, 216, 0.34);
-    --blob-3: rgba(59, 130, 246, 0.3);
-    --blob-4: rgba(96, 165, 250, 0.26);
+    --dot-base: rgba(96, 165, 250, 0.16);
     --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 14px 44px rgba(0, 0, 0, 0.48);
     --shadow-lg: 0 26px 74px rgba(0, 0, 0, 0.58);
@@ -112,18 +107,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* live backdrop — the colourful content the glass refracts */
-body::before {
-  content: "";
+/* live backdrop — the interactive dot grid the glass refracts (dotgrid.js) */
+#bg-dots {
   position: fixed;
-  inset: -25vmax;
+  inset: 0;
   z-index: -1;
-  background-color: var(--bg);
-  background-image:
-    radial-gradient(38vmax 38vmax at 12% 16%, var(--blob-1), transparent 60%),
-    radial-gradient(34vmax 34vmax at 88% 10%, var(--blob-2), transparent 60%),
-    radial-gradient(42vmax 42vmax at 80% 90%, var(--blob-3), transparent 62%),
-    radial-gradient(30vmax 30vmax at 20% 84%, var(--blob-4), transparent 60%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* ---- header: full-width floating glass bar ---- */
@@ -765,7 +756,7 @@ footer {
     --blur-thick: 0px;
     --refract: none;
   }
-  body::before { opacity: 0.45; }
+  #bg-dots { opacity: 0.4; }
 }
 @media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
   :root { --surface: #14171f; --surface-strong: #1c2029; }
