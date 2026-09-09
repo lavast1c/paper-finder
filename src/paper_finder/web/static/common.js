@@ -9,7 +9,13 @@
 // query-term highlighter, the question / answer renderers, `renderResult`, the
 // cloud-row shim, and the whole email-code auth gate (repackaged as
 // `PF.initAuth`). No behaviour change -- app.js drives it exactly as before.
+//
+// The whole body is wrapped in an IIFE: these are classic scripts sharing one
+// global lexical scope, so a bare top-level `el` here collides with the page
+// script's `const { el } = PF` ("Identifier 'el' has already been declared",
+// which aborts the page script entirely). Only `window.PF` escapes the IIFE.
 
+(function () {
 const PF = (window.PF = {});
 
 // --- tiny DOM helper -------------------------------------------------------
@@ -360,3 +366,4 @@ PF.initAuth = function initAuth({ onReady, onSignedOut }) {
 
   boot();
 };
+})();
