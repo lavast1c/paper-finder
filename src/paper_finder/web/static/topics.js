@@ -270,7 +270,8 @@ async function renderCropImages(r) {
   }
   urls.forEach((u, i) => {
     const img = el("img", "card-image");
-    img.loading = "lazy";
+    // Eager, not lazy: the crop *is* the card, and the card is often below the
+    // fold on load -- a lazy image there stays 0-height and never enters view.
     img.decoding = "async";
     img.alt = `${r.title} — image ${i + 1} of ${urls.length}`;
     img.addEventListener("error", () => {
