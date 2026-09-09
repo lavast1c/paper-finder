@@ -40,6 +40,10 @@ def corpus(tmp_path):
                 (3, "3(a) resultant force is zero\nB1\n3(b) ...long mark scheme...", "mark_scheme"),
             ],
         )
+        conn.executemany(
+            "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
+            [(1, "s02"), (2, "s01"), (3, "s03"), (3, "s04")],  # q3 multi-label
+        )
         conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
         conn.commit()
     return db_path, raw_dir
@@ -186,3 +190,57 @@ def test_search_and_stats_are_501_in_cloud_mode(client, monkeypatch):
 
 def test_health_ok_in_local_mode(client):
     assert client.get("/api/health").json() == {"ok": True}
+
+
+# ------------------------------------------------------------------ topic browse
+
+
+def test_api_topics_counts(client):
+    body = client.get("/api/topics").json()
+    by_code = {t["code"]: t for t in body["topics"]}
+    assert len(body["topics"]) == 11
+    assert by_code["s01"]["count"] == 1
+    assert by_code["s03"]["count"] == 1
+    assert by_code["s04"]["count"] == 1
+    assert by_code["s07"]["count"] == 0
+    assert body["total"] == 3
+    assert body["unlabelled"] == 0
+
+
+def test_api_topics_kind_filter(client):
+    body = client.get("/api/topics", params={"kind": "theory"}).json()
+    by_code = {t["code"]: t for t in body["topics"]}
+    assert by_code["s03"]["count"] == 1  # q3 is theory
+    assert by_code["s02"]["count"] == 0  # q1 is mcq
+    assert body["total"] == 1
+
+
+def test_api_browse_payload_and_total(client):
+    body = client.get("/api/browse", params={"topics": "s03,s04"}).json()
+    assert body["count"] == 1  # q3 carries both codes, returned once
+    assert body["offset"] == 0
+    top = body["results"][0]
+    # went through result_payload
+    assert top["question_number"] == 3
+    assert top["title"] == "Physics · May/June 2026 · Paper 11 · Q3"
+    assert top["pdf_url"] == "/pdf/9702_s26_qp_11.pdf#page=5"
+    assert set(top["topic_codes"]) == {"s03", "s04"}
+
+
+def test_api_browse_count_is_total_not_page_length(client):
+    body = client.get("/api/browse", params={"topics": "s01,s02,s03,s04", "limit": 1}).json()
+    assert body["count"] == 3
+    assert len(body["results"]) == 1
+
+
+def test_api_browse_unknown_codes_degrade_to_empty(client):
+    body = client.get("/api/browse", params={"topics": "s99,nope"}).json()
+    assert body["count"] == 0
+    assert body["results"] == []
+
+
+def test_topic_endpoints_501_in_cloud_mode(client, monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
+    assert client.get("/api/topics").status_code == 501
+    assert client.get("/api/browse", params={"topics": "s01"}).status_code == 501
