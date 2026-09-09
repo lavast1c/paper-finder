@@ -1,7 +1,7 @@
 /* Paper Finder — frosted-panel UI, theme-aware, full-bleed.
-   A study-reference tool: IBM Plex type, a deliberate brick-red accent
-   (#9c2f24 light / #f08a78 dark — every text/bg pair WCAG-AA checked), a
-   static warm backdrop the panels refract. Depth-driven hierarchy with a
+   A study-reference tool: IBM Plex type, a deliberate light-blue accent
+   (#1d4ed8 light / #93c5fd dark — every text/bg pair WCAG-AA checked), a
+   static cool backdrop the panels refract. Depth-driven hierarchy with a
    specular edge highlight; no decorative motion. Opaque + reduced
    -transparency fallbacks below. */
 
@@ -9,37 +9,37 @@
   color-scheme: light;
 
   /* colour — light */
-  --bg: #ecebe9;                  /* warm neutral grey — not cream, not blue */
-  --text: #1c1a18;
-  --text-muted: #575049;
+  --bg: #eceef1;                  /* cool neutral grey */
+  --text: #16191d;
+  --text-muted: #566070;
   --surface: rgba(255, 255, 255, 0.52);
   --surface-strong: rgba(255, 255, 255, 0.74);
   --border: rgba(255, 255, 255, 0.7);
-  --hairline: rgba(28, 22, 18, 0.14);
+  --hairline: rgba(20, 28, 40, 0.14);
   --specular: rgba(255, 255, 255, 0.95);
-  --field-bg: #f6f4f2;            /* solid control fill (select + its option list) */
-  --primary: #b23a2e;             /* decorative accents / focus only */
+  --field-bg: #f1f4f8;            /* solid control fill (select + its option list) */
+  --primary: #2563eb;             /* decorative accents / focus only */
   --primary-ink: #ffffff;
-  --btn: #a8352a;                 /* button fill — white text is AA (6.5:1) */
-  --accent-ink: #9c2f24;          /* accent text on light panel (AA, 6.6:1) */
-  --focus-ring: rgba(178, 58, 46, 0.4);
+  --btn: #1d4ed8;                 /* button fill — white text is AA (6.3:1) */
+  --accent-ink: #1d4ed8;          /* accent text on light panel (AA, 6.3:1) */
+  --focus-ring: rgba(37, 99, 235, 0.4);
   --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
-  --hl-ink: #1c1a18;              /* dark ink on the highlight (AA) */
+  --hl-ink: #16191d;              /* dark ink on the highlight (AA) */
 
-  /* backdrop mesh — static, warm */
-  --blob-1: rgba(190, 74, 58, 0.3);
-  --blob-2: rgba(206, 128, 74, 0.26);
-  --blob-3: rgba(198, 96, 78, 0.26);
-  --blob-4: rgba(196, 120, 128, 0.2);
+  /* backdrop mesh — static, cool */
+  --blob-1: rgba(59, 130, 246, 0.28);
+  --blob-2: rgba(96, 165, 250, 0.24);
+  --blob-3: rgba(37, 99, 235, 0.2);
+  --blob-4: rgba(125, 211, 252, 0.2);
 
   /* radii — a tight, deliberate scale */
   --r-lg: 14px;
   --r-md: 10px;
   --r-sm: 7px;
 
-  --shadow-sm: 0 2px 10px rgba(40, 24, 18, 0.1);
-  --shadow-md: 0 12px 40px rgba(40, 24, 18, 0.16);
-  --shadow-lg: 0 24px 70px rgba(40, 24, 18, 0.22);
+  --shadow-sm: 0 2px 10px rgba(20, 32, 52, 0.1);
+  --shadow-md: 0 12px 40px rgba(20, 32, 52, 0.16);
+  --shadow-lg: 0 24px 70px rgba(20, 32, 52, 0.22);
   --edge: inset 0 1px 0 var(--specular), inset 0 -1px 0 rgba(255, 255, 255, 0.28);
 
   --blur: 20px;
@@ -55,26 +55,26 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #100e0d;
-    --text: #f6f4f2;
-    --text-muted: rgba(244, 240, 236, 0.64);
+    --bg: #0b0e13;
+    --text: #f2f5f8;
+    --text-muted: rgba(240, 244, 248, 0.64);
     --surface: rgba(255, 255, 255, 0.1);
     --surface-strong: rgba(255, 255, 255, 0.17);
     --border: rgba(255, 255, 255, 0.24);
     --hairline: rgba(255, 255, 255, 0.14);
     --specular: rgba(255, 255, 255, 0.55);
-    --field-bg: #23201e;
-    --primary: #e8705c;
+    --field-bg: #1b2029;
+    --primary: #60a5fa;
     --primary-ink: #ffffff;
-    --btn: #b23a2e;                /* white text is AA (5.9:1) */
-    --accent-ink: #f08a78;         /* accent text on dark panel (AA, 7.3:1) */
-    --focus-ring: rgba(240, 138, 120, 0.5);
+    --btn: #2563eb;                /* white text is AA (5.2:1) */
+    --accent-ink: #93c5fd;         /* accent text on dark panel (AA, 8.6:1) */
+    --focus-ring: rgba(96, 165, 250, 0.5);
     --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
-    --hl-ink: #100e0d;
-    --blob-1: rgba(180, 55, 42, 0.4);
-    --blob-2: rgba(150, 78, 42, 0.34);
-    --blob-3: rgba(140, 52, 54, 0.32);
-    --blob-4: rgba(120, 46, 60, 0.28);
+    --hl-ink: #0b0e13;
+    --blob-1: rgba(37, 99, 235, 0.4);
+    --blob-2: rgba(29, 78, 216, 0.34);
+    --blob-3: rgba(59, 130, 246, 0.3);
+    --blob-4: rgba(96, 165, 250, 0.26);
     --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 14px 44px rgba(0, 0, 0, 0.48);
     --shadow-lg: 0 26px 74px rgba(0, 0, 0, 0.58);
@@ -338,13 +338,14 @@ form#search,
 }
 .history-clear:hover { color: var(--accent-ink); box-shadow: none; }
 
-/* ---- question-type filter ---- */
+/* ---- styled <select> (question-type filter, browse filters) ---- */
 .select-wrap {
   position: relative;
   flex: 0 0 auto;
   display: inline-flex;
 }
-/* custom chevron — the native one is invisible on the frosted tray */
+/* custom chevron — the native one is suppressed with appearance:none below,
+   so this is the only arrow the control shows */
 .select-wrap::after {
   content: "";
   position: absolute;
@@ -358,7 +359,7 @@ form#search,
   transform: rotate(45deg);
   pointer-events: none;
 }
-#kind {
+.select-wrap select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -373,12 +374,12 @@ form#search,
   cursor: pointer;
 }
 /* theme the native option list so it isn't a bare white box on dark */
-#kind option {
+.select-wrap select option {
   color: var(--text);
   background: var(--field-bg);
 }
-#kind:hover { border-color: var(--accent-ink); }
-#kind:focus-visible {
+.select-wrap select:hover { border-color: var(--accent-ink); }
+.select-wrap select:focus-visible {
   outline: none;
   border-color: var(--primary);
   box-shadow: var(--edge), 0 0 0 3px var(--focus-ring);
