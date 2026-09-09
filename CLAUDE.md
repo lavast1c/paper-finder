@@ -273,11 +273,14 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   reduced-transparency fallbacks). The backdrop the glass refracts is an
   **interactive dot grid** — `#bg-dots` canvas (first child of `<body>`, `z-index:
   -1`, `pointer-events: none`) driven by `dotgrid.js`, a dependency-free port of
-  react-bits' `<DotGrid />` (no gsap; a hand-rolled per-dot spring). Dots sit at
-  `--dot-base` and lerp to `--primary` within ~150px of the pointer; a fast swipe
-  / click shoves nearby dots and they spring back. `prefers-reduced-motion` → a
-  static grid, no loop or listeners; pauses while the tab is hidden; re-reads the
-  CSS colours on a theme change. It replaced the old static `--blob-*`
+  react-bits' `<DotGrid />` (no gsap; a hand-rolled frame-rate-independent damped
+  spring per dot). Dots sit at `--dot-base` and lerp to `--primary` within ~150px
+  of the pointer; a deliberate fast swipe nudges nearby dots and a click bursts
+  every dot in range radially outward — both spring home with one soft overshoot.
+  A slow aiming move never triggers the swipe (`SPEED_TRIGGER` + a settle-snap
+  keep the grid dead still). `prefers-reduced-motion` → a static grid, no loop or
+  listeners; pauses while the tab is hidden; re-reads the CSS colours on a theme
+  change. It replaced the old static `--blob-*`
   radial-gradient mesh (`body::before`, removed). The styled-select
   rule is `.select-wrap select` (`appearance:none` + one CSS chevron on every
   filter select). Local mode: JSON over
