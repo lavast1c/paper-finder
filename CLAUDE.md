@@ -20,7 +20,10 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 m24/s24/w24 + m25/s25/w25 + s26 + m26, Papers 1 & 2, variants 1-4 where they
 exist (s25/w25/s26 have a 4th variant `qp_14/24`; the "m" series is
 variant 2 only — `9702_m24/m25/m26_qp_12/22`) = 42 question
-papers, 978 questions, 953 answers linked, 300 flagged `has_figure`.
+papers, 978 questions, 953 answers linked, 300 flagged `has_figure`, all 978
+tagged into the 11 CIE 9702 AS syllabus sections (`s01`..`s11`, multi-label,
+118 multi-section) — `labels/question_topics.tsv`, loaded by `paper-finder
+topics`.
 `evaluate` = ~73% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
@@ -58,7 +61,12 @@ untouched: SQLite, no login, PDF deep-links. Supabase schema:
 `supabase/migrations/0001_question_bank.sql` + `0002_search_kind_filter.sql`
 + `0003_question_has_figure.sql` (adds `questions.has_figure` + the RPC's
 `has_figure` column; applied via the Supabase MCP; `get_advisors` clean —
-re-run `paper-finder publish` to populate the column). Project ref
+re-run `paper-finder publish` to populate the column)
++ `0004_question_topics.sql` (adds `public.topics` + seed, `questions.topic_codes
+text[]` with a CHECK + GIN index, the `browse_questions` / `topic_counts` RPCs,
+and recreates `search_questions` (+`topic_codes` column) / `corpus_stats`
+(+`labelled`/`unlabelled`); `publish` carries the codes as a `text[]` column and
+re-upserts `public.topics` from `topics.py`). Project ref
 `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
 Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
@@ -80,6 +88,23 @@ diagram/graph/table (`questions.has_figure`, set in `segment` by the
 `_FIGURE_REF` text heuristic — "Fig. 1.1", "the diagram shows", "Table 7.1"…)
 show a `◧ Has a diagram, graph or table — check the PDF` note (`.figure-note`).
 
+**Topics + flashcard page (Stage 1 done).** Every question is tagged with all
+fitting CIE 9702 AS syllabus sections (`src/paper_finder/topics.py` = the 11
+`Topic`s; `labels/question_topics.tsv` = hand-committable, no CIE text — just
+`filename<TAB>qnum<TAB>codes<TAB>source`). `paper-finder topics` loads the TSV
+into `question_topics` (part of `build` — `segment` cascades that table to zero
+every run, so `topics` is the repair, not an optional extra). `paper-finder
+classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
+`build` like `download`/`publish`; pluggable `Labeller` seam). `search.py` gains
+`browse_by_topic()` (union / `IN` subquery, newest-paper-first) + `topic_counts()`;
+`SearchHit` gains `topic_codes`. New `/topics` page (`web/static/topics.html` +
+`topics.js`, shared code hoisted to `common.js`) = a flashcard deck: pick topics
+(union), one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden until
+revealed, filters for kind + year/session. Local endpoints `/api/topics` +
+`/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
+`topic_counts` RPCs. Search page unchanged. Stage 2 (cropped diagram images) still
+open — see `PLAN.md`.
+
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Setup
@@ -98,9 +123,16 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`; NOT part of
   `build` (network side effect). Idempotent (skips files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
-  (= `ingest` -> `extract` -> `segment` -> `answers`, each idempotent).
+  (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics`, each idempotent).
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
-  `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`.
+  `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`,
+  `paper-finder topics` (reload `labels/question_topics.tsv` + print per-section
+  counts; also runs as the last `build` step).
+- Re-label questions by topic: `paper-finder classify [--only <substr>] [--limit N]
+  [--relabel] [--model ...] [--dry-run]` — LLM multi-label into `s01`..`s11`,
+  writes `labels/question_topics.tsv`. Needs `[classify]` extra (`anthropic`,
+  lazy import) + `ANTHROPIC_API_KEY`. NOT part of `build` (network side effect);
+  skips already-labelled questions so an interrupted run resumes.
 - Web UI: `pip install -e ".[web]"` then `paper-finder serve [--host 127.0.0.1]
   [--port 8000] [--no-pdfs]`. `fastapi` is a core dep (Vercel needs it); only
   `uvicorn` is the optional `web` extra, lazily imported in `_cmd_serve` so every
@@ -154,7 +186,12 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   network errors), `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
   JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
-  per-question blocks), `search` (FTS5 + BM25; `kind=all|mcq|theory` filter),
+  per-question blocks), `topics` (load `labels/question_topics.tsv` -> the
+  `question_topics` join table; keyed on `(filename, question_number)`, never
+  `questions.id` — `segment` reassigns ids every run; orphan labels reported not
+  fatal), `classify` (LLM multi-label -> the TSV; injectable `Labeller`, batched,
+  lazy `anthropic`; network side effect, out of `build`), `search` (FTS5 + BM25;
+  `kind=all|mcq|theory` filter; `browse_by_topic` + `topic_counts` for `/topics`),
   `evaluate`,
   `web` (`create_app(db_path, raw_dir, serve_pdfs)` — FastAPI + a hand-written
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
@@ -163,9 +200,13 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   motion; opaque + reduced-transparency fallbacks). Local mode: JSON over
   `search()`, `/pdf/` gated on
   `parse_filename` + a `papers` row + `serve_pdfs`. `GET /api/config` picks local
-  vs cloud mode; in cloud mode `/api/search` + `/api/stats` return 501 and the
-  browser calls the Supabase RPC instead), `publish` (local SQLite -> Supabase
-  Postgres via psycopg; `read_local()` drops mark schemes, source URLs, PDFs).
+  vs cloud mode; in cloud mode `/api/search` + `/api/stats` + `/api/topics` +
+  `/api/browse` return 501 and the browser calls the Supabase RPC instead;
+  `/topics` = the flashcard page, shared JS in `web/static/common.js`),
+  `publish` (local SQLite -> Supabase
+  Postgres via psycopg; `read_local()` drops mark schemes, source URLs, PDFs;
+  carries `questions.topic_codes` as a `text[]` and re-upserts `public.topics`
+  from `topics.py` (the `DELETE public.papers` cascade does not reach it)).
 - `filenames.build_filename()` is the inverse of `parse_filename()`; the
   downloader uses it to enumerate candidates.
 - `segment.is_noise` filters page furniture: a regex list + barcode-font glyphs
