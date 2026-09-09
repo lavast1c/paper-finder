@@ -270,7 +270,13 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   theme-aware, full-bleed, IBM Plex type, a light-blue accent
   (`--primary` `#2563eb` light / `#60a5fa` dark, `--btn` / `--accent-ink`
   siblings; `--hl-bg` stays amber — highlighter, not chrome); opaque +
-  reduced-transparency fallbacks). The backdrop the glass refracts is an
+  reduced-transparency fallbacks). No page taglines — just the `<h1>` + the
+  `#corpus` count line. The **header, search tray and filter bar** use a
+  near-clear `--glass` fill (`rgba(255,255,255,0.04)` / `0.03`) instead of
+  `--surface` — pure `backdrop-filter` blur + border, no milky panel; the
+  `--glass` token gets an opaque fallback in the no-`backdrop-filter` and
+  `prefers-reduced-transparency` blocks. Content panels (`#gate`, `.card`,
+  results) keep `--surface` / `--surface-strong`. The backdrop the glass refracts is an
   **interactive dot grid** — `#bg-dots` canvas (first child of `<body>`, `z-index:
   -1`, `pointer-events: none`) driven by `dotgrid.js`, a dependency-free port of
   react-bits' `<DotGrid />` (no gsap; a hand-rolled frame-rate-independent damped
