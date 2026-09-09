@@ -34,6 +34,10 @@ def local_db(tmp_path):
         conn.execute(
             "INSERT INTO answers (question_id, answer_text, source) VALUES (1, 'C', 'mark_scheme')"
         )
+        conn.executemany(
+            "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
+            [(1, "s02"), (2, "s04"), (2, "s03")],
+        )
         conn.commit()
     return db_path
 
@@ -91,8 +95,10 @@ def test_read_local_only_qp_with_questions(local_db):
     assert len(questions) == 2
     assert questions[0][3] == "A ball is thrown horizontally."
     assert (questions[0][5], questions[1][5]) == (False, True)  # has_figure -> real bool
-    assert questions[0][6] == "C"  # answer_text flattened in, last column
+    assert questions[0][6] == "C"  # answer_text flattened in
     assert questions[1][6] is None
+    assert questions[0][7] == ["s02"]  # topic codes -> sorted list, [] when none
+    assert questions[1][7] == ["s03", "s04"]
 
 
 def test_dry_run_counts_and_sends_nothing(local_db):
@@ -110,10 +116,11 @@ def test_publish_statement_order_and_commit(local_db):
 
     kinds = [row[0] for row in log]
     sqls = [row[1] for row in log]
-    assert kinds == ["execute", "executemany", "executemany"]
+    assert kinds == ["execute", "executemany", "executemany", "executemany"]
     assert "DELETE FROM public.papers" in sqls[0]
-    assert "INSERT INTO public.papers" in sqls[1]
-    assert "INSERT INTO public.questions" in sqls[2]
+    assert "INSERT INTO public.topics" in sqls[1]
+    assert "INSERT INTO public.papers" in sqls[2]
+    assert "INSERT INTO public.questions" in sqls[3]
     assert conn.committed and not conn.rolled_back
 
 
