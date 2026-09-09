@@ -24,11 +24,11 @@ def local_db(tmp_path):
         conn.executemany(
             """INSERT INTO questions
                    (id, paper_id, question_number, question_text, marks, is_mcq,
-                    page_start, has_figure)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    page_start, has_figure, crop_count)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
-                (1, 1, 1, "A ball is thrown horizontally.", 1, 1, 4, 0),
-                (2, 1, 2, "A block rests on a slope, as shown in Fig. 2.1.", 9, 0, 5, 1),
+                (1, 1, 1, "A ball is thrown horizontally.", 1, 1, 4, 0, 1),
+                (2, 1, 2, "A block rests on a slope, as shown in Fig. 2.1.", 9, 0, 5, 1, 3),
             ],
         )
         conn.execute(
@@ -99,6 +99,7 @@ def test_read_local_only_qp_with_questions(local_db):
     assert questions[1][6] is None
     assert questions[0][7] == ["s02"]  # topic codes -> sorted list, [] when none
     assert questions[1][7] == ["s03", "s04"]
+    assert (questions[0][8], questions[1][8]) == (1, 3)  # crop_count rides at index 8
 
 
 def test_dry_run_counts_and_sends_nothing(local_db):
