@@ -63,7 +63,7 @@ def test_index_serves_html(client):
 
 
 def test_static_assets_served(client):
-    for asset in ("/static/app.js", "/static/style.css", "/static/index.html"):
+    for asset in ("/static/app.js", "/static/common.js", "/static/style.css", "/static/index.html"):
         assert client.get(asset).status_code == 200
 
 
