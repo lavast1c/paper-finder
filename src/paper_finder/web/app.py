@@ -25,7 +25,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from paper_finder import config
@@ -169,11 +169,16 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
+        # Browse by topic is the landing page; keyword search moved to /search.
+        return FileResponse(STATIC_DIR / "topics.html")
+
+    @app.get("/search", include_in_schema=False)
+    def search_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
     @app.get("/topics", include_in_schema=False)
-    def topics_page() -> FileResponse:
-        return FileResponse(STATIC_DIR / "topics.html")
+    def topics_page() -> RedirectResponse:
+        return RedirectResponse("/", status_code=308)  # old bookmarks/links
 
     @app.get("/api/config", include_in_schema=False)
     def api_config() -> dict:

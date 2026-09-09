@@ -8,10 +8,10 @@
 
 const { el } = PF;
 
-const chipsEl = document.getElementById("topic-chips");
 const paperEl = document.getElementById("f-paper"); // CIE variant number
 const seasonEl = document.getElementById("f-season"); // CIE session letter
 const yearEl = document.getElementById("f-year");
+const topicEl = document.getElementById("f-topic"); // syllabus section; deck stays hidden until one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
 const cardEl = document.getElementById("card");
@@ -37,7 +37,7 @@ const YEARS = [2026, 2025, 2024]; // corpus range; a one-line change when it gro
 
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
-let selected = new Set();
+let selected = new Set(); // the picked topic (0 or 1 code); a Set keeps the deck/browse plumbing unchanged
 // Paper(s) = CIE variant number, Season(s) = session letter. "" = no restriction.
 const filters = { variant: "", season: "", year: "" };
 let deck = [];
@@ -171,35 +171,27 @@ async function loadCorpusLine() {
       `${Number(s.questions).toLocaleString()} questions`,
       `${s.question_papers} question papers`,
     ];
-    if (s.subjects && s.subjects.length) bits.push(s.subjects.join(", "));
     corpusEl.textContent = bits.join(" · ");
   } catch {
     /* leave it blank */
   }
 }
 
-// --- chips -----------------------------------------------------------
+// --- topic dropdown -------------------------------------------------
 
-function renderChips() {
-  chipsEl.replaceChildren();
+// Rebuild the <option> list from the current (filter-scoped) counts, keeping the
+// user's pick selected. A zero-count topic under the active filters is disabled.
+function renderTopicOptions() {
+  const current = [...selected][0] || "";
+  topicEl.replaceChildren();
+  topicEl.append(new Option("Choose a topic…", ""));
   for (const t of topicList) {
-    const on = selected.has(t.code);
-    const chip = el("button", "chip");
-    chip.type = "button";
-    chip.setAttribute("aria-pressed", on ? "true" : "false");
-    chip.disabled = t.count === 0 && !on;
-    if (t.subsections && t.subsections.length) chip.title = t.subsections.join(" · ");
-    chip.append(el("span", "chip-num", String(t.number)));
-    chip.append(el("span", "chip-name", t.name));
-    chip.append(el("span", "chip-count", String(t.count)));
-    chip.addEventListener("click", () => {
-      if (selected.has(t.code)) selected.delete(t.code);
-      else selected.add(t.code);
-      idx = 0;
-      refresh();
-    });
-    chipsEl.append(chip);
+    const opt = new Option(`${t.number}. ${t.name} (${t.count})`, t.code);
+    opt.disabled = t.count === 0 && t.code !== current;
+    if (t.subsections && t.subsections.length) opt.title = t.subsections.join(" · ");
+    topicEl.append(opt);
   }
+  topicEl.value = current;
 }
 
 // --- the card ------------------------------------------------------
@@ -407,7 +399,7 @@ async function go(delta) {
 
 async function refresh() {
   writeUrl();
-  renderChips();
+  renderTopicOptions();
 
   if (controller) controller.abort();
   controller = new AbortController();
@@ -416,7 +408,7 @@ async function refresh() {
   total = 0;
   loadingPage = false;
 
-  // counts first (chip badges), then the deck -- both under the current filters
+  // counts first (dropdown labels), then the deck -- both under the current filters
   try {
     const counts = await fetchCounts();
     if (token !== deckToken) return;
@@ -425,14 +417,14 @@ async function refresh() {
     // ?topics= can never reach the DOM or an RPC
     const valid = new Set(topicList.map((t) => t.code));
     for (const code of [...selected]) if (!valid.has(code)) selected.delete(code);
-    renderChips();
+    renderTopicOptions();
   } catch {
     /* keep the last-known counts */
   }
 
   if (selected.size === 0) {
     cardEl.hidden = true;
-    setStatus("Pick one or more topics above.");
+    setStatus("Choose a topic to start revising.");
     return;
   }
 
@@ -489,6 +481,12 @@ yearEl.addEventListener("change", () => {
   idx = 0;
   refresh();
 });
+topicEl.addEventListener("change", () => {
+  selected.clear();
+  if (topicEl.value) selected.add(topicEl.value);
+  idx = 0;
+  refresh();
+});
 clearAllBtn.addEventListener("click", () => {
   selected.clear();
   filters.variant = "";
@@ -497,6 +495,7 @@ clearAllBtn.addEventListener("click", () => {
   paperEl.value = "";
   seasonEl.value = "";
   yearEl.value = "";
+  topicEl.value = "";
   idx = 0;
   refresh();
 });
@@ -548,7 +547,7 @@ function onReady(email, client) {
   seasonEl.value = filters.season;
   yearEl.value = filters.year;
   idx = i;
-  selected = new Set(codes); // pruned against the server's topic list in refresh()
+  selected = new Set(codes.slice(0, 1)); // single-select now; pruned in refresh()
   refresh();
 }
 
