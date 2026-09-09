@@ -63,8 +63,21 @@ def test_index_serves_html(client):
 
 
 def test_static_assets_served(client):
-    for asset in ("/static/app.js", "/static/common.js", "/static/style.css", "/static/index.html"):
+    for asset in (
+        "/static/app.js",
+        "/static/common.js",
+        "/static/topics.js",
+        "/static/style.css",
+        "/static/index.html",
+    ):
         assert client.get(asset).status_code == 200
+
+
+def test_topics_page_served(client):
+    r = client.get("/topics")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "Browse by topic" in r.text
 
 
 def test_search_returns_expected_hit(client):

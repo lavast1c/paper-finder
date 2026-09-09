@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Finder — Browse by topic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="bar-inner">
+      <h1>Paper Finder</h1>
+      <p class="tagline">Revise a topic — every past-paper question on it, one card at a time.</p>
+      <p id="corpus" class="corpus"></p>
+      <nav class="topnav">
+        <a href="/">Search</a>
+        <a href="/topics" aria-current="page">Browse by topic</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="gate" hidden>
+      <form id="email-form" autocomplete="off">
+        <p>Enter your email and we&rsquo;ll send you a sign-in code.</p>
+        <div class="gate-row">
+          <input id="email" name="email" type="email" required
+                 placeholder="you@example.com" autocomplete="email">
+          <button id="send-code" type="submit">Send code</button>
+        </div>
+      </form>
+
+      <form id="code-form" hidden autocomplete="off">
+        <p>Enter the 6-digit code sent to <span id="code-email"></span>.</p>
+        <div class="gate-row">
+          <input id="code" name="code" inputmode="numeric" pattern="[0-9]{6}"
+                 maxlength="6" required placeholder="123456"
+                 autocomplete="one-time-code">
+          <button id="verify-code" type="submit">Verify</button>
+        </div>
+        <button id="code-back" type="button" class="linkbtn">Use a different email</button>
+      </form>
+
+      <p id="gate-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <div id="app" hidden>
+      <p id="whoami" class="whoami"></p>
+
+      <div id="topic-chips" class="topic-chips" role="group" aria-label="Syllabus topics"></div>
+
+      <div class="tray browse-controls">
+        <label class="sr-only" for="kind">Paper type</label>
+        <div class="select-wrap">
+          <select id="kind" name="kind">
+            <option value="all">All papers</option>
+            <option value="mcq">Multiple choice (Paper 1)</option>
+            <option value="theory">Theory (Paper 2+)</option>
+          </select>
+        </div>
+        <label class="sr-only" for="session">Session</label>
+        <div class="select-wrap">
+          <select id="session" name="session">
+            <option value="">Any session</option>
+            <option value="m">Feb/March</option>
+            <option value="s">May/June</option>
+            <option value="w">Oct/Nov</option>
+          </select>
+        </div>
+        <label class="sr-only" for="year">Year</label>
+        <div class="select-wrap">
+          <select id="year" name="year">
+            <option value="">Any year</option>
+          </select>
+        </div>
+        <button id="clear-all" type="button" class="linkbtn">Clear all</button>
+      </div>
+
+      <p id="status" role="status" aria-live="polite"></p>
+
+      <div id="card" class="card" hidden>
+        <div class="card-nav">
+          <button id="prev" type="button" class="card-arrow" aria-label="Previous question">&#9666;</button>
+          <span id="pos" class="card-pos"></span>
+          <button id="next" type="button" class="card-arrow" aria-label="Next question">&#9656;</button>
+        </div>
+        <div class="card-head">
+          <span id="card-title" class="name"></span>
+          <code id="card-file"></code>
+          <span id="card-marks" class="marks" hidden></span>
+        </div>
+        <div id="card-question"></div>
+        <p id="card-figure" class="figure-note" hidden>◧ Has a diagram, graph or table — see the original paper</p>
+        <div id="card-answer" class="card-answer">
+          <button id="reveal" type="button">Reveal answer</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="footer-note">
+      Paper Finder is an independent index to help students organize revision
+      papers. It is not affiliated with, endorsed by, or sponsored by Cambridge
+      University Press &amp; Assessment or any other examination board.
+    </p>
+    <p class="footer-note">
+      Past papers are &copy; Cambridge Assessment &mdash; for private study use,
+      not redistribution.
+    </p>
+  </footer>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"
+    integrity="sha384-EyR2P0dlmjnEGcm9xcjdAn0VedZpRHEwDLP9oSS6wYMvzHBHkUrvgonveazJ/sSx"
+    crossorigin="anonymous"></script>
+  <script src="/static/common.js" defer></script>
+  <script src="/static/topics.js" defer></script>
+</body>
+</html>
