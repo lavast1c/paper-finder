@@ -120,13 +120,12 @@ flag as `/pdf/` (`resolve_crop` = `resolve_pdf`'s round-trip check + a
 `^q\d{2}_p\d\.png$` whitelist); `result_payload` adds `crop_base`. `topics.js`
 swaps `<img>`s idempotently (guarded on `filename#qnum`), offers a **"Show text"**
 toggle (`localStorage` `paper-finder.showtext`), and in cloud mode mints batched
-signed Storage URLs. **0005 applied + `publish` run** (cloud `crop_count`
-populated, 849/92/28/7/2); the `question-crops` bucket exists but is **empty** —
-`paper-finder publish-figures` needs `SUPABASE_SERVICE_ROLE_KEY` in `.env` (the
-user must paste it) and has not run, so deployed cards still fall back to text.
+signed Storage URLs. **Cloud live:** 0005 applied, `publish` run (cloud
+`crop_count` = 849/92/28/7/2), and `publish-figures` uploaded all 1155 PNGs to
+the private `question-crops` bucket (42 folders; anon `list` → `[]`, anon `sign`
+→ 404, service-role signs fine — the bucket is genuinely private).
 
-Next: `publish-figures` to finish going live; then fix rotated-page
-extraction, or Stage 6 (semantic search) — see `PLAN.md`.
+Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Setup
 
