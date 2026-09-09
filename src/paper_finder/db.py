@@ -10,6 +10,7 @@ import sqlite3
 from pathlib import Path
 
 from paper_finder import config
+from paper_finder.topics import TOPICS
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
@@ -52,6 +53,27 @@ CREATE VIRTUAL TABLE IF NOT EXISTS questions_fts USING fts5 (
     content_rowid='id',
     tokenize='porter unicode61'
 );
+
+-- Syllabus taxonomy. Rows are seeded from paper_finder.topics on init_db();
+-- that module is the source of truth for names, this table exists for the join.
+CREATE TABLE IF NOT EXISTS topics (
+    code   TEXT PRIMARY KEY,       -- 's01'..'s11'
+    number INTEGER NOT NULL,       -- syllabus section number, display order
+    name   TEXT NOT NULL
+);
+
+-- Multi-label: a question may carry several topics. Rebuilt from
+-- labels/question_topics.tsv by `paper-finder topics`, because `segment`
+-- DELETEs and re-INSERTs every question (reassigning questions.id) and the
+-- cascade below then empties this table -- `topics` is the repair for that.
+-- Never write to this table from segment.py.
+CREATE TABLE IF NOT EXISTS question_topics (
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    topic_code  TEXT    NOT NULL REFERENCES topics(code),
+    PRIMARY KEY (question_id, topic_code)
+);
+
+CREATE INDEX IF NOT EXISTS question_topics_code_idx ON question_topics (topic_code);
 """
 
 
@@ -71,3 +93,10 @@ def init_db(db_path: Path | str | None = None) -> None:
     """Create the schema if it does not already exist. Safe to run repeatedly."""
     with connect(db_path) as conn:
         conn.executescript(SCHEMA)
+        # The taxonomy is a code constant, not user data -- keep the FK target
+        # for question_topics populated so a bare init-db can load labels.
+        conn.executemany(
+            "INSERT INTO topics (code, number, name) VALUES (?, ?, ?) "
+            "ON CONFLICT(code) DO UPDATE SET number = excluded.number, name = excluded.name",
+            [(t.code, t.number, t.name) for t in TOPICS],
+        )
