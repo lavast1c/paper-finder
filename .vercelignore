@@ -7,7 +7,6 @@ papers.db
 papers.db-*
 *.pdf
 *.npy
-*.webp
 .env
 .env.*
 eval/
