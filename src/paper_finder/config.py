@@ -14,6 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"  # downloaded PDFs — never edited by the pipeline
 PROCESSED_DIR = DATA_DIR / "processed"  # extracted text / JSON, regenerated from RAW_DIR
+CROP_DIR = DATA_DIR / "crops"  # per-question PNG/WebP crops, regenerated from RAW_DIR + papers.db
 DB_PATH = PROJECT_ROOT / "papers.db"
 
 # CIE subject codes seen so far. Extend as the corpus grows.
