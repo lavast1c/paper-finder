@@ -23,7 +23,11 @@ variant 2 only — `9702_m24/m25/m26_qp_12/22`) = 42 question
 papers, 978 questions, 953 answers linked, 300 flagged `has_figure`, all 978
 tagged into the 11 CIE 9702 AS syllabus sections (`s01`..`s11`, multi-label,
 118 multi-section) — `labels/question_topics.tsv`, loaded by `paper-finder
-topics`.
+topics`. Every question also has a rendered **image crop** of itself
+(`questions.crop_rects`/`crop_count`, set in `segment`; `paper-finder figures`
+renders 1155 PNGs into `data/crops/<stem>/qNN_pK.png`, ~35 MB — gitignored +
+vercelignored). The `/topics` flashcard shows the crop instead of the extracted
+text (Stage 2).
 `evaluate` = ~73% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
@@ -66,8 +70,13 @@ re-run `paper-finder publish` to populate the column)
 text[]` with a CHECK + GIN index, the `browse_questions` / `topic_counts` RPCs,
 and recreates `search_questions` (+`topic_codes` column) / `corpus_stats`
 (+`labelled`/`unlabelled`); `publish` carries the codes as a `text[]` column and
-re-upserts `public.topics` from `topics.py`). Project ref
-`gfigwnbkzkgwxcdoqxtz` (ap-south-1).
+re-upserts `public.topics` from `topics.py`)
++ `0005_question_crops.sql` (adds `questions.crop_count`, recreates
+`browse_questions` / `search_questions` with a `crop_count` column, and creates
+the **private** `question-crops` Storage bucket + an `authenticated`-only read
+policy on `storage.objects`; `publish` carries `crop_count`, and
+`paper-finder publish-figures` uploads the PNGs — needs `SUPABASE_SERVICE_ROLE_KEY`).
+Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
 Both `/api/search` (local) and the `search_questions` RPC (cloud) take a
 `kind` filter: `all` (default) / `mcq` (Paper 1) / `theory` (non-1 papers) —
@@ -102,10 +111,19 @@ classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
 (union), one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden until
 revealed, filters for kind + year/session. Local endpoints `/api/topics` +
 `/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
-`topic_counts` RPCs. Search page unchanged. Stage 2 (cropped diagram images) still
-open — see `PLAN.md`.
+`topic_counts` RPCs. Search page unchanged.
 
-Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
+**Stage 2 done (local).** The flashcard shows a PNG crop of the real question
+(`crop_count > 0` → image; `= 0` → the old text + `◧` note). `web/app.py`
+`/figure/{filename}/{crop}` serves `data/crops/` behind the same `serve_pdfs`
+flag as `/pdf/` (`resolve_crop` = `resolve_pdf`'s round-trip check + a
+`^q\d{2}_p\d\.png$` whitelist); `result_payload` adds `crop_base`. `topics.js`
+swaps `<img>`s idempotently (guarded on `filename#qnum`), offers a **"Show text"**
+toggle (`localStorage` `paper-finder.showtext`), and in cloud mode mints batched
+signed Storage URLs. Cloud not yet live — 0005 unapplied, no crops uploaded.
+
+Next: apply 0005 + `publish` + `publish-figures` to go live; then fix
+rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Setup
 
@@ -123,7 +141,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`; NOT part of
   `build` (network side effect). Idempotent (skips files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
-  (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics`, each idempotent).
+  (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics` -> `figures`,
+  each idempotent). A `db.py` schema change (e.g. the `crop_rects`/`crop_count`
+  columns) = delete `papers.db` first, then `build`.
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
   `paper-finder questions [--paper qp_12] [--limit N]`, `paper-finder papers`,
   `paper-finder topics` (reload `labels/question_topics.tsv` + print per-section
@@ -137,10 +157,21 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   [--port 8000] [--no-pdfs]`. `fastapi` is a core dep (Vercel needs it); only
   `uvicorn` is the optional `web` extra, lazily imported in `_cmd_serve` so every
   other command works without it.
+- Render the per-question image crops: `paper-finder figures [--only <substr>]
+  [--limit N] [--force] [--dry-run]` — PyMuPDF renders `questions.crop_rects`
+  into `data/crops/<stem>/qNN_pK.png` (greyscale, 2x). Part of `build` (offline);
+  idempotent (skips existing).
 - Publish to the deployed Supabase index: `pip install -e ".[publish]"` then
   `paper-finder publish [--dry-run] [--db-url ...]` — reads `SUPABASE_DB_URL`
   (Supabase **session** pooler, port 5432) from the env or `.env` (gitignored).
   Replace-all, one transaction. NOT part of `build` (network side effect).
+- Upload the crops to Storage: `paper-finder publish-figures [--only <substr>]
+  [--limit N] [--force] [--dry-run]` — stdlib-urllib PUTs `data/crops/*.png` to
+  the private `question-crops` bucket. Needs `SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY` (server-side key — paste it into `.env` yourself)
+  in the env or `.env`. Idempotent/resumable (lists each paper prefix, skips
+  what is already there). Separate from `publish` (long binary upload). NOT part
+  of `build`.
 - Deploy = Vercel FastAPI preset: root `app.py` exposes `app = create_app()`
   (puts `src/` on `sys.path`), `requirements.txt` = fastapi only (keeps PyMuPDF
   out — the deployed import chain is pymupdf-free), `vercel.json` = region `bom1`
@@ -171,10 +202,14 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   `data/processed/` and `papers.db` is regenerated from it.
 - CIE past papers are copyright of Cambridge Assessment: this is a private study
   tool; the corpus and extracted question bank are not committed to git and the
-  PDFs are never uploaded anywhere. `.vercelignore` (not `.gitignore`) is what
-  keeps `papers.db` / `data/raw/` off Vercel — the `vercel` CLI uploads the
-  working dir. The deployed Supabase index (question text + answers, no PDFs) is
-  gated behind an email-code login.
+  **whole PDFs** are never uploaded anywhere. `.vercelignore` (not `.gitignore`)
+  is what keeps `papers.db` / `data/raw/` / `data/crops/` off Vercel — the
+  `vercel` CLI uploads the working dir. The deployed Supabase index (question
+  text + answers, no PDFs) is gated behind an email-code login. **Single-question
+  image crops** (`data/crops/`, gitignored + vercelignored) may go to the private
+  `question-crops` Storage bucket behind that same login — a one-question crop is
+  not the paper, and it sits at the same protection level as the question text
+  already there. Full PDFs still never leave the machine.
 - Code style: ruff (`select = E, F, I, UP, B, DTZ`, line length 100); run
   `ruff format` before committing. Prefer functions that take an explicit
   `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.
@@ -190,23 +225,32 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   `question_topics` join table; keyed on `(filename, question_number)`, never
   `questions.id` — `segment` reassigns ids every run; orphan labels reported not
   fatal), `classify` (LLM multi-label -> the TSV; injectable `Labeller`, batched,
-  lazy `anthropic`; network side effect, out of `build`), `search` (FTS5 + BM25;
-  `kind=all|mcq|theory` filter; `browse_by_topic` + `topic_counts` for `/topics`),
+  lazy `anthropic`; network side effect, out of `build`),
+  `figures` (`questions.crop_rects` -> greyscale PNG crops in `data/crops/` via
+  PyMuPDF; part of `build`, idempotent, `crop_path` derives `qNN_pK.png` from
+  `(stem, qnum, ordinal)`; skips `page.rotation != 0`; never imported from
+  `web/app.py`), `search` (FTS5 + BM25;
+  `kind=all|mcq|theory` filter; `browse_by_topic` + `topic_counts` for `/topics`;
+  `SearchHit` carries `topic_codes` + `crop_count`),
   `evaluate`,
-  `web` (`create_app(db_path, raw_dir, serve_pdfs)` — FastAPI + a hand-written
+  `web` (`create_app(db_path, raw_dir, crop_dir, serve_pdfs)` — FastAPI + a hand-written
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
   theme-aware, full-bleed, IBM Plex type, a deliberate brick-red accent
   (`#9c2f24`/`#f08a78`, all pairs WCAG-AA), static warm backdrop, no decorative
   motion; opaque + reduced-transparency fallbacks). Local mode: JSON over
   `search()`, `/pdf/` gated on
-  `parse_filename` + a `papers` row + `serve_pdfs`. `GET /api/config` picks local
-  vs cloud mode; in cloud mode `/api/search` + `/api/stats` + `/api/topics` +
-  `/api/browse` return 501 and the browser calls the Supabase RPC instead;
-  `/topics` = the flashcard page, shared JS in `web/static/common.js`),
+  `parse_filename` + a `papers` row + `serve_pdfs`; `/figure/{filename}/{crop}`
+  serves `data/crops/` behind the same flag (`resolve_crop`). `GET /api/config`
+  picks local vs cloud mode; in cloud mode `/api/search` + `/api/stats` +
+  `/api/topics` + `/api/browse` return 501 and the browser calls the Supabase RPC
+  instead; `/topics` = the flashcard page, shared JS in `web/static/common.js`),
   `publish` (local SQLite -> Supabase
   Postgres via psycopg; `read_local()` drops mark schemes, source URLs, PDFs;
-  carries `questions.topic_codes` as a `text[]` and re-upserts `public.topics`
-  from `topics.py` (the `DELETE public.papers` cascade does not reach it)).
+  carries `questions.topic_codes` as a `text[]` + `crop_count`, and re-upserts
+  `public.topics` from `topics.py` (the `DELETE public.papers` cascade does not
+  reach it)),
+  `publish_figures` (stdlib-urllib upload of `data/crops/` PNGs to the private
+  `question-crops` Storage bucket; injectable `http` seam, idempotent/resumable).
 - `filenames.build_filename()` is the inverse of `parse_filename()`; the
   downloader uses it to enumerate candidates.
 - `segment.is_noise` filters page furniture: a regex list + barcode-font glyphs
