@@ -53,29 +53,63 @@
 
       <div id="topic-chips" class="topic-chips" role="group" aria-label="Syllabus topics"></div>
 
-      <div class="tray browse-controls">
-        <label class="sr-only" for="kind">Paper type</label>
-        <div class="select-wrap">
-          <select id="kind" name="kind">
-            <option value="all">All papers</option>
-            <option value="mcq">Multiple choice (Paper 1)</option>
-            <option value="theory">Theory (Paper 2+)</option>
-          </select>
+      <div class="filterbar">
+        <div class="filterbar-context">
+          <span class="fb-context-item">
+            <svg class="fb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+              <path d="M3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/></svg>
+            <span class="fb-ctx-label">Curriculum</span>
+            <span class="select-wrap select-wrap--inline">
+              <select id="curriculum" aria-label="Curriculum">
+                <option>CIE AS &amp; A Level</option>
+              </select>
+            </span>
+          </span>
+          <span class="fb-context-item">
+            <svg class="fb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/>
+              <path d="M4 19a2 2 0 0 0 2 2h12"/></svg>
+            <span class="fb-ctx-label">Subject</span>
+            <span class="select-wrap select-wrap--inline">
+              <select id="subject" aria-label="Subject">
+                <option>Physics (9702)</option>
+              </select>
+            </span>
+          </span>
         </div>
-        <label class="sr-only" for="session">Session</label>
-        <div class="select-wrap">
-          <select id="session" name="session">
-            <option value="">Any session</option>
-            <option value="m">Feb/March</option>
-            <option value="s">May/June</option>
-            <option value="w">Oct/Nov</option>
-          </select>
-        </div>
-        <label class="sr-only" for="year">Year</label>
-        <div class="select-wrap">
-          <select id="year" name="year">
-            <option value="">Any year</option>
-          </select>
+        <div class="filterbar-fields">
+          <div class="fb-field">
+            <label class="fb-label" for="f-paper">Paper(s)</label>
+            <span class="select-wrap">
+              <select id="f-paper">
+                <option value="">Any paper</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </span>
+          </div>
+          <div class="fb-field">
+            <label class="fb-label" for="f-year">Year(s)</label>
+            <span class="select-wrap">
+              <select id="f-year">
+                <option value="">Any year</option>
+              </select>
+            </span>
+          </div>
+          <div class="fb-field">
+            <label class="fb-label" for="f-season">Season(s)</label>
+            <span class="select-wrap">
+              <select id="f-season">
+                <option value="">Any season</option>
+                <option value="s">May/June</option>
+                <option value="m">Feb/March</option>
+                <option value="w">Oct/Nov</option>
+              </select>
+            </span>
+          </div>
         </div>
         <button id="clear-all" type="button" class="linkbtn">Clear all</button>
       </div>

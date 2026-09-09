@@ -7,7 +7,9 @@ const { el } = PF;
 
 const form = document.getElementById("search");
 const input = document.getElementById("q");
-const kindEl = document.getElementById("kind");
+const paperEl = document.getElementById("f-paper"); // CIE variant number
+const yearEl = document.getElementById("f-year");
+const seasonEl = document.getElementById("f-season"); // CIE session letter
 const historyEl = document.getElementById("history"); // custom recent-search panel
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
@@ -100,24 +102,32 @@ function clearResults() {
 
 // --- search sources ------------------------------------------------------
 
-function kind() {
-  return kindEl && kindEl.value ? kindEl.value : "all";
+// The filter bar: Paper(s) = CIE variant number, Season(s) = session letter.
+// Empty = no restriction on that axis.
+function scope() {
+  const one = (el) => (el && el.value ? [el.value] : []);
+  return { variants: one(paperEl), years: one(yearEl), sessions: one(seasonEl) };
 }
 
 async function localSearch(q) {
-  const res = await fetch(
-    "/api/search?q=" + encodeURIComponent(q) + "&limit=10&kind=" + kind(),
-    { signal: controller.signal },
-  );
+  const s = scope();
+  const params = new URLSearchParams({ q, limit: "10" });
+  if (s.variants.length) params.set("variants", s.variants.join(","));
+  if (s.years.length) params.set("years", s.years.join(","));
+  if (s.sessions.length) params.set("sessions", s.sessions.join(","));
+  const res = await fetch("/api/search?" + params.toString(), { signal: controller.signal });
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json(); // { query, count, results: [result_payload...] }
 }
 
 async function cloudSearch(q) {
+  const s = scope();
   const { data, error } = await sb.rpc("search_questions", {
     query: q,
     max_results: 5,
-    kind: kind(),
+    years: s.years.map(Number),
+    sessions: s.sessions,
+    variants: s.variants.map(Number),
   });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(PF.cloudRow) };
@@ -220,10 +230,12 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-if (kindEl) {
-  kindEl.addEventListener("change", () => {
-    if (input.value.trim()) run();
-  });
+for (const sel of [paperEl, yearEl, seasonEl]) {
+  if (sel) {
+    sel.addEventListener("change", () => {
+      if (input.value.trim()) run();
+    });
+  }
 }
 
 // --- boot ------------------------------------------------------------
