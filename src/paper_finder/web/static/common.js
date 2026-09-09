@@ -217,7 +217,9 @@ function cloudRow(d) {
     answer: d.answer_text,
     marks: d.marks,
     has_figure: d.has_figure,
-    // no pdf_url — the deployed site has no PDFs
+    crop_count: d.crop_count || 0,
+    // no pdf_url — the deployed site has no PDFs; crops come from signed
+    // Storage URLs the topic page mints itself
   };
 }
 PF.cloudRow = cloudRow;

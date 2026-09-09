@@ -87,6 +87,8 @@ def test_topics_page_served(client):
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
     assert "Browse by topic" in r.text
+    assert 'id="card-images"' in r.text  # question-crop container
+    assert 'id="show-text"' in r.text
 
 
 def test_search_returns_expected_hit(client):
