@@ -21,10 +21,15 @@ const posEl = document.getElementById("pos");
 const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
+const cardImagesEl = document.getElementById("card-images");
+const showTextBtn = document.getElementById("show-text");
 const cardQuestionEl = document.getElementById("card-question");
 const cardFigureEl = document.getElementById("card-figure");
 const cardAnswerEl = document.getElementById("card-answer");
 const corpusEl = document.getElementById("corpus");
+
+const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question text visible beside the image
+const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
 const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this close to the end
@@ -38,6 +43,14 @@ let deck = [];
 let total = 0;
 let idx = 0;
 let revealed = false;
+let renderedImagesKey = null; // `${filename}#${qnum}` currently shown in #card-images; guards the swap
+let showText = false;
+try {
+  showText = localStorage.getItem(SHOWTEXT_KEY) === "1";
+} catch {
+  /* private mode / storage blocked */
+}
+const signedCache = new Map(); // storage path -> { url, exp } (cloud mode signed URLs)
 let loadingPage = false;
 let deckToken = 0; // bumped on every new deck; a stale in-flight page load is dropped
 let controller = null;
@@ -192,6 +205,82 @@ function selectedNames() {
   return topicList.filter((t) => selected.has(t.code)).map((t) => t.name);
 }
 
+function cardKey(r) {
+  return `${r.filename}#${r.question_number}`;
+}
+
+// The crop image URLs for a card, in page order. Local mode builds them straight
+// off `crop_base`; cloud mode mints short-lived signed Storage URLs (batched,
+// cached) since the bucket is private.
+function cropUrls(r) {
+  const stem = r.filename.replace(/\.pdf$/i, "");
+  const names = [];
+  for (let k = 1; k <= r.crop_count; k++) {
+    names.push(`q${String(r.question_number).padStart(2, "0")}_p${k}.png`);
+  }
+  if (!sb) {
+    return Promise.resolve(names.map((n) => `${r.crop_base}/${n}`));
+  }
+  return signedUrls(names.map((n) => `${stem}/${n}`));
+}
+
+async function signedUrls(paths) {
+  const now = Date.now();
+  const stale = paths.filter((p) => {
+    const c = signedCache.get(p);
+    return !c || c.exp < now + 60000;
+  });
+  if (stale.length) {
+    const { data, error } = await sb.storage.from(CROP_BUCKET).createSignedUrls(stale, 3600);
+    if (error) throw new Error(error.message || "signed URL request failed");
+    for (const row of data || []) {
+      if (row && row.signedUrl && !row.error) {
+        signedCache.set(row.path, { url: row.signedUrl, exp: now + 3600 * 1000 });
+      }
+    }
+  }
+  return paths.map((p) => (signedCache.get(p) || {}).url).filter(Boolean);
+}
+
+// Drop back to the extracted text for this one card -- a crop failed to load, or
+// none resolved. Not persisted; the next card tries its images again.
+function fallbackToText(r) {
+  renderedImagesKey = null;
+  cardImagesEl.replaceChildren();
+  cardImagesEl.hidden = true;
+  showTextBtn.hidden = true;
+  cardQuestionEl.hidden = false;
+  cardQuestionEl.replaceChildren(PF.questionBlock(r.question_text));
+  cardFigureEl.hidden = !r.has_figure;
+}
+
+async function renderCropImages(r) {
+  const key = cardKey(r);
+  cardImagesEl.replaceChildren();
+  let urls;
+  try {
+    urls = await cropUrls(r);
+  } catch {
+    urls = [];
+  }
+  if (renderedImagesKey !== key) return; // navigated away while awaiting
+  if (!urls.length) {
+    fallbackToText(r);
+    return;
+  }
+  urls.forEach((u, i) => {
+    const img = el("img", "card-image");
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = `${r.title} — image ${i + 1} of ${urls.length}`;
+    img.addEventListener("error", () => {
+      if (renderedImagesKey === key) fallbackToText(r);
+    });
+    img.src = u;
+    cardImagesEl.append(img);
+  });
+}
+
 function renderCard() {
   const r = deck[idx];
   if (!r) return;
@@ -208,8 +297,30 @@ function renderCard() {
     cardMarksEl.hidden = true;
   }
 
-  cardQuestionEl.replaceChildren(PF.questionBlock(r.question_text));
-  cardFigureEl.hidden = !r.has_figure;
+  const hasCrops = r.crop_count > 0;
+  const key = cardKey(r);
+  if (hasCrops) {
+    if (renderedImagesKey !== key) {
+      renderedImagesKey = key;
+      renderCropImages(r); // async; swaps in <img> nodes, or calls fallbackToText
+    }
+    cardImagesEl.hidden = false;
+    showTextBtn.hidden = false;
+    showTextBtn.textContent = showText ? "Hide text" : "Show text";
+  } else {
+    renderedImagesKey = null;
+    cardImagesEl.replaceChildren();
+    cardImagesEl.hidden = true;
+    showTextBtn.hidden = true;
+  }
+
+  const textVisible = !hasCrops || showText;
+  cardQuestionEl.hidden = !textVisible;
+  if (textVisible) {
+    cardQuestionEl.replaceChildren(PF.questionBlock(r.question_text));
+  }
+  // when the crop is shown the figure lives in it; the note only helps the text view
+  cardFigureEl.hidden = !r.has_figure || hasCrops;
 
   cardAnswerEl.replaceChildren();
   if (revealed) {
@@ -383,6 +494,16 @@ clearAllBtn.addEventListener("click", () => {
 });
 prevBtn.addEventListener("click", () => go(-1));
 nextBtn.addEventListener("click", () => go(1));
+
+showTextBtn.addEventListener("click", () => {
+  showText = !showText;
+  try {
+    localStorage.setItem(SHOWTEXT_KEY, showText ? "1" : "");
+  } catch {
+    /* private mode / storage blocked */
+  }
+  renderCard();
+});
 
 document.addEventListener("keydown", (e) => {
   const tag = (e.target && e.target.tagName) || "";

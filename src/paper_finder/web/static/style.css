@@ -688,6 +688,27 @@ ol#results li {
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
 }
+/* question crops: greyscale page fragments on white, so they read as paper
+   rather than a hole punched in the panel (matters in dark mode) */
+.card-images {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 70vh;
+  overflow: auto;
+  margin-bottom: 0.5rem;
+}
+.card-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--primary-ink); /* #ffffff both themes */
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm), var(--edge);
+}
+#show-text { margin: 0 0 0.7rem; }
+
 .card-answer { margin-top: 1rem; }
 
 footer {
