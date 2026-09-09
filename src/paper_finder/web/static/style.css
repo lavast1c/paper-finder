@@ -247,8 +247,29 @@ button[type="submit"]:active,
 button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 button[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
-/* ---- search form: a glass tray ---- */
-form#search {
+/* ---- top nav: Search <-> Browse by topic ---- */
+.topnav {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.topnav a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.topnav a:hover { color: var(--text); }
+.topnav a[aria-current="page"] {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+}
+
+/* ---- search form / control tray: a glass tray ---- */
+form#search,
+.tray {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
