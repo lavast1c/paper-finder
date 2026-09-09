@@ -1,0 +1,15 @@
+# Syllabus topic labels for the question bank.
+#
+# One row per labelled question:
+#     filename <TAB> question_number <TAB> topic_codes <TAB> source
+#
+# topic_codes : comma-separated CIE 9702 AS syllabus section codes (s01..s11),
+#               multi-label -- list every section the question tests.
+# source      : "hand" (reviewed by a person) or "llm" (`paper-finder classify`).
+#
+# Keyed on (filename, question_number), NOT questions.id -- `paper-finder build`
+# reassigns ids every run. Sorted by (filename, question_number). No question
+# text lives here, only public paper metadata + the section enum.
+#
+# Populate with:  paper-finder classify   (writes llm rows here)
+# then load with: paper-finder topics

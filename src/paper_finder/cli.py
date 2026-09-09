@@ -5,7 +5,8 @@ paper-finder ingest      scan data/raw/ and record papers in the database
 paper-finder extract     pull text out of every recorded PDF into data/processed/
 paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
-paper-finder build       run ingest -> extract -> segment -> answers in one go
+paper-finder topics      load syllabus topic labels from labels/question_topics.tsv
+paper-finder build       run ingest -> extract -> segment -> answers -> topics in one go
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
 paper-finder search      find the paper a question came from
@@ -26,9 +27,11 @@ from paper_finder.download import download
 from paper_finder.evaluate import evaluate, load_validation
 from paper_finder.extract import extract_all
 from paper_finder.ingest import ingest
+from paper_finder.labels import load_topic_labels
 from paper_finder.marks import extract_answers_all
 from paper_finder.search import search
 from paper_finder.segment import segment_all
+from paper_finder.topics import TOPICS
 
 
 def _cmd_init_db(_args: argparse.Namespace) -> None:
@@ -84,6 +87,20 @@ def _cmd_segment(_args: argparse.Namespace) -> None:
         print(f"Not extracted yet       : {', '.join(report.missing_json)}")
         print("    Run: paper-finder extract")
 
+    # Re-segmenting DELETEs every question, which cascades question_topics to
+    # empty. Warn if the label file has data rows but the table is now bare.
+    from paper_finder.labels import default_path
+
+    path = default_path()
+    has_labels = path.exists() and any(
+        line.strip() and not line.strip().startswith("#")
+        for line in path.read_text(encoding="utf-8").splitlines()
+    )
+    if has_labels:
+        with connect() as conn:
+            if conn.execute("SELECT COUNT(*) FROM question_topics").fetchone()[0] == 0:
+                print("\nTopic labels cleared by re-segmenting. Run: paper-finder topics")
+
 
 def _cmd_answers(_args: argparse.Namespace) -> None:
     report = extract_answers_all()
@@ -98,8 +115,25 @@ def _cmd_answers(_args: argparse.Namespace) -> None:
         print(f"Not extracted yet       : {', '.join(report.missing_json)}  (run: extract)")
 
 
+def _cmd_topics(_args: argparse.Namespace) -> None:
+    report = load_topic_labels()
+    print(f"Label rows read          : {report.rows}")
+    print(f"Questions labelled       : {report.labelled}")
+    print(f"Questions unlabelled     : {report.unlabelled}  (run: paper-finder classify)")
+    for topic in TOPICS:
+        count = report.counts.get(topic.code, 0)
+        print(f"    {topic.code}  {topic.number:>2}. {topic.name:<32} {count:>4}")
+    if report.orphans:
+        print(f"Labels with no question  : {len(report.orphans)}")
+        for ref in report.orphans[:10]:
+            print(f"    - {ref}")
+        if len(report.orphans) > 10:
+            print(f"    ... and {len(report.orphans) - 10} more")
+        print("    (those papers are not in data/raw/ -- run: paper-finder build)")
+
+
 def _cmd_build(_args: argparse.Namespace) -> None:
-    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers):
+    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers, _cmd_topics):
         print(f"\n>>> {step.__name__.removeprefix('_cmd_')}")
         step(_args)
 
@@ -320,7 +354,10 @@ def main(argv: list[str] | None = None) -> None:
     p_answers = sub.add_parser("answers", help="link mark-scheme answers to questions")
     p_answers.set_defaults(func=_cmd_answers)
 
-    p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers")
+    p_topics = sub.add_parser("topics", help="load syllabus topic labels into the database")
+    p_topics.set_defaults(func=_cmd_topics)
+
+    p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers -> topics")
     p_build.set_defaults(func=_cmd_build)
 
     p_download = sub.add_parser("download", help="fetch past papers from a mirror into data/raw/")

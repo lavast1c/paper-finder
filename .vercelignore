@@ -14,3 +14,6 @@ tests/
 .ruff_cache/
 .pytest_cache/
 __pycache__/
+
+# Topic labels are read into Supabase, not by the deployed app.
+labels/
