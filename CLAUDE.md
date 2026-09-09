@@ -113,17 +113,21 @@ revealed, filters for kind + year/session. Local endpoints `/api/topics` +
 `/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
 `topic_counts` RPCs. Search page unchanged.
 
-**Stage 2 done (local).** The flashcard shows a PNG crop of the real question
-(`crop_count > 0` → image; `= 0` → the old text + `◧` note). `web/app.py`
-`/figure/{filename}/{crop}` serves `data/crops/` behind the same `serve_pdfs`
-flag as `/pdf/` (`resolve_crop` = `resolve_pdf`'s round-trip check + a
-`^q\d{2}_p\d\.png$` whitelist); `result_payload` adds `crop_base`. `topics.js`
-swaps `<img>`s idempotently (guarded on `filename#qnum`), offers a **"Show text"**
-toggle (`localStorage` `paper-finder.showtext`), and in cloud mode mints batched
-signed Storage URLs. **Cloud live:** 0005 applied, `publish` run (cloud
-`crop_count` = 849/92/28/7/2), and `publish-figures` uploaded all 1155 PNGs to
-the private `question-crops` bucket (42 folders; anon `list` → `[]`, anon `sign`
-→ 404, service-role signs fine — the bucket is genuinely private).
+**Stage 2 done — local AND cloud, verified in-browser.** The flashcard shows a
+PNG crop of the real question (`crop_count > 0` → image; `= 0` → the old text +
+`◧` note). `web/app.py` `/figure/{filename}/{crop}` serves `data/crops/` behind
+the same `serve_pdfs` flag as `/pdf/` (`resolve_crop` = `resolve_pdf`'s
+round-trip check + a `^q\d{2}_p\d\.png$` whitelist); `result_payload` adds
+`crop_base`. `topics.js` `renderCropImages` swaps `<img>`s idempotently (guarded
+on `filename#qnum`), loads them **eagerly** (the card is below the fold on load —
+lazy images there never enter view), offers a **"Show text"** toggle
+(`localStorage` `paper-finder.showtext`), and in cloud mode mints batched signed
+Storage URLs. `PF.cloudRow` must carry `question_number` — `topics.js` builds the
+crop object path from it (`q{NN}_p{k}.png`); without it cloud paths were
+`qundefined_p1.png`. **Cloud live:** 0005 applied, `publish` run (cloud
+`crop_count` = 849/92/28/7/2), `publish-figures` uploaded all 1155 PNGs to the
+private `question-crops` bucket (42 folders; anon `list` → `[]`, anon `sign` →
+404 — genuinely private).
 
 Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
 
