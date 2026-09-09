@@ -23,6 +23,7 @@
   --btn: #1d4ed8;                 /* button fill — white text is AA (6.3:1) */
   --accent-ink: #1d4ed8;          /* accent text on light panel (AA, 6.3:1) */
   --focus-ring: rgba(37, 99, 235, 0.4);
+  --rule: rgba(37, 99, 235, 0.35);   /* thin accent divider (filter bar) */
   --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
   --hl-ink: #16191d;              /* dark ink on the highlight (AA) */
 
@@ -69,6 +70,7 @@
     --btn: #2563eb;                /* white text is AA (5.2:1) */
     --accent-ink: #93c5fd;         /* accent text on dark panel (AA, 8.6:1) */
     --focus-ring: rgba(96, 165, 250, 0.5);
+    --rule: rgba(96, 165, 250, 0.4);
     --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
     --hl-ink: #0b0e13;
     --blob-1: rgba(37, 99, 235, 0.4);
@@ -220,7 +222,7 @@ main {
 }
 #code::placeholder { letter-spacing: 0.2em; }
 
-/* ---- buttons (solid brick-red fill, specular edge) ---- */
+/* ---- buttons (solid light-blue fill, specular edge) ---- */
 button[type="submit"],
 #send-code,
 #verify-code {
@@ -629,8 +631,71 @@ ol#results li {
   border-color: transparent;
 }
 
-.browse-controls { align-items: center; }
-.browse-controls .linkbtn { margin-left: auto; }
+/* ---- filter bar (curriculum / subject + paper / year / season) ---- */
+.filterbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+  padding: 0.75rem;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(var(--blur)) var(--refract);
+  backdrop-filter: blur(var(--blur)) var(--refract);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md), var(--edge);
+}
+.filterbar-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.4rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+}
+.fb-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.fb-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--accent-ink);
+}
+.fb-ctx-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+/* compact select for the context row — no full-width, tighter padding */
+.select-wrap--inline { display: inline-flex; }
+.select-wrap--inline select {
+  width: auto;
+  padding: 0.4rem 2rem 0.4rem 0.6rem;
+  font-weight: 600;
+}
+.filterbar-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.7rem;
+}
+.fb-field {
+  flex: 1 1 8.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.fb-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.fb-field .select-wrap { display: flex; }
+.filterbar .linkbtn { align-self: flex-start; }
 
 .card {
   margin-top: 1rem;

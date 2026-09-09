@@ -9,9 +9,9 @@
 const { el } = PF;
 
 const chipsEl = document.getElementById("topic-chips");
-const kindEl = document.getElementById("kind");
-const sessionEl = document.getElementById("session");
-const yearEl = document.getElementById("year");
+const paperEl = document.getElementById("f-paper"); // CIE variant number
+const seasonEl = document.getElementById("f-season"); // CIE session letter
+const yearEl = document.getElementById("f-year");
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
 const cardEl = document.getElementById("card");
@@ -38,7 +38,8 @@ const YEARS = [2026, 2025, 2024]; // corpus range; a one-line change when it gro
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
 let selected = new Set();
-const filters = { kind: "all", session: "", year: "" };
+// Paper(s) = CIE variant number, Season(s) = session letter. "" = no restriction.
+const filters = { variant: "", season: "", year: "" };
 let deck = [];
 let total = 0;
 let idx = 0;
@@ -60,8 +61,8 @@ let controller = null;
 function readUrl() {
   const p = new URLSearchParams(location.search);
   const codes = (p.get("topics") || "").split(",").map((s) => s.trim()).filter(Boolean);
-  filters.kind = p.get("kind") || "all";
-  filters.session = p.get("session") || "";
+  filters.variant = p.get("variant") || "";
+  filters.season = p.get("season") || "";
   filters.year = p.get("year") || "";
   const i = parseInt(p.get("i") || "0", 10);
   return { codes, i: Number.isFinite(i) && i > 0 ? i : 0 };
@@ -70,8 +71,8 @@ function readUrl() {
 function writeUrl() {
   const p = new URLSearchParams();
   if (selected.size) p.set("topics", [...selected].join(","));
-  if (filters.kind !== "all") p.set("kind", filters.kind);
-  if (filters.session) p.set("session", filters.session);
+  if (filters.variant) p.set("variant", filters.variant);
+  if (filters.season) p.set("season", filters.season);
   if (filters.year) p.set("year", filters.year);
   if (idx > 0) p.set("i", String(idx));
   const qs = p.toString();
@@ -84,15 +85,26 @@ function yearsParam() {
   return filters.year ? [Number(filters.year)] : [];
 }
 function sessionsParam() {
-  return filters.session ? [filters.session] : [];
+  return filters.season ? [filters.season] : [];
+}
+function variantsParam() {
+  return filters.variant ? [Number(filters.variant)] : [];
+}
+// local /api/* query string for the current scope filters
+function scopeQuery(extra) {
+  const p = new URLSearchParams(extra || {});
+  if (filters.year) p.set("years", filters.year);
+  if (filters.season) p.set("sessions", filters.season);
+  if (filters.variant) p.set("variants", filters.variant);
+  return p;
 }
 
 async function fetchCounts() {
   if (sb) {
     const { data, error } = await sb.rpc("topic_counts", {
-      kind: filters.kind,
       years: yearsParam(),
       sessions: sessionsParam(),
+      variants: variantsParam(),
     });
     if (error) throw new Error(error.message || "topic counts failed");
     return {
@@ -106,10 +118,8 @@ async function fetchCounts() {
       total: data.reduce((n, r) => n + Number(r.count), 0),
     };
   }
-  const p = new URLSearchParams({ kind: filters.kind });
-  if (filters.year) p.set("years", filters.year);
-  if (filters.session) p.set("sessions", filters.session);
-  const res = await fetch("/api/topics?" + p.toString());
+  const qs = scopeQuery().toString();
+  const res = await fetch("/api/topics" + (qs ? "?" + qs : ""));
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json(); // { topics, total, unlabelled }
 }
@@ -119,9 +129,9 @@ async function fetchDeckPage(offset) {
   if (sb) {
     const { data, error } = await sb.rpc("browse_questions", {
       codes,
-      kind: filters.kind,
       years: yearsParam(),
       sessions: sessionsParam(),
+      variants: variantsParam(),
       max_results: PAGE,
       skip: offset,
     });
@@ -131,14 +141,11 @@ async function fetchDeckPage(offset) {
       results: data.map(PF.cloudRow),
     };
   }
-  const p = new URLSearchParams({
+  const p = scopeQuery({
     topics: codes.join(","),
-    kind: filters.kind,
     limit: String(PAGE),
     offset: String(offset),
   });
-  if (filters.year) p.set("years", filters.year);
-  if (filters.session) p.set("sessions", filters.session);
   const res = await fetch("/api/browse?" + p.toString(), {
     signal: controller ? controller.signal : undefined,
   });
@@ -467,13 +474,13 @@ async function refresh() {
 
 // --- wiring --------------------------------------------------------
 
-kindEl.addEventListener("change", () => {
-  filters.kind = kindEl.value || "all";
+paperEl.addEventListener("change", () => {
+  filters.variant = paperEl.value;
   idx = 0;
   refresh();
 });
-sessionEl.addEventListener("change", () => {
-  filters.session = sessionEl.value;
+seasonEl.addEventListener("change", () => {
+  filters.season = seasonEl.value;
   idx = 0;
   refresh();
 });
@@ -484,11 +491,11 @@ yearEl.addEventListener("change", () => {
 });
 clearAllBtn.addEventListener("click", () => {
   selected.clear();
-  filters.kind = "all";
-  filters.session = "";
+  filters.variant = "";
+  filters.season = "";
   filters.year = "";
-  kindEl.value = "all";
-  sessionEl.value = "";
+  paperEl.value = "";
+  seasonEl.value = "";
   yearEl.value = "";
   idx = 0;
   refresh();
@@ -537,8 +544,8 @@ function onReady(email, client) {
   ranInitial = true; // onAuthStateChange fires more than once
 
   const { codes, i } = readUrl();
-  kindEl.value = filters.kind;
-  sessionEl.value = filters.session;
+  paperEl.value = filters.variant;
+  seasonEl.value = filters.season;
   yearEl.value = filters.year;
   idx = i;
   selected = new Set(codes); // pruned against the server's topic list in refresh()
