@@ -1,4 +1,5 @@
 from paper_finder.segment import (
+    _crop_rects,
     _split_stem_and_options,
     is_noise,
     looks_like_mcq,
@@ -8,8 +9,18 @@ from paper_finder.segment import (
 )
 
 
-def _line(text, x0=72.0, page=3, in_body=True, y_frac=0.3):
-    return {"text": text, "x0": x0, "page": page, "in_body": in_body, "y_frac": y_frac}
+def _line(text, x0=72.0, page=3, in_body=True, y_frac=0.3, height=842.0):
+    y0 = y_frac * height
+    return {
+        "text": text,
+        "x0": x0,
+        "page": page,
+        "in_body": in_body,
+        "y_frac": y_frac,
+        "y0": y0,
+        "y1": y0 + 12.0,
+        "height": height,
+    }
 
 
 def _mcq_lines(n=3):
@@ -114,6 +125,70 @@ def test_segment_sets_has_figure():
     q1, q2 = segment_structured(lines)
     assert q1.has_figure is False
     assert q2.has_figure is True
+
+
+def test_crop_rects_single_page_stops_at_next_question():
+    q1_block = [
+        _line("1", x0=49.6, page=3, y_frac=0.10),
+        _line("Stem of question 1.", page=3, y_frac=0.14),
+    ]
+    next_start = _line("2", x0=49.6, page=3, y_frac=0.45)
+    rects = _crop_rects(q1_block, next_start)
+    assert len(rects) == 1
+    page, x0, y0, x1, y1 = rects[0]
+    assert page == 3
+    assert (x0, x1) == (40.0, 555.0)
+    assert y0 == round(0.10 * 842.0 - 4.0, 1)  # first line, minus headroom
+    assert y1 == round(0.45 * 842.0 - 4.0, 1)  # next question's first line
+
+
+def test_crop_rects_last_question_runs_to_body_bottom():
+    block = [_line("40", x0=49.6, page=15, y_frac=0.10), _line("Last stem.", page=15, y_frac=0.14)]
+    (rect,) = _crop_rects(block, None)
+    assert rect[4] == round(0.93 * 842.0, 1)
+
+
+def test_crop_rects_spans_a_blank_middle_page():
+    # question 2 covers pages 4-6; page 5 is a full-page diagram with no text line
+    block = [
+        _line("2", x0=49.6, page=4, y_frac=0.07),
+        _line("(a) Look at Fig 2.1.", page=4, y_frac=0.20),
+        _line("(b) Now calculate.", page=6, y_frac=0.15),
+    ]
+    next_start = _line("3", x0=49.6, page=6, y_frac=0.60)
+    rects = _crop_rects(block, next_start)
+    assert [r[0] for r in rects] == [4, 5, 6]  # the blank page is not dropped
+    assert rects[1][2] == round(0.055 * 842.0, 1)  # page 5 top = body band top
+    assert rects[1][4] == round(0.93 * 842.0, 1)  # page 5 bottom = body band bottom
+    assert rects[2][4] == round(0.60 * 842.0 - 4.0, 1)  # page 6 bottom = q3 start
+
+
+def test_crop_rects_uses_block_extremes_not_first_last_line():
+    # PDF block order is not y-order: a footer-ish line comes first in the list
+    block = [
+        _line("noise near bottom", page=3, y_frac=0.80),
+        _line("1", x0=49.6, page=3, y_frac=0.10),
+        _line("real stem", page=3, y_frac=0.14),
+    ]
+    (rect,) = _crop_rects(block, None)
+    assert rect[2] == round(0.10 * 842.0 - 4.0, 1)  # top = min y0 over the block
+
+
+def test_segment_mcq_records_crop_rects():
+    lines = [_line("Paper 1 Multiple Choice", x0=100, page=1, y_frac=0.05)]
+    for q in range(1, 3):
+        base = 0.1 + 0.4 * (q - 1)
+        lines.append(_line(str(q), x0=49.6, page=3, y_frac=base))
+        lines.append(_line(f"Stem for question {q} about physics?", page=3, y_frac=base + 0.03))
+        for opt in ("A", "B", "C", "D"):
+            lines.append(_line(opt, page=3, y_frac=base + 0.06))
+            lines.append(_line(f"option {opt.lower()} {q}", page=3, y_frac=base + 0.08))
+    questions = segment_mcq(lines)
+    assert [q.number for q in questions] == [1, 2]
+    assert all(len(q.crop_rects) == 1 for q in questions)
+    assert all(rect[0] == 3 for q in questions for rect in q.crop_rects)
+    # q1's crop ends where q2 begins
+    assert questions[0].crop_rects[0][4] == round(0.5 * 842.0 - 4.0, 1)
 
 
 def test_noise_matches_furniture_but_not_questions():

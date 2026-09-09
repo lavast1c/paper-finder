@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS questions (
     is_mcq          INTEGER,
     page_start      INTEGER,
     has_figure      INTEGER NOT NULL DEFAULT 0,   -- question refers to a diagram/graph/table
+    crop_rects      TEXT,                         -- JSON [[page,x0,y0,x1,y1], ...] page regions
+    crop_count      INTEGER NOT NULL DEFAULT 0,   -- len(crop_rects); 0 = no crop image
     UNIQUE (paper_id, question_number)
 );
 

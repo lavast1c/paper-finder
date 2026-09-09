@@ -2,10 +2,12 @@
 # does NOT protect against this. Keep copyrighted PDFs, the question bank, and
 # secrets off Vercel.
 data/
+data/crops/
 papers.db
 papers.db-*
 *.pdf
 *.npy
+*.webp
 .env
 .env.*
 eval/

@@ -36,6 +36,18 @@ _BODY_BOTTOM = 0.93
 # A structured question number is near the very top of its page.
 _STRUCTURED_START_MAX_Y = 0.18
 
+# --- question-image crop rectangles (Stage 2) ---
+# A crop is the whole question column, page by page, at fixed x-bounds -- NOT the
+# text bbox union: a diagram or table is routinely wider than the narrowest text
+# line above it. The vertical band is the same _BODY_TOP.._BODY_BOTTOM content
+# band the segmenter already trusts, which also keeps the PapaCambridge footer
+# banner (y > ~0.97h) out of frame.
+_CROP_X0 = 40.0
+_CROP_X1 = 555.0
+_CROP_TOP_PAD = 4.0  # a few points of headroom above the first line / below the next question
+_CROP_MIN_HEIGHT = 20.0  # a shorter band is a stray label, nothing to render
+_DEFAULT_PAGE_HEIGHT = 842.0  # A4 portrait at 72 dpi; every 9702 qp page
+
 # A line that is page furniture rather than question content.
 _NOISE = re.compile(
     r"""
@@ -124,6 +136,9 @@ class Question:
     marks: int | None = 1
     is_mcq: bool = True
     has_figure: bool = False
+    # One (page, x0, y0, x1, y1) rect per page the question occupies, in page
+    # order. `paper-finder figures` renders each to an image; empty = no crop.
+    crop_rects: tuple[tuple[int, float, float, float, float], ...] = ()
 
 
 @dataclass
@@ -159,6 +174,9 @@ def load_lines(json_path: Path) -> list[dict]:
                     "page": page["page"],
                     "text": line["text"],
                     "x0": line["x0"],
+                    "y0": line["y0"],
+                    "y1": line["y1"],
+                    "height": height,
                     "y_frac": line["y0"] / height,
                     "in_body": top <= line["y0"] <= bottom,
                 }
@@ -173,6 +191,54 @@ def looks_like_mcq(lines: list[dict]) -> bool:
 
 def _collapse(parts: list[str]) -> str:
     return re.sub(r"\s+", " ", " ".join(parts)).strip()
+
+
+def _line_y0(line: dict) -> float:
+    height = line.get("height", _DEFAULT_PAGE_HEIGHT)
+    return line.get("y0", line["y_frac"] * height)
+
+
+def _crop_rects(
+    block: list[dict], next_start: dict | None
+) -> tuple[tuple[int, float, float, float, float], ...]:
+    """The page regions to render for one question.
+
+    One rect per page from the question's first to its last, inclusive -- pages
+    are taken as a contiguous *range*, not from the pages that happen to carry a
+    text line, so a full-page diagram between two text pages is not dropped. The
+    bottom edge runs to the next question's first line when it shares the last
+    page, otherwise to the content-band bottom -- so a figure sitting below the
+    final line of text is still inside the crop.
+    """
+    if not block:
+        return ()
+    pages = [ln["page"] for ln in block]
+    first_page, last_page = min(pages), max(pages)
+    heights = {ln["page"]: ln.get("height", _DEFAULT_PAGE_HEIGHT) for ln in block}
+    default_height = max(heights.values(), default=_DEFAULT_PAGE_HEIGHT)
+
+    rects: list[tuple[int, float, float, float, float]] = []
+    for page in range(first_page, last_page + 1):
+        height = heights.get(page, default_height)
+        band_top, band_bottom = _BODY_TOP * height, _BODY_BOTTOM * height
+
+        page_lines = [ln for ln in block if ln["page"] == page]
+        if page == first_page and page_lines:
+            top = min(_line_y0(ln) for ln in page_lines) - _CROP_TOP_PAD
+        else:
+            top = band_top
+
+        if next_start is not None and next_start["page"] == page:
+            bottom = _line_y0(next_start) - _CROP_TOP_PAD
+        else:
+            bottom = band_bottom
+
+        top = max(top, band_top)
+        bottom = min(bottom, band_bottom)
+        if bottom - top < _CROP_MIN_HEIGHT:
+            continue
+        rects.append((page, _CROP_X0, round(top, 1), _CROP_X1, round(bottom, 1)))
+    return tuple(rects)
 
 
 # --------------------------------------------------------------------------- MCQ
@@ -242,8 +308,8 @@ def segment_mcq(lines: list[dict]) -> list[Question]:
 
     questions: list[Question] = []
     for idx, start_i in enumerate(starts):
-        end_i = starts[idx + 1] if idx + 1 < len(starts) else len(content)
-        block = content[start_i:end_i]
+        next_i = starts[idx + 1] if idx + 1 < len(starts) else None
+        block = content[start_i : next_i if next_i is not None else len(content)]
         text = _format_mcq_question(block)
         questions.append(
             Question(
@@ -251,6 +317,7 @@ def segment_mcq(lines: list[dict]) -> list[Question]:
                 text=text,
                 page_start=block[0]["page"],
                 has_figure=mentions_figure(text),
+                crop_rects=_crop_rects(block, content[next_i] if next_i is not None else None),
             )
         )
     return questions
@@ -303,8 +370,8 @@ def segment_structured(lines: list[dict]) -> list[Question]:
 
     questions: list[Question] = []
     for idx, start_i in enumerate(starts):
-        end_i = starts[idx + 1] if idx + 1 < len(starts) else len(content)
-        block = content[start_i:end_i]
+        next_i = starts[idx + 1] if idx + 1 < len(starts) else None
+        block = content[start_i : next_i if next_i is not None else len(content)]
         marks = next(
             (
                 int(_TOTAL.match(line["text"].strip()).group(1))
@@ -322,6 +389,7 @@ def segment_structured(lines: list[dict]) -> list[Question]:
                 marks=marks,
                 is_mcq=False,
                 has_figure=mentions_figure(text),
+                crop_rects=_crop_rects(block, content[next_i] if next_i is not None else None),
             )
         )
     return questions
@@ -336,14 +404,18 @@ def segment_paper(lines: list[dict]) -> list[Question]:
 
 _UPSERT_QUESTION = """
 INSERT INTO questions
-    (paper_id, question_number, question_text, marks, is_mcq, page_start, has_figure)
-VALUES (:paper_id, :number, :text, :marks, :is_mcq, :page_start, :has_figure)
+    (paper_id, question_number, question_text, marks, is_mcq, page_start, has_figure,
+     crop_rects, crop_count)
+VALUES (:paper_id, :number, :text, :marks, :is_mcq, :page_start, :has_figure,
+        :crop_rects, :crop_count)
 ON CONFLICT(paper_id, question_number) DO UPDATE SET
     question_text = excluded.question_text,
     marks         = excluded.marks,
     is_mcq        = excluded.is_mcq,
     page_start    = excluded.page_start,
-    has_figure    = excluded.has_figure
+    has_figure    = excluded.has_figure,
+    crop_rects    = excluded.crop_rects,
+    crop_count    = excluded.crop_count
 """
 
 
@@ -386,6 +458,8 @@ def segment_all(
                         "is_mcq": 1 if question.is_mcq else 0,
                         "page_start": question.page_start,
                         "has_figure": 1 if question.has_figure else 0,
+                        "crop_rects": json.dumps([list(r) for r in question.crop_rects]),
+                        "crop_count": len(question.crop_rects),
                     },
                 )
             report.segmented[paper["filename"]] = len(questions)
