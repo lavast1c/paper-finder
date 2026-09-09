@@ -6,8 +6,9 @@ paper-finder extract     pull text out of every recorded PDF into data/processed
 paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
 paper-finder topics      load syllabus topic labels from labels/question_topics.tsv
+paper-finder figures     render a cropped image of every question into data/crops/
 paper-finder classify    label questions with syllabus topics via an LLM (needs "classify")
-paper-finder build       run ingest -> extract -> segment -> answers -> topics in one go
+paper-finder build       run ingest -> extract -> segment -> answers -> topics -> figures
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
 paper-finder search      find the paper a question came from
@@ -27,6 +28,7 @@ from paper_finder.db import connect, init_db
 from paper_finder.download import download
 from paper_finder.evaluate import evaluate, load_validation
 from paper_finder.extract import extract_all
+from paper_finder.figures import render_all
 from paper_finder.ingest import ingest
 from paper_finder.labels import load_topic_labels
 from paper_finder.marks import extract_answers_all
@@ -133,6 +135,34 @@ def _cmd_topics(_args: argparse.Namespace) -> None:
         print("    (those papers are not in data/raw/ -- run: paper-finder build)")
 
 
+def _cmd_figures(args: argparse.Namespace) -> None:
+    # `build` calls this with its own namespace, which has none of these flags.
+    report = render_all(
+        limit=getattr(args, "limit", None),
+        only=getattr(args, "only", None),
+        force=getattr(args, "force", False),
+        dry_run=getattr(args, "dry_run", False),
+    )
+    verb = "would render" if report.dry_run else "written"
+    print(f"Papers with crops       : {len(report.rendered)}")
+    for filename, count in report.rendered.items():
+        print(f"    {filename}  ->  {count} crops")
+    print(f"Crop files {verb:<12} : {report.total_rendered}")
+    if report.skipped_existing:
+        print(f"Already rendered (kept) : {report.skipped_existing}  (use --force to redo)")
+    if report.skipped_rotated:
+        print(f"Rotated pages skipped   : {', '.join(report.skipped_rotated)}")
+        print("    extract.py needs page-rotation handling before these can be cropped.")
+    if report.bad_rects:
+        print(f"Bad rectangles          : {len(report.bad_rects)}")
+        for line in report.bad_rects[:10]:
+            print(f"    - {line}")
+    if report.missing_pdf:
+        print(f"PDF missing from raw/   : {', '.join(report.missing_pdf)}")
+    if not report.rendered and not report.skipped_existing:
+        print("Nothing to render. Run: paper-finder build")
+
+
 def _cmd_classify(args: argparse.Namespace) -> None:
     try:
         # Imported here so the other commands work without the optional classify extra.
@@ -167,7 +197,7 @@ def _cmd_classify(args: argparse.Namespace) -> None:
 
 
 def _cmd_build(_args: argparse.Namespace) -> None:
-    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers, _cmd_topics):
+    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers, _cmd_topics, _cmd_figures):
         print(f"\n>>> {step.__name__.removeprefix('_cmd_')}")
         step(_args)
 
@@ -407,7 +437,20 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_classify.set_defaults(func=_cmd_classify)
 
-    p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers -> topics")
+    p_figures = sub.add_parser(
+        "figures", help="render a cropped image of every question into data/crops/"
+    )
+    p_figures.add_argument("--only", help="only papers whose filename contains this substring")
+    p_figures.add_argument("--limit", type=int, default=None, help="stop after N crop files")
+    p_figures.add_argument(
+        "--force", action="store_true", help="re-render crops that already exist"
+    )
+    p_figures.add_argument("--dry-run", action="store_true", help="count crops, write nothing")
+    p_figures.set_defaults(func=_cmd_figures)
+
+    p_build = sub.add_parser(
+        "build", help="ingest -> extract -> segment -> answers -> topics -> figures"
+    )
     p_build.set_defaults(func=_cmd_build)
 
     p_download = sub.add_parser("download", help="fetch past papers from a mirror into data/raw/")
