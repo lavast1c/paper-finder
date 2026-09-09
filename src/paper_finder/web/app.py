@@ -31,7 +31,7 @@ from paper_finder import config
 from paper_finder.config import SESSIONS
 from paper_finder.db import connect, init_db
 from paper_finder.filenames import parse_filename
-from paper_finder.search import SearchHit, search
+from paper_finder.search import SearchHit, browse_by_topic, search, topic_counts
 
 STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_LIMIT = 10
@@ -43,6 +43,11 @@ def _supabase_env() -> tuple[str, str] | None:
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
     return (url.rstrip("/"), key) if url and key else None
+
+
+def _csv_param(raw: str) -> list[str]:
+    """``"s07, s08 ,"`` -> ``["s07", "s08"]``."""
+    return [part.strip() for part in raw.split(",") if part.strip()]
 
 
 def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
@@ -163,6 +168,50 @@ def create_app(
         if _supabase_env():
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         return corpus_stats(db_path)
+
+    @app.get("/api/topics")
+    def api_topics(kind: str = "all", years: str = "", sessions: str = "") -> dict:
+        """Per-topic counts under the current filters -- feeds the topic chips."""
+        if _supabase_env():
+            raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
+        return topic_counts(
+            kind=kind,
+            years=[int(y) for y in _csv_param(years)] or None,
+            sessions=_csv_param(sessions) or None,
+            db_path=db_path,
+        )
+
+    @app.get("/api/browse")
+    def api_browse(
+        topics: str = "",
+        kind: str = "all",
+        years: str = "",
+        sessions: str = "",
+        limit: int = DEFAULT_LIMIT,
+        offset: int = 0,
+    ) -> dict:
+        """Flashcard deck: questions tagged with any of ``topics`` (union),
+        newest paper first. ``count`` is the full match total, not the page
+        length, so the pager can render "n / total" from the first request."""
+        if _supabase_env():
+            raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
+        limit = max(1, min(limit, MAX_LIMIT))
+        offset = max(0, offset)
+        hits, total = browse_by_topic(
+            _csv_param(topics),
+            kind=kind,
+            years=[int(y) for y in _csv_param(years)] or None,
+            sessions=_csv_param(sessions) or None,
+            limit=limit,
+            offset=offset,
+            db_path=db_path,
+        )
+        return {
+            "topics": _csv_param(topics),
+            "count": total,
+            "offset": offset,
+            "results": [result_payload(hit, serve_pdfs=serve_pdfs) for hit in hits],
+        }
 
     @app.get("/pdf/{filename}", include_in_schema=False)
     def pdf(filename: str) -> FileResponse:
