@@ -61,6 +61,12 @@ REQUEST_DELAY_SECONDS = 1.5
 REQUEST_TIMEOUT_SECONDS = 30
 DOWNLOAD_LOG_PATH = DATA_DIR / "download_log.csv"
 
+# --- topic classification (`paper-finder classify`) ---
+# The model that labels questions with syllabus sections. Override per-run with
+# `--model`. Only used when no Labeller is injected (i.e. the real Claude call).
+CLASSIFY_MODEL = "claude-sonnet-5"
+CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cached across them
+
 # Default scope for `paper-finder download`; override per-run with CLI flags.
 DOWNLOAD_SCOPE: dict[str, list] = {
     "subjects": ["9702"],  # Physics only for now

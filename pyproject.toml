@@ -25,6 +25,9 @@ web = [
 publish = [
     "psycopg[binary]>=3.1",  # paper-finder publish -> Supabase Postgres
 ]
+classify = [
+    "anthropic>=0.40",  # paper-finder classify -> LLM syllabus-topic labels
+]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
