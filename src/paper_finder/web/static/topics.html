@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paper Finder — Browse by topic</title>
+  <title>Paper Analyser — Browse by topic</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
@@ -13,12 +13,12 @@
 <body>
   <header>
     <div class="bar-inner">
-      <h1>Paper Finder</h1>
+      <h1>Paper Analyser</h1>
       <p class="tagline">Revise a topic — every past-paper question on it, one card at a time.</p>
       <p id="corpus" class="corpus"></p>
       <nav class="topnav">
-        <a href="/">Search</a>
-        <a href="/topics" aria-current="page">Browse by topic</a>
+        <a href="/" aria-current="page">Browse by topic</a>
+        <a href="/search">Search</a>
       </nav>
     </div>
   </header>
@@ -50,8 +50,6 @@
 
     <div id="app" hidden>
       <p id="whoami" class="whoami"></p>
-
-      <div id="topic-chips" class="topic-chips" role="group" aria-label="Syllabus topics"></div>
 
       <div class="filterbar">
         <div class="filterbar-context">
@@ -110,6 +108,14 @@
               </select>
             </span>
           </div>
+          <div class="fb-field fb-field--topic">
+            <label class="fb-label" for="f-topic">Topic</label>
+            <span class="select-wrap">
+              <select id="f-topic">
+                <option value="">Choose a topic&hellip;</option>
+              </select>
+            </span>
+          </div>
         </div>
         <button id="clear-all" type="button" class="linkbtn">Clear all</button>
       </div>
@@ -140,7 +146,7 @@
 
   <footer>
     <p class="footer-note">
-      Paper Finder is an independent index to help students organize revision
+      Paper Analyser is an independent index to help students organize revision
       papers. It is not affiliated with, endorsed by, or sponsored by Cambridge
       University Press &amp; Assessment or any other examination board.
     </p>

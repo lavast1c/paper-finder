@@ -155,7 +155,6 @@ async function loadStats() {
       `${Number(s.questions).toLocaleString()} questions`,
       `${s.question_papers} question papers`,
     ];
-    if (s.subjects && s.subjects.length) bits.push(s.subjects.join(", "));
     corpusEl.textContent = bits.join(" · ");
   } catch {
     /* leave the corpus line blank; never block search */

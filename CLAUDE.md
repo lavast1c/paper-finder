@@ -9,6 +9,10 @@ few words of a question; the tool returns the exact paper (subject, year, sessio
 paper, variant, question number) and the answer. Future: lookup from a photo of a
 question.
 
+The **UI is branded "Paper Analyser"** (the `<h1>`, `<title>`s and footer on both
+pages, as of 2026-09-09); the Python package (`paper_finder`), the CLI
+(`paper-finder`), the repo and this file keep the original name.
+
 Personal / extracurricular project. Exam board: **Cambridge International (CIE)**
 AS & A Level. Built one stage at a time — see `@PLAN.md` for the full roadmap,
 tech stack, data reference, and database schema.
@@ -26,8 +30,8 @@ tagged into the 11 CIE 9702 AS syllabus sections (`s01`..`s11`, multi-label,
 topics`. Every question also has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set in `segment`; `paper-finder figures`
 renders 1155 PNGs into `data/crops/<stem>/qNN_pK.png`, ~35 MB — gitignored +
-vercelignored). The `/topics` flashcard shows the crop instead of the extracted
-text (Stage 2).
+vercelignored). The browse-by-topic flashcard (served at `/`) shows the crop
+instead of the extracted text (Stage 2).
 `evaluate` = ~73% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
@@ -91,7 +95,8 @@ a context row of **Curriculum** / **Subject** dropdowns (one option each,
 `#curriculum` / `#subject` — wired for a future multi-subject corpus, not read
 yet) above three real scope filters — **Paper(s)** = CIE variant number
 (`#f-paper`, Any / 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
-`s`=May/June `m`=Feb/March `w`=Oct/Nov). `search.py._paper_scope()` turns
+`s`=May/June `m`=Feb/March `w`=Oct/Nov) — plus, on the browse page only, the
+single-select **Topic** (`#f-topic`) dropdown. `search.py._paper_scope()` turns
 `years` / `sessions` / `variants` into `p.year/session/variant IN (…)` clauses on
 both `search()` and `browse_by_topic()` / `topic_counts()`; the local endpoints
 parse them with `_int_csv` / `_csv_param`, cloud passes them straight to the RPCs.
@@ -118,12 +123,20 @@ every run, so `topics` is the repair, not an optional extra). `paper-finder
 classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
 `build` like `download`/`publish`; pluggable `Labeller` seam). `search.py` gains
 `browse_by_topic()` (union / `IN` subquery, newest-paper-first) + `topic_counts()`;
-`SearchHit` gains `topic_codes`. New `/topics` page (`web/static/topics.html` +
-`topics.js`, shared code hoisted to `common.js`) = a flashcard deck: pick topics
-(union), one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden until
-revealed, plus the shared filter bar (paper/year/season — see above). Local
-endpoints `/api/topics` + `/api/browse` (501 in cloud mode); cloud uses the
-`browse_questions` / `topic_counts` RPCs.
+`SearchHit` gains `topic_codes`. The flashcard page (`web/static/topics.html` +
+`topics.js`, shared code hoisted to `common.js`) is the **landing page, served at
+`/`** (route swap 2026-09-09: `/` → `topics.html`, `/search` → `index.html`,
+`/topics` → 308 redirect to `/`; nav lists "Browse by topic" first). It is a
+flashcard deck: one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden
+until revealed. **Topic is a single-select `#f-topic` dropdown** in the filter
+bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
+zero-count options disabled — it replaced the old multi-select `#topic-chips`
+row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
+picked. `browse_by_topic` still takes a `codes` array (the dropdown sends one);
+old `?topics=a,b` deep links clamp to the first. Local endpoints `/api/topics` +
+`/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
+`topic_counts` RPCs. The corpus line under the `<h1>` shows just
+`"<n> questions · <n> question papers"` (the subject name was dropped).
 
 **Stage 2 done — local AND cloud, verified in-browser.** The flashcard shows a
 PNG crop of the real question (`crop_count > 0` → image; `= 0` → the old text +
@@ -249,7 +262,7 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   `(stem, qnum, ordinal)`; skips `page.rotation != 0`; never imported from
   `web/app.py`), `search` (FTS5 + BM25;
   `kind=all|mcq|theory` filter + `_paper_scope()` year/session/variant filter;
-  `browse_by_topic` + `topic_counts` for `/topics`;
+  `browse_by_topic` + `topic_counts` for the browse page;
   `SearchHit` carries `topic_codes` + `crop_count`),
   `evaluate`,
   `web` (`create_app(db_path, raw_dir, crop_dir, serve_pdfs)` — FastAPI + a hand-written
@@ -265,7 +278,9 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   serves `data/crops/` behind the same flag (`resolve_crop`). `GET /api/config`
   picks local vs cloud mode; in cloud mode `/api/search` + `/api/stats` +
   `/api/topics` + `/api/browse` return 501 and the browser calls the Supabase RPC
-  instead; `/topics` = the flashcard page, shared JS in `web/static/common.js`),
+  instead. `/` = the browse-by-topic flashcard page (`topics.html`), `/search` =
+  the keyword-search page (`index.html`), `/topics` 308-redirects to `/`; shared
+  JS in `web/static/common.js`),
   `publish` (local SQLite -> Supabase
   Postgres via psycopg; `read_local()` drops mark schemes, source URLs, PDFs;
   carries `questions.topic_codes` as a `text[]` + `crop_count`, and re-upserts

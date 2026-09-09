@@ -64,11 +64,27 @@ def client(corpus):
     return TestClient(create_app(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir))
 
 
-def test_index_serves_html(client):
+def test_index_serves_browse_page(client):
+    # "/" is now the browse-by-topic flashcard page
     r = client.get("/")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
-    assert "Paper Finder" in r.text
+    assert "Paper Analyser" in r.text
+    assert "Browse by topic" in r.text
+    assert 'id="card-images"' in r.text
+
+
+def test_search_page_served(client):
+    r = client.get("/search")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="search"' in r.text  # the keyword-search form
+
+
+def test_topics_path_redirects_to_root(client):
+    r = client.get("/topics")
+    assert r.status_code == 200
+    assert str(r.url).endswith("/")  # 308 -> "/"
 
 
 def test_static_assets_served(client):
@@ -82,13 +98,11 @@ def test_static_assets_served(client):
         assert client.get(asset).status_code == 200
 
 
-def test_topics_page_served(client):
-    r = client.get("/topics")
-    assert r.status_code == 200
-    assert "text/html" in r.headers["content-type"]
-    assert "Browse by topic" in r.text
+def test_browse_page_has_crop_container(client):
+    r = client.get("/")
     assert 'id="card-images"' in r.text  # question-crop container
     assert 'id="show-text"' in r.text
+    assert 'id="f-topic"' in r.text  # topic dropdown replaced the chip row
 
 
 def test_search_returns_expected_hit(client):
