@@ -123,6 +123,10 @@ def create_app(
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/topics", include_in_schema=False)
+    def topics_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "topics.html")
+
     @app.get("/api/config", include_in_schema=False)
     def api_config() -> dict:
         """Hands the browser the public Supabase creds in cloud mode, else ``{}``.
