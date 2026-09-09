@@ -6,6 +6,7 @@ paper-finder extract     pull text out of every recorded PDF into data/processed
 paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
 paper-finder topics      load syllabus topic labels from labels/question_topics.tsv
+paper-finder classify    label questions with syllabus topics via an LLM (needs "classify")
 paper-finder build       run ingest -> extract -> segment -> answers -> topics in one go
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
@@ -130,6 +131,39 @@ def _cmd_topics(_args: argparse.Namespace) -> None:
         if len(report.orphans) > 10:
             print(f"    ... and {len(report.orphans) - 10} more")
         print("    (those papers are not in data/raw/ -- run: paper-finder build)")
+
+
+def _cmd_classify(args: argparse.Namespace) -> None:
+    try:
+        # Imported here so the other commands work without the optional classify extra.
+        from paper_finder.classify import classify_questions
+    except ImportError:
+        print('Install the classify extra:  pip install -e ".[classify]"')
+        return
+
+    try:
+        report = classify_questions(
+            only=args.only,
+            limit=args.limit,
+            relabel=args.relabel,
+            model=args.model,
+            dry_run=args.dry_run,
+        )
+    except ImportError as exc:  # anthropic not installed -> claude_labeller raised
+        print(exc)
+        return
+
+    verb = "Would label" if report.dry_run else "Labelled"
+    print(f"Questions considered    : {report.considered}")
+    print(f"{verb}                 : {report.labelled}")
+    if report.declined:
+        print(f"Model gave no code      : {report.declined}")
+    print(f"Already labelled (kept) : {report.skipped_existing}")
+    if report.unknown_codes:
+        print(f"Unknown codes dropped   : {', '.join(report.unknown_codes)}")
+    print(f"Rows in the TSV         : {report.written}")
+    if not report.dry_run and report.labelled:
+        print("\nReview labels/question_topics.tsv, then run: paper-finder topics")
 
 
 def _cmd_build(_args: argparse.Namespace) -> None:
@@ -356,6 +390,22 @@ def main(argv: list[str] | None = None) -> None:
 
     p_topics = sub.add_parser("topics", help="load syllabus topic labels into the database")
     p_topics.set_defaults(func=_cmd_topics)
+
+    p_classify = sub.add_parser(
+        "classify", help="label questions with syllabus topics via an LLM (needs 'classify' extra)"
+    )
+    p_classify.add_argument("--only", help="only questions whose filename contains this substring")
+    p_classify.add_argument("--limit", type=int, default=None, help="stop after N questions")
+    p_classify.add_argument(
+        "--relabel", action="store_true", help="also re-send questions that already have an llm row"
+    )
+    p_classify.add_argument(
+        "--model", help=f"override the model (default: {config.CLASSIFY_MODEL})"
+    )
+    p_classify.add_argument(
+        "--dry-run", action="store_true", help="run the model but do not write the TSV"
+    )
+    p_classify.set_defaults(func=_cmd_classify)
 
     p_build = sub.add_parser("build", help="ingest -> extract -> segment -> answers -> topics")
     p_build.set_defaults(func=_cmd_build)
