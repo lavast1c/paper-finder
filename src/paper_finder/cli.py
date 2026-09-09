@@ -11,6 +11,7 @@ paper-finder classify    label questions with syllabus topics via an LLM (needs 
 paper-finder build       run ingest -> extract -> segment -> answers -> topics -> figures
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
+paper-finder publish-figures  upload the question crops to Supabase Storage
 paper-finder search      find the paper a question came from
 paper-finder evaluate    score search against eval/validation.tsv
 paper-finder papers      list what is currently recorded
@@ -368,7 +369,32 @@ def _cmd_publish(args: argparse.Namespace) -> None:
     print(f"{verb} papers    : {report.papers}")
     print(f"{verb} questions : {report.questions}  ({report.answers} with an answer)")
     if not report.dry_run:
-        print("\nNo PDFs and no source URLs were sent. Now sign in to the deployed site.")
+        print(
+            "\nNo PDFs and no source URLs were sent. Question crops upload separately "
+            "with `paper-finder publish-figures`."
+        )
+
+
+def _cmd_publish_figures(args: argparse.Namespace) -> None:
+    from paper_finder.publish_figures import upload_all
+
+    try:
+        report = upload_all(
+            only=args.only, limit=args.limit, force=args.force, dry_run=args.dry_run
+        )
+    except RuntimeError as exc:
+        print(exc)
+        return
+
+    verb = "Would upload" if report.dry_run else "Uploaded"
+    print(f"Papers with crops : {report.papers}")
+    print(f"{verb} crops     : {report.uploaded}")
+    if report.skipped_existing:
+        print(f"Already uploaded  : {report.skipped_existing}")
+    for failure in report.failures:
+        print(f"  ! {failure}")
+    if report.failures:
+        print(f"\n{len(report.failures)} upload(s) failed -- re-run to retry (idempotent).")
 
 
 def _cmd_serve(args: argparse.Namespace) -> None:
@@ -476,6 +502,21 @@ def main(argv: list[str] | None = None) -> None:
     p_publish.add_argument("--db-url", help="Postgres URI (default: SUPABASE_DB_URL env / .env)")
     p_publish.add_argument("--dry-run", action="store_true", help="count rows, send nothing")
     p_publish.set_defaults(func=_cmd_publish)
+
+    p_publish_figures = sub.add_parser(
+        "publish-figures", help="upload the question crops to Supabase Storage"
+    )
+    p_publish_figures.add_argument(
+        "--only", help="only papers whose filename contains this substring"
+    )
+    p_publish_figures.add_argument("--limit", type=int, default=None, help="stop after N uploads")
+    p_publish_figures.add_argument(
+        "--force", action="store_true", help="re-upload even if already present"
+    )
+    p_publish_figures.add_argument(
+        "--dry-run", action="store_true", help="count uploads, send nothing"
+    )
+    p_publish_figures.set_defaults(func=_cmd_publish_figures)
 
     p_search = sub.add_parser("search", help="find the paper a question came from")
     p_search.add_argument("query", help="a few words of the question")
