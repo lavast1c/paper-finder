@@ -15,7 +15,11 @@
   --text-muted: #566070;
   --surface: rgba(255, 255, 255, 0.52);
   --surface-strong: rgba(255, 255, 255, 0.74);
-  --glass: rgba(255, 255, 255, 0.04);   /* near-clear "liquid glass" — header + search/filter trays */
+  /* "liquid glass" — header + search/filter trays: no fill at all, just an SVG
+     refraction that bends the dot grid behind them, a whisper of blur + a lens
+     tint. --glass-backdrop drops to `none` when the OS asks for less transparency. */
+  --glass: transparent;
+  --glass-backdrop: url(#glass-refraction) saturate(1.6) brightness(1.05) blur(2px);
   --border: rgba(255, 255, 255, 0.7);
   --hairline: rgba(20, 28, 40, 0.14);
   --specular: rgba(255, 255, 255, 0.95);
@@ -60,7 +64,6 @@
     --text-muted: rgba(240, 244, 248, 0.64);
     --surface: rgba(255, 255, 255, 0.1);
     --surface-strong: rgba(255, 255, 255, 0.17);
-    --glass: rgba(255, 255, 255, 0.03);
     --border: rgba(255, 255, 255, 0.24);
     --hairline: rgba(255, 255, 255, 0.14);
     --specular: rgba(255, 255, 255, 0.55);
@@ -96,6 +99,10 @@
 }
 html { min-height: 100%; }
 
+/* holds the SVG <filter> for the glass refraction — kept in the layout tree
+   (display:none can drop the filter ref in some engines), just zero-sized */
+.glass-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -126,8 +133,8 @@ header {
   z-index: 10;
   padding: 0.8rem clamp(1rem, 4vw, 2.5rem);
   background: var(--glass);
-  -webkit-backdrop-filter: blur(var(--blur-thick)) var(--refract);
-  backdrop-filter: blur(var(--blur-thick)) var(--refract);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow-sm), var(--edge);
 }
@@ -262,7 +269,7 @@ button[disabled] { opacity: 0.55; cursor: default; transform: none; }
   border-bottom-color: var(--primary);
 }
 
-/* ---- search form / control tray: a clear glass tray ---- */
+/* ---- search form / control tray: see-through glass, refraction only ---- */
 form#search,
 .tray {
   display: flex;
@@ -272,8 +279,8 @@ form#search,
   padding: 0.6rem;
   border-radius: var(--r-md);
   background: var(--glass);
-  -webkit-backdrop-filter: blur(var(--blur)) var(--refract);
-  backdrop-filter: blur(var(--blur)) var(--refract);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md), var(--edge);
 }
@@ -589,8 +596,8 @@ ol#results li {
   padding: 0.75rem;
   border-radius: var(--r-md);
   background: var(--glass);
-  -webkit-backdrop-filter: blur(var(--blur)) var(--refract);
-  backdrop-filter: blur(var(--blur)) var(--refract);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md), var(--edge);
 }
@@ -760,6 +767,7 @@ footer {
     --surface: rgba(255, 255, 255, 0.95);
     --surface-strong: #ffffff;
     --glass: rgba(255, 255, 255, 0.9);
+    --glass-backdrop: none;
     --blur: 0px;
     --blur-thick: 0px;
     --refract: none;

@@ -4,6 +4,12 @@ Plan: `~/.claude/plans/yes-can-you-implement-expressive-comet.md`
 Resume by reading this file + `git log --oneline -15` + the plan, then do **NEXT**.
 No secrets in this file.
 
+**Live at `https://pastpaperanalyser.vercel.app`** (renamed 2026-09-09 from
+`paperfinder1.vercel.app`; the earlier `paper-finder-xxxx` in the steps below is a
+placeholder). After a domain rename, add the new URL to Supabase → Authentication
+→ **URL Configuration**: Site URL + a `https://pastpaperanalyser.vercel.app/**`
+redirect entry, or email sign-in breaks. Nothing in the repo hardcodes the domain.
+
 **NEXT:** Code done + pushed. Step 1 (publish) done — Supabase index populated
 (34 / 790 / 765). Auth is **email one-time code** (not Google — Google needed a
 custom domain to publish). Remaining = Steps 2–5 in **Manual steps**: a free SMTP
