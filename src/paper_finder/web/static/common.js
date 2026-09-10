@@ -30,6 +30,33 @@ PF.el = el;
 
 PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 
+// --- header: visible only at the top, fades away on scroll ----------------
+//
+// Both page scripts are `defer`, so <header> is already parsed here. We toggle
+// `.is-hidden` (the fade/slide lives in style.css) whenever the page is
+// scrolled past a few pixels, and restore it at the very top.
+
+(function revealHeaderOnlyAtTop() {
+  const header = document.querySelector("header");
+  if (!header) return;
+  const THRESHOLD = 8; // px of scroll before the bar starts to disappear
+  let ticking = false;
+  function sync() {
+    header.classList.toggle("is-hidden", window.scrollY > THRESHOLD);
+    ticking = false;
+  }
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(sync);
+    },
+    { passive: true },
+  );
+  sync();
+})();
+
 // --- multi-select dropdown ----------------------------------------------
 //
 // Upgrades <div class="multiselect"> (a .ms-toggle button + a hidden .ms-panel
