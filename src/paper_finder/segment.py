@@ -33,11 +33,13 @@ _MARGIN_X = 60.0  # question numbers sit at x0 ~= 49; body text starts ~= 72
 _BODY_TOP = 0.055
 _BODY_BOTTOM = 0.93
 
-# A structured question number sits high on its page. CIE Physics Paper 2 puts
-# it at ~0.07; Further Maths 9231 does too, but a diagram or a displayed formula
-# can sit between the number and the first prose line, so the "body" line we look
-# for may be several lines down (see _STRUCTURED_BODY_LOOKAHEAD).
-_STRUCTURED_START_MAX_Y = 0.30
+# A structured question number sits in the upper part of its page. CIE Physics
+# Paper 2 puts it at ~0.07; Further Maths 9231 gives each short question a full
+# page of answer space, so question 2 can begin a third of the way down the page
+# it shares with question 1's answer lines (observed max ~0.34). The
+# ``== expected`` sequence check and the left-margin test keep a stray number
+# this far down from being mistaken for a start.
+_STRUCTURED_START_MAX_Y = 0.45
 # How many lines after a bare question number to scan for a body-like line (a
 # part label or a sentence) before giving up on it being a question start.
 _STRUCTURED_BODY_LOOKAHEAD = 8
@@ -71,6 +73,9 @@ _NOISE = re.compile(
     | ^turn\ over$
     | ^this\ document\ (has|consists)
     | ^blank\ page$
+    | ^additional\ page$
+    | ^if\ you\ use\ the\ following\ page                # "Additional page" instruction block
+    | ^write\ your\ answers?\ on\ the\ separate
     | ^do\ not\ write\ in\ this\ margin
     | ^dfd$
     | ^\d{4}/\d{2}\ (question\ paper|mark\ scheme)\b   # running header
@@ -80,6 +85,12 @@ _NOISE = re.compile(
     | ^have\ unwittingly\ been\ included
     | ^to\ avoid\ the\ issue\ of\ disclosure
     | ^acknowledgements\ booklet
+    | copyright\ acknowledgements\ booklet
+    | ^(the\ )?publisher\ (will\ be\ pleased|\(ucles\))
+    | ^cambridge\ assessment\ international\ education
+    | is\ the\ brand\ name\ of\ the\ university\ of\ cambridge
+    | local\ examinations\ syndicate
+    | which\ is\ a\ department\ of\ the\ university
     | ^live\ examination\ series
     | ^university\ of\ cambridge\.?$                   # --
     | ^published$                                      # -- MS front-matter
@@ -155,6 +166,22 @@ class SegmentReport:
     missing_json: list[str] = field(default_factory=list)
 
 
+def _is_stray_page_number(line: dict) -> bool:
+    """A bare 1-3 digit number away from the left margin is the centred page
+    number, not a question label -- it would otherwise pad a crop out to the
+    trailing blank pages of a paper."""
+    return bool(_BARE_NUMBER.match(line["text"].strip())) and line.get("x0", 0.0) >= _MARGIN_X
+
+
+def content_lines(lines: list[dict]) -> list[dict]:
+    """Body lines that carry real question content (drops page furniture)."""
+    return [
+        line
+        for line in lines
+        if line["in_body"] and not is_noise(line["text"]) and not _is_stray_page_number(line)
+    ]
+
+
 def is_noise(text: str) -> bool:
     stripped = _CONTROL_CHARS.sub("", text).strip()
     if not stripped:
@@ -165,7 +192,7 @@ def is_noise(text: str) -> bool:
         return True
     if any(ch in _JUNK_SYMBOLS for ch in stripped):
         return True
-    return not stripped.strip(", \t")  # stray comma/whitespace lines
+    return not stripped.strip(", \t\r\n")  # stray comma / whitespace / newline lines
 
 
 def load_lines(json_path: Path) -> list[dict]:
@@ -297,7 +324,7 @@ def _format_mcq_question(block: list[dict]) -> str:
 
 
 def segment_mcq(lines: list[dict]) -> list[Question]:
-    content = [line for line in lines if line["in_body"] and not is_noise(line["text"])]
+    content = content_lines(lines)
 
     starts: list[int] = []
     expected = 1
@@ -374,7 +401,7 @@ def _is_structured_question_start(content: list[dict], i: int, expected: int) ->
 
 
 def segment_structured(lines: list[dict]) -> list[Question]:
-    content = [line for line in lines if line["in_body"] and not is_noise(line["text"])]
+    content = content_lines(lines)
 
     starts: list[int] = []
     expected = 1

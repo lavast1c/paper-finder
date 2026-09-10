@@ -79,6 +79,9 @@ class MarksReport:
 
 
 def _content_lines(lines: list[dict]) -> list[dict]:
+    # Mark schemes number their footer "Page N of M" (caught by is_noise), and
+    # 9231 puts bare question labels in the Question column at x0 ~= 60-90 -- so
+    # the segmenter's stray-page-number filter is deliberately NOT applied here.
     return [line for line in lines if line["in_body"] and not is_noise(line["text"])]
 
 
