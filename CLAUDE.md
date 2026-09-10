@@ -86,25 +86,29 @@ policy on `storage.objects`; `publish` carries `crop_count`, and
 that axis).
 Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
-Both `/api/search` (local) and the `search_questions` RPC (cloud) still take a
+`/api/search` + `/api/browse` + `/api/topics` (local) and the
+`search_questions` / `browse_questions` / `topic_counts` RPCs (cloud) take a
 `kind` filter (`all` / `mcq` (Paper 1) / `theory` (non-1 papers) — local on
-`questions.is_mcq`, cloud on `papers.paper`), but it is **no longer in the UI**;
-the param stays for compatibility. The **filter bar** (`.filterbar`, on both
-`index.html` and `topics.html`, styled from the `Ref Photos/` mock) replaces it:
+`questions.is_mcq`, cloud on `papers.paper`); the **Paper(s)** filter drives it.
+The **filter bar** (`.filterbar`, on both
+`index.html` and `topics.html`, styled from the `Ref Photos/` mock):
 a context row of **Curriculum** / **Subject** dropdowns (one option each,
 `#curriculum` / `#subject` — wired for a future multi-subject corpus, not read
-yet) above three real scope filters — **Paper(s)** = CIE variant number
-(`#f-paper`, 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
-`s`=May/June `m`=Feb/March `w`=Oct/Nov) — plus, on the browse page only, the
-single-select **Topic** (`#f-topic`) native `<select>`. Paper/Year/Season are each
-a **custom multi-select dropdown** (`<div class="multiselect">` = a `.ms-toggle`
-button + a hidden `.ms-panel` of checkbox `<label>`s), upgraded by
+yet) above three real scope filters — **Paper(s)** (`#f-paper`, "Paper 1 · MCQ" /
+"Paper 2 · Theory" — CIE Physics has no Paper 3/4; this is the MCQ-vs-theory
+split, **not** a variant filter), **Year(s)** (`#f-year`), **Season(s)**
+(`#f-season`, `s`=May/June `m`=Feb/March `w`=Oct/Nov) — plus, on the browse page
+only, the single-select **Topic** (`#f-topic`) native `<select>`. Paper/Year/Season
+are each a **custom multi-select dropdown** (`<div class="multiselect">` = a
+`.ms-toggle` button + a hidden `.ms-panel` of checkbox `<label>`s), upgraded by
 `PF.multiSelect()` in `common.js` (open/close, click-outside, Escape, a value
 label; the checkboxes are real so their `change` bubbles to the root and the api
 is stashed on `root._ms` for deep-link restore). `app.js` `picked()` /
 `topics.js` `wireScopeGroup()` read the ticked boxes; nothing ticked = no
-restriction on that axis; values serialize to the URL as comma lists
-(`?variant=1,2&season=s,w`). A **"Clear all"** link (`#clear-all`) sits below the
+restriction on that axis. Year/Season serialize to the URL as comma lists
+(`?year=2025,2026&season=s,w`); the Paper box's ticked values (`1` / `2`) go
+through `PF.paperKind()` → the `kind` arg (`mcq` / `theory` / `all` for both or
+neither), and `?paper=1` in the URL. A **"Clear all"** link (`#clear-all`) sits below the
 fields on both pages and resets every filter. There is no corpus-freshness badge.
 `.filterbar` is `z-index: 5` (and `form#search` / `.tray` `z-index: 6`) so an
 open `.ms-panel` — or the recent-search dropdown — layers over the flashcard /

@@ -8,7 +8,7 @@
 
 const { el } = PF;
 
-const paperEl = document.getElementById("f-paper"); // multi-select dropdown: CIE variant numbers
+const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const topicEl = document.getElementById("f-topic"); // syllabus section; deck stays hidden until one is picked
@@ -37,10 +37,10 @@ const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this clos
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
 let selected = new Set(); // the picked topic (0 or 1 code); a Set keeps the deck/browse plumbing unchanged
-// Multi-select scope filters (each a .multiselect dropdown). Paper(s) = CIE
-// variant numbers, Season(s) = session letters, Year(s) = years. An empty array
-// = no restriction on that axis.
-const filters = { variants: [], seasons: [], years: [] };
+// Multi-select scope filters (each a .multiselect dropdown). Paper(s) = paper
+// number ("1" = MCQ, "2" = theory), Season(s) = session letters, Year(s) =
+// years. An empty array = no restriction on that axis.
+const filters = { papers: [], seasons: [], years: [] };
 
 const csv = (s) => (s || "").split(",").map((x) => x.trim()).filter(Boolean);
 let deck = [];
@@ -64,7 +64,7 @@ let controller = null;
 function readUrl() {
   const p = new URLSearchParams(location.search);
   const codes = csv(p.get("topics"));
-  filters.variants = csv(p.get("variant"));
+  filters.papers = csv(p.get("paper"));
   filters.seasons = csv(p.get("season"));
   filters.years = csv(p.get("year"));
   const i = parseInt(p.get("i") || "0", 10);
@@ -74,7 +74,7 @@ function readUrl() {
 function writeUrl() {
   const p = new URLSearchParams();
   if (selected.size) p.set("topics", [...selected].join(","));
-  if (filters.variants.length) p.set("variant", filters.variants.join(","));
+  if (filters.papers.length) p.set("paper", filters.papers.join(","));
   if (filters.seasons.length) p.set("season", filters.seasons.join(","));
   if (filters.years.length) p.set("year", filters.years.join(","));
   if (idx > 0) p.set("i", String(idx));
@@ -90,24 +90,25 @@ function yearsParam() {
 function sessionsParam() {
   return filters.seasons.slice();
 }
-function variantsParam() {
-  return filters.variants.map(Number);
+function kindParam() {
+  return PF.paperKind(filters.papers);
 }
 // local /api/* query string for the current scope filters
 function scopeQuery(extra) {
   const p = new URLSearchParams(extra || {});
+  const kind = kindParam();
+  if (kind !== "all") p.set("kind", kind);
   if (filters.years.length) p.set("years", filters.years.join(","));
   if (filters.seasons.length) p.set("sessions", filters.seasons.join(","));
-  if (filters.variants.length) p.set("variants", filters.variants.join(","));
   return p;
 }
 
 async function fetchCounts() {
   if (sb) {
     const { data, error } = await sb.rpc("topic_counts", {
+      kind: kindParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
-      variants: variantsParam(),
     });
     if (error) throw new Error(error.message || "topic counts failed");
     return {
@@ -132,9 +133,9 @@ async function fetchDeckPage(offset) {
   if (sb) {
     const { data, error } = await sb.rpc("browse_questions", {
       codes,
+      kind: kindParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
-      variants: variantsParam(),
       max_results: PAGE,
       skip: offset,
     });
@@ -470,7 +471,7 @@ async function refresh() {
 // --- wiring --------------------------------------------------------
 
 const SCOPE_GROUPS = [
-  [paperEl, "variants"],
+  [paperEl, "papers"],
   [yearEl, "years"],
   [seasonEl, "seasons"],
 ];
@@ -505,7 +506,7 @@ topicEl.addEventListener("change", () => {
 });
 clearAllBtn.addEventListener("click", () => {
   selected.clear();
-  filters.variants = [];
+  filters.papers = [];
   filters.seasons = [];
   filters.years = [];
   topicEl.value = "";

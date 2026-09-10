@@ -7,7 +7,7 @@ const { el } = PF;
 
 const form = document.getElementById("search");
 const input = document.getElementById("q");
-const paperEl = document.getElementById("f-paper"); // multi-select dropdown: CIE variant numbers
+const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const historyEl = document.getElementById("history"); // custom recent-search panel
@@ -102,22 +102,26 @@ function clearResults() {
 
 // --- search sources ------------------------------------------------------
 
-// The filter bar: Paper(s) = CIE variant number, Season(s) = session letter.
-// Each is a multi-select dropdown of checkboxes; nothing ticked = no restriction
-// on that axis.
+// The filter bar: Paper(s) = MCQ (Paper 1) / Theory (Paper 2), Season(s) =
+// session letter, Year(s) = year. Each is a multi-select dropdown of checkboxes;
+// nothing ticked = no restriction on that axis.
 function picked(groupEl) {
   return groupEl
     ? [...groupEl.querySelectorAll('input[type="checkbox"]:checked')].map((b) => b.value)
     : [];
 }
 function scope() {
-  return { variants: picked(paperEl), years: picked(yearEl), sessions: picked(seasonEl) };
+  return {
+    kind: PF.paperKind(picked(paperEl)),
+    years: picked(yearEl),
+    sessions: picked(seasonEl),
+  };
 }
 
 async function localSearch(q) {
   const s = scope();
   const params = new URLSearchParams({ q, limit: "10" });
-  if (s.variants.length) params.set("variants", s.variants.join(","));
+  if (s.kind !== "all") params.set("kind", s.kind);
   if (s.years.length) params.set("years", s.years.join(","));
   if (s.sessions.length) params.set("sessions", s.sessions.join(","));
   const res = await fetch("/api/search?" + params.toString(), { signal: controller.signal });
@@ -130,9 +134,9 @@ async function cloudSearch(q) {
   const { data, error } = await sb.rpc("search_questions", {
     query: q,
     max_results: 5,
+    kind: s.kind,
     years: s.years.map(Number),
     sessions: s.sessions,
-    variants: s.variants.map(Number),
   });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(PF.cloudRow) };
