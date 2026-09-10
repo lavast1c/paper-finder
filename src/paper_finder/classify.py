@@ -25,6 +25,7 @@ Design guards, from the plan:
 
 from __future__ import annotations
 
+import os
 import textwrap
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -33,9 +34,19 @@ from pathlib import Path
 from paper_finder import config
 from paper_finder.db import connect, init_db
 from paper_finder.labels import LabelRow, default_path, parse_labels
+from paper_finder.publish import _read_dotenv
 from paper_finder.topics import CODES, TOPICS
 
 MAX_CODES_PER_QUESTION = 3
+
+
+def _resolve_api_key() -> str | None:
+    """``ANTHROPIC_API_KEY`` from the env, else the gitignored ``.env`` (same
+    lookup as ``publish`` / ``publish-figures``). ``None`` lets the SDK raise its
+    own "no key" error."""
+    return os.environ.get("ANTHROPIC_API_KEY") or _read_dotenv(config.PROJECT_ROOT / ".env").get(
+        "ANTHROPIC_API_KEY"
+    )
 
 
 @dataclass(frozen=True)
@@ -290,7 +301,7 @@ def claude_labeller(model: str) -> Labeller:
             'paper-finder classify needs the [classify] extra: pip install -e ".[classify]"'
         ) from exc
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(api_key=_resolve_api_key())
     system = [
         {
             "type": "text",
