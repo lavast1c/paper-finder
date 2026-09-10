@@ -96,12 +96,16 @@ a context row of **Curriculum** / **Subject** dropdowns (one option each,
 yet) above three real scope filters — **Paper(s)** = CIE variant number
 (`#f-paper`, 1-4), **Year(s)** (`#f-year`), **Season(s)** (`#f-season`,
 `s`=May/June `m`=Feb/March `w`=Oct/Nov) — plus, on the browse page only, the
-single-select **Topic** (`#f-topic`) dropdown. Paper/Year/Season are each a
-`.fb-toggles` group of `.fb-toggle` multi-select buttons (`aria-pressed`, tap to
-add, tap to drop, none pressed = no restriction on that axis), **not** `<select>`s —
-`app.js` `pressed()` / `topics.js` `wireToggleGroup()` collect the pressed
-`data-v`s, serialized to the URL as comma lists (`?variant=1,2&season=s,w`).
-There is no corpus-freshness badge. `search.py._paper_scope()` turns
+single-select **Topic** (`#f-topic`) native `<select>`. Paper/Year/Season are each
+a **custom multi-select dropdown** (`<div class="multiselect">` = a `.ms-toggle`
+button + a hidden `.ms-panel` of checkbox `<label>`s), upgraded by
+`PF.multiSelect()` in `common.js` (open/close, click-outside, Escape, a value
+label; the checkboxes are real so their `change` bubbles to the root and the api
+is stashed on `root._ms` for deep-link restore). `app.js` `picked()` /
+`topics.js` `wireScopeGroup()` read the ticked boxes; nothing ticked = no
+restriction on that axis; values serialize to the URL as comma lists
+(`?variant=1,2&season=s,w`). There is no corpus-freshness badge.
+`search.py._paper_scope()` turns
 both `search()` and `browse_by_topic()` / `topic_counts()`; the local endpoints
 parse them with `_int_csv` / `_csv_param`, cloud passes them straight to the RPCs.
 The search box has a **custom** recent-search dropdown
