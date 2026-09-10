@@ -88,7 +88,7 @@ def test_physics_taxonomy_is_the_eleven_syllabus_sections():
 def test_each_taxonomy_numbers_its_topics_from_one():
     for tax in TAXONOMIES:
         assert [t.number for t in tax.topics] == list(range(1, len(tax.topics) + 1)), tax.key
-    codes = {"9702": "s", "9231p1": "fp", "9231p4": "fs"}
+    codes = {"9702": "s", "9231p1": "fp", "9231p4": "fs", "9709p1": "pm", "9709p5": "ps"}
     for tax in TAXONOMIES:
         assert all(t.code.startswith(codes[tax.key]) for t in tax.topics), tax.key
 
@@ -119,6 +119,9 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9231", 1).subject_name == "Further Pure Mathematics"
     assert taxonomy_for("9231", 4).subject_name == "Further Probability & Statistics"
     assert taxonomy_for("9231", 2) is None
+    assert taxonomy_for("9709", 1).subject_name == "Pure Mathematics 1"
+    assert taxonomy_for("9709", 5).subject_name == "Probability & Statistics 1"
+    assert taxonomy_for("9709", 2) is None
     assert taxonomy_for("0000", 1) is None
     # paper unknown -> first taxonomy for that subject code
     assert taxonomy_for("9231", None).subject_code == "9231"
@@ -198,6 +201,25 @@ def test_parse_labels_accepts_further_maths_codes_for_9231(tmp_path):
         ("9231_s24_qp_11.pdf", ("fp4",)),
         ("9231_s24_qp_41.pdf", ("fs2", "fs3")),
     ]
+
+
+def test_parse_labels_accepts_maths_9709_codes(tmp_path):
+    path = _write_labels(
+        tmp_path,
+        "9709_s24_qp_11.pdf\t3\tpm7\tllm\n9709_w23_qp_53.pdf\t4\tps4,ps5\tllm\n",
+    )
+    rows = parse_labels(path)
+    assert [(r.filename, r.topic_codes) for r in rows] == [
+        ("9709_s24_qp_11.pdf", ("pm7",)),
+        ("9709_w23_qp_53.pdf", ("ps4", "ps5")),
+    ]
+
+
+def test_parse_labels_rejects_wrong_taxonomy_for_9709_paper(tmp_path):
+    # 9709 Paper 1 tagged with a Paper 5 (statistics) code
+    path = _write_labels(tmp_path, "9709_s24_qp_11.pdf\t1\tps1\thand\n")
+    with pytest.raises(ValueError, match="Pure Mathematics 1"):
+        parse_labels(path)
 
 
 def test_parse_labels_rejects_code_from_the_wrong_taxonomy(tmp_path):

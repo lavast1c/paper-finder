@@ -15,6 +15,7 @@ _MULTI_SUBJECT_SCOPE = {
     "subjects": {
         "9702": {"papers": [1], "variants": [1]},
         "9231": {"papers": [1, 4], "variants": [1]},
+        "9709": {"papers": [1, 5], "variants": [1]},
     },
     "years": [2024],
     "sessions": ["s"],
@@ -61,13 +62,15 @@ def test_iter_candidates_order_and_filenames():
 def test_iter_candidates_uses_each_subjects_own_papers_and_variants():
     cands = list(iter_candidates(_MULTI_SUBJECT_SCOPE))
     names = [c.filename for c in cands]
-    # 9702 keeps paper 1 only; 9231 gets its own papers 1 and 4
+    # each subject uses its own papers: 9702 P1, 9231 P1+P4, 9709 P1+P5
     assert names == [
         "9702_s24_qp_11.pdf",
         "9231_s24_qp_11.pdf",
         "9231_s24_qp_41.pdf",
+        "9709_s24_qp_11.pdf",
+        "9709_s24_qp_51.pdf",
     ]
-    assert {c.subject_code for c in cands} == {"9702", "9231"}
+    assert {c.subject_code for c in cands} == {"9702", "9231", "9709"}
 
 
 def _run(tmp_path, fetcher, **kw):
