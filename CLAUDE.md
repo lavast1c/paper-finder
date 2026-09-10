@@ -243,16 +243,20 @@ re-hides** the answer (`topics.js` `toggleAnswer`; `#card-answer` is `hidden`
 until revealed). **Reveal splits the card into two columns** — question crop
 left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
 .card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
-640px inside fullscreen). **Two `.zoombar` controls** (one `#q-zoombar` in `.card-stage`, one
-`#a-zoombar` in `.card-answer` — each a `− / % / +` toolbar chip styled like
-the marks badge / fullscreen button, sticky to the top of its column;
-`.card` scroll areas get accent-tinted scrollbars via `scrollbar-color:
-var(--rule)` + a `::-webkit-scrollbar` fallback): the question and the mark scheme zoom independently via an
-`--img-zoom` custom property on their own `.card-images`
-(`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.5×–3× step 0.25,
-click the % to reset, persisted separately (`localStorage`
-`paper-finder.qzoom` / `.azoom`). `topics.js` `makeZoom()` is the shared
-factory. The `+` `-` `0` keys drive the question only. A **fullscreen toggle** (`#fullscreen-toggle` in
+640px inside fullscreen). **The question and mark-scheme crops are pan/zoom
+surfaces** (`topics.js` `makeCropViewer(imagesEl, storeKey)`, one per
+`.card-images`): drag to pan (mouse `pointer` events → scroll; touch keeps
+native scroll via `touch-action`), wheel to zoom toward the pointer,
+double-click to reset, `+` `-` `0` keys zoom the question. Zoom scales the
+crop `<img>`s via an `--img-zoom` custom property on the container
+(`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.3×–6×, persisted
+per column (`localStorage` `paper-finder.qzoom` / `.azoom`); the box is
+`height: 70vh` with `resize: vertical`. The viewer drives whichever element
+actually scrolls — `.card-images` itself normally, its scrolling ancestor
+(the column / `.card-body`) in fullscreen where `.card-images` is
+`overflow: visible`. A muted `.crop-hint` sits above each. `.card` scroll
+areas get accent-tinted scrollbars (`scrollbar-color: var(--rule)` + a
+`::-webkit-scrollbar` fallback). A **fullscreen toggle** (`#fullscreen-toggle` in
 `.card-nav`, or press `f`) blows the current card up via the Fullscreen API on
 `#card` (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs`
 on `fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the

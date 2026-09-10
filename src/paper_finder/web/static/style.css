@@ -881,14 +881,25 @@ ol#results li {
   box-shadow: var(--edge);
 }
 /* question crops: greyscale page fragments on white, so they read as paper
-   rather than a hole punched in the panel (matters in dark mode) */
+   rather than a hole punched in the panel (matters in dark mode). The box is a
+   pan/zoom surface — drag to pan (JS scroll), wheel to zoom (`--img-zoom`),
+   double-click to reset; `resize: vertical` lets the reader make the pane
+   taller too. */
 .card-images {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  max-height: 70vh;
+  height: 70vh;
   overflow: auto;
+  resize: vertical;
   margin-bottom: 0.5rem;
+  cursor: grab;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+}
+.card-images.is-grabbing {
+  cursor: grabbing;
+  user-select: none;
 }
 .card-image {
   display: block;
@@ -899,6 +910,13 @@ ol#results li {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-sm), var(--edge);
+  -webkit-user-drag: none;
+  user-select: none;
+}
+.crop-hint {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 #show-text { margin: 0 0 0.7rem; }
 
@@ -950,71 +968,6 @@ ol#results li {
   gap: 0.5rem;
 }
 
-/* zoom control — one per crop column: `#q-zoombar` in `.card-stage` scales the
-   question crop, `#a-zoombar` in `.card-answer` the mark scheme, each via an
-   `--img-zoom` custom property on its own `.card-images`. Sticky to the top of
-   the (scrolling, in fullscreen) column so it stays reachable. */
-/* one contained toolbar chip — same surface / border / radius / edge as the
-   fullscreen button and the marks badge, with the − / % / + as borderless
-   segments and accent-coloured hovers */
-.zoombar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin: 0 0 0.6rem;
-  padding: 0.22rem 0.4rem 0.22rem 0.6rem;
-  background: var(--field-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  box-shadow: var(--edge);
-}
-.zoombar-label {
-  margin-right: 0.15rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.zoom-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font: inherit;
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--text-muted);
-  background: none;
-  border: 0;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  transition: color 0.15s var(--ease-out), background 0.15s var(--ease-out);
-}
-.zoom-btn:hover:not([disabled]) {
-  color: var(--accent-ink);
-  background: var(--surface-strong);
-}
-.zoom-btn[disabled] { opacity: 0.35; cursor: default; }
-.zoom-level {
-  min-width: 2.9rem;
-  padding: 0;
-  font: inherit;
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  color: var(--text);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  transition: color 0.15s var(--ease-out);
-}
-.zoom-level:hover { color: var(--accent-ink); }
 .card-fs-btn {
   display: inline-flex;
   align-items: center;
@@ -1078,7 +1031,14 @@ ol#results li {
   min-height: 0;
   overflow: auto;
 }
-#card.card--fs .card-images { max-height: none; overflow: visible; }
+/* fullscreen: the column scrolls, so the crop box is just content — no fixed
+   height, no its-own scroll, no resize grip */
+#card.card--fs .card-images {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  resize: none;
+}
 #card.card--fs .card-answer { margin-top: 0; }
 #card::backdrop { background: var(--bg); }
 
@@ -1145,8 +1105,6 @@ footer {
   #verify-code,
   .reveal-btn,
   .card-fs-btn,
-  .zoom-btn,
-  .zoom-level,
   .card-arrow { transition: none; }
   button:active { transform: none; }
   /* still hide the bar on scroll, just without the long slide */
