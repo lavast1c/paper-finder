@@ -34,15 +34,20 @@ _BODY_TOP = 0.055
 _BODY_BOTTOM = 0.93
 
 # A structured question number sits in the upper part of its page. CIE Physics
-# Paper 2 puts it at ~0.07; Further Maths 9231 gives each short question a full
-# page of answer space, so question 2 can begin a third of the way down the page
-# it shares with question 1's answer lines (observed max ~0.34). The
-# ``== expected`` sequence check and the left-margin test keep a stray number
-# this far down from being mistaken for a start.
-_STRUCTURED_START_MAX_Y = 0.45
+# Paper 2 puts it at ~0.07; the Maths papers give each short question a lot of
+# answer space, so the next question can begin well down the page it shares with
+# the previous one's answer lines -- 9231 ~0.34, 9709 Stats ~0.51. Anything
+# above this (a number in the footer band) is never a start.
+_STRUCTURED_START_MAX_Y = 0.88
+# A bare margin number this near the top of its page, continuing the sequence,
+# is a question start on its own -- CIE starts each structured question on a
+# fresh page. Below this band the body-lookahead has to confirm it (the mid-page
+# case). 9709 Pure Maths opens many questions with a full-width graph whose
+# axis-label fragments run well past any sane lookahead before the prose.
+_STRUCTURED_START_TOP_OF_PAGE = 0.12
 # How many lines after a bare question number to scan for a body-like line (a
 # part label or a sentence) before giving up on it being a question start.
-_STRUCTURED_BODY_LOOKAHEAD = 8
+_STRUCTURED_BODY_LOOKAHEAD = 16
 
 # --- question-image crop rectangles (Stage 2) ---
 # A crop is the whole question column, page by page, at fixed x-bounds -- NOT the
@@ -390,14 +395,19 @@ def _is_structured_question_start(content: list[dict], i: int, expected: int) ->
         return False
     # The first prose/part line usually follows immediately, but a figure or a
     # displayed formula (e.g. an "f(x)" axis label) can sit in between -- scan a
-    # few lines ahead, stopping if another bare margin number appears first.
+    # few lines ahead, stopping if another bare margin number appears first (a
+    # column of numbers is a table, not a run of question starts).
     for j in range(i + 1, min(i + 1 + _STRUCTURED_BODY_LOOKAHEAD, len(content))):
         nxt = content[j]["text"].strip()
         if _BARE_NUMBER.match(nxt) and content[j]["x0"] < _MARGIN_X:
             return False
         if _looks_like_question_body(nxt):
             return True
-    return False
+    # No prose line within the window and no rival margin number -- for a number
+    # right at the top of a page, that means the question opens with a full-page
+    # graph whose axis labels crowd out the first sentence (9709 Pure Maths).
+    # CIE starts each structured question on a fresh page, so accept it.
+    return line["y_frac"] < _STRUCTURED_START_TOP_OF_PAGE
 
 
 def segment_structured(lines: list[dict]) -> list[Question]:
