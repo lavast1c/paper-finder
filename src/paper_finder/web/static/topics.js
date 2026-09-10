@@ -129,7 +129,7 @@ async function fetchCounts() {
       years: yearsParam(),
       sessions: sessionsParam(),
       subjects: [subject],
-      subject,
+      topic_subject: subject, // restricts the returned topic list to this subject's taxonomy
     });
     if (error) throw new Error(error.message || "topic counts failed");
     return {

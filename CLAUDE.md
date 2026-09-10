@@ -135,6 +135,12 @@ adds `topics.subject text`; drop-then-recreates `search_questions` /
 param filtering `public.topics`; **fixes the `kind` bug** — the mcq/theory
 predicate is now `qu.is_mcq` / `not qu.is_mcq`, not `p.paper = 1`; `publish`
 carries `is_mcq` and upserts `topics.subject`).
++ `0009_topic_counts_subject_param.sql` (renames `topic_counts`'s scalar
+`subject` param to `topic_subject` — it collided with the `public.topics.subject`
+column it was compared against, so in the `language sql` body `t.subject =
+subject` bound to the column and the topic-list filter was a no-op (every
+subject showed all 23 topics in the dropdown). `topics.js` `fetchCounts` now
+passes `topic_subject`).
 Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
 `/api/search` + `/api/browse` + `/api/topics` (local) and the
