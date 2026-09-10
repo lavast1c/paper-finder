@@ -8,6 +8,8 @@
 
 const { el } = PF;
 
+const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
+const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off Physics
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
@@ -37,6 +39,9 @@ const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
 const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this close to the end
+
+const DEFAULT_SUBJECT = "Physics";
+let subject = DEFAULT_SUBJECT; // one subject at a time; its taxonomy fills the Topic dropdown
 
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
@@ -71,6 +76,10 @@ let controller = null;
 function readUrl() {
   const p = new URLSearchParams(location.search);
   const codes = csv(p.get("topics"));
+  const wantSubject = p.get("subject");
+  if (subjectEl && wantSubject && [...subjectEl.options].some((o) => o.value === wantSubject)) {
+    subject = wantSubject;
+  }
   filters.papers = csv(p.get("paper"));
   filters.seasons = csv(p.get("season"));
   filters.years = csv(p.get("year"));
@@ -81,6 +90,7 @@ function readUrl() {
 function writeUrl() {
   const p = new URLSearchParams();
   if (selected.size) p.set("topics", [...selected].join(","));
+  if (subject !== DEFAULT_SUBJECT) p.set("subject", subject);
   if (filters.papers.length) p.set("paper", filters.papers.join(","));
   if (filters.seasons.length) p.set("season", filters.seasons.join(","));
   if (filters.years.length) p.set("year", filters.years.join(","));
@@ -98,7 +108,8 @@ function sessionsParam() {
   return filters.seasons.slice();
 }
 function kindParam() {
-  return PF.paperKind(filters.papers);
+  // the MCQ-vs-theory split is Physics-only; off Physics the field is hidden
+  return subject === DEFAULT_SUBJECT ? PF.paperKind(filters.papers) : "all";
 }
 // local /api/* query string for the current scope filters
 function scopeQuery(extra) {
@@ -107,6 +118,7 @@ function scopeQuery(extra) {
   if (kind !== "all") p.set("kind", kind);
   if (filters.years.length) p.set("years", filters.years.join(","));
   if (filters.seasons.length) p.set("sessions", filters.seasons.join(","));
+  p.set("subject", subject);
   return p;
 }
 
@@ -116,6 +128,8 @@ async function fetchCounts() {
       kind: kindParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
+      subjects: [subject],
+      subject,
     });
     if (error) throw new Error(error.message || "topic counts failed");
     return {
@@ -143,6 +157,7 @@ async function fetchDeckPage(offset) {
       kind: kindParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
+      subjects: [subject],
       max_results: PAGE,
       skip: offset,
     });
@@ -579,6 +594,26 @@ function wireScopeGroup(groupEl, key) {
 }
 for (const [group, key] of SCOPE_GROUPS) wireScopeGroup(group, key);
 
+function syncPaperFieldVisibility() {
+  if (fbPaperEl) fbPaperEl.hidden = subject !== DEFAULT_SUBJECT;
+}
+
+if (subjectEl) {
+  subjectEl.addEventListener("change", () => {
+    subject = subjectEl.value;
+    syncPaperFieldVisibility();
+    // the picked topic and any Paper(s) pick belong to the old subject
+    selected.clear();
+    topicEl.value = "";
+    if (subject !== DEFAULT_SUBJECT) {
+      filters.papers = [];
+      if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
+    }
+    idx = 0;
+    refresh();
+  });
+}
+
 topicEl.addEventListener("change", () => {
   selected.clear();
   if (topicEl.value) selected.add(topicEl.value);
@@ -645,6 +680,8 @@ function onReady(email, client) {
   ranInitial = true; // onAuthStateChange fires more than once
 
   const { codes, i } = readUrl();
+  if (subjectEl) subjectEl.value = subject;
+  syncPaperFieldVisibility();
   syncToggleUI();
   idx = i;
   selected = new Set(codes.slice(0, 1)); // single-select now; pruned in refresh()

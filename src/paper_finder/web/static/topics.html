@@ -102,13 +102,15 @@
             <span class="fb-ctx-label">Subject</span>
             <span class="select-wrap select-wrap--inline">
               <select id="subject" aria-label="Subject">
-                <option>Physics (9702)</option>
+                <option value="Physics">Physics (9702)</option>
+                <option value="Further Pure Mathematics">Further Pure Mathematics (9231 P1)</option>
+                <option value="Further Probability &amp; Statistics">Further Probability &amp; Statistics (9231 P4)</option>
               </select>
             </span>
           </span>
         </div>
         <div class="filterbar-fields">
-          <div class="fb-field fb-field--ms">
+          <div class="fb-field fb-field--ms" id="fb-paper">
             <span class="fb-label" id="lbl-paper">Paper(s)</span>
             <div class="multiselect" id="f-paper" data-placeholder="Any paper">
               <button type="button" class="ms-toggle" aria-haspopup="listbox"
