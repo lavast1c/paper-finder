@@ -35,7 +35,7 @@ from paper_finder.labels import load_topic_labels
 from paper_finder.marks import extract_answers_all
 from paper_finder.search import search
 from paper_finder.segment import segment_all
-from paper_finder.topics import TOPICS
+from paper_finder.topics import TAXONOMIES
 
 
 def _cmd_init_db(_args: argparse.Namespace) -> None:
@@ -124,9 +124,14 @@ def _cmd_topics(_args: argparse.Namespace) -> None:
     print(f"Label rows read          : {report.rows}")
     print(f"Questions labelled       : {report.labelled}")
     print(f"Questions unlabelled     : {report.unlabelled}  (run: paper-finder classify)")
-    for topic in TOPICS:
-        count = report.counts.get(topic.code, 0)
-        print(f"    {topic.code}  {topic.number:>2}. {topic.name:<32} {count:>4}")
+    for tax in TAXONOMIES:
+        done, todo = report.by_subject.get(tax.subject_name, (0, 0))
+        if not done and not todo:
+            continue  # no papers for this subject in the corpus yet
+        print(f"\n  {tax.subject_name}  --  {done} labelled, {todo} unlabelled")
+        for topic in tax.topics:
+            count = report.counts.get(topic.code, 0)
+            print(f"    {topic.code}  {topic.number:>2}. {topic.name:<38} {count:>4}")
     if report.orphans:
         print(f"Labels with no question  : {len(report.orphans)}")
         for ref in report.orphans[:10]:

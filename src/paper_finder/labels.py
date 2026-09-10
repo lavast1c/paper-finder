@@ -10,9 +10,11 @@ Row format (tab-separated, no quoting -- no field may contain a tab)::
 
     filename <TAB> question_number <TAB> topic_codes <TAB> source
 
-``topic_codes`` is a comma-separated list of syllabus section codes (``s01``..
-``s11``); ``source`` is ``hand`` or ``llm``. Blank lines and ``#`` comments are
-skipped, matching ``evaluate.load_validation``.
+``topic_codes`` is a comma-separated list of syllabus section codes, drawn from
+the taxonomy the row's subject + paper uses (``s01``..``s11`` for a 9702 paper,
+``fp1``..``fp7`` for 9231 Paper 1, ``fs1``..``fs5`` for 9231 Paper 4);
+``source`` is ``hand`` or ``llm``. Blank lines and ``#`` comments are skipped,
+matching ``evaluate.load_validation``.
 """
 
 from __future__ import annotations
@@ -23,7 +25,8 @@ from pathlib import Path
 
 from paper_finder import config
 from paper_finder.db import connect, init_db
-from paper_finder.topics import CODES
+from paper_finder.filenames import parse_filename
+from paper_finder.topics import CODES, taxonomy_for
 
 SOURCES = ("hand", "llm")
 
@@ -48,6 +51,9 @@ class LoadReport:
     unlabelled: int = 0  # questions in the DB with no topic
     counts: dict[str, int] = field(default_factory=dict)  # topic code -> question count
     orphans: list[str] = field(default_factory=list)  # "filename Qn" with no matching question
+    # subject_name -> (labelled, unlabelled) so adding 9231 doesn't make the
+    # Physics totals look broken.
+    by_subject: dict[str, tuple[int, int]] = field(default_factory=dict)
 
 
 def parse_labels(path: Path) -> list[LabelRow]:
@@ -77,6 +83,19 @@ def parse_labels(path: Path) -> list[LabelRow]:
         unknown = [c for c in codes if c not in CODES]
         if unknown:
             raise ValueError(f"{path}:{lineno}: unknown topic code(s): {', '.join(unknown)}")
+
+        # Codes must belong to the taxonomy the filename's subject + paper uses,
+        # not just the global union -- a 9231 Paper 4 row tagged 's02', or a 9702
+        # row tagged 'fp1', is a mislabel.
+        parsed = parse_filename(filename)
+        tax = taxonomy_for(parsed.subject_code, parsed.paper) if parsed else None
+        if tax is not None:
+            off_taxonomy = [c for c in codes if c not in tax.codes]
+            if off_taxonomy:
+                raise ValueError(
+                    f"{path}:{lineno}: {', '.join(off_taxonomy)} not in the "
+                    f"{tax.subject_name} taxonomy (expected {'/'.join(sorted(tax.codes))})"
+                )
 
         if source not in SOURCES:
             raise ValueError(f"{path}:{lineno}: source must be one of {SOURCES}, got {source!r}")
@@ -128,9 +147,29 @@ def load_topic_labels(path: Path | None = None, db_path: Path | None = None) -> 
             labelled_ids.add(question["id"])
 
         total_questions = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+
+        by_subject: dict[str, tuple[int, int]] = {}
+        subject_rows = conn.execute(
+            """
+            SELECT COALESCE(p.subject_name, p.subject_code) AS subject,
+                   q.id IN (SELECT question_id FROM question_topics) AS is_labelled,
+                   COUNT(*) AS n
+            FROM questions q
+            JOIN papers p ON p.id = q.paper_id
+            GROUP BY subject, is_labelled
+            """
+        ).fetchall()
+        for r in subject_rows:
+            done, todo = by_subject.get(r["subject"], (0, 0))
+            if r["is_labelled"]:
+                done += r["n"]
+            else:
+                todo += r["n"]
+            by_subject[r["subject"]] = (done, todo)
         conn.commit()
 
     report.labelled = len(labelled_ids)
     report.unlabelled = total_questions - report.labelled
     report.counts = dict(code_counter)
+    report.by_subject = by_subject
     return report

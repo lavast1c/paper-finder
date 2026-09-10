@@ -188,6 +188,33 @@ def test_parse_labels_rejects_unknown_code(tmp_path):
         parse_labels(path)
 
 
+def test_parse_labels_accepts_further_maths_codes_for_9231(tmp_path):
+    path = _write_labels(
+        tmp_path,
+        "9231_s24_qp_11.pdf\t1\tfp4\thand\n9231_s24_qp_41.pdf\t2\tfs2,fs3\tllm\n",
+    )
+    rows = parse_labels(path)
+    assert [(r.filename, r.topic_codes) for r in rows] == [
+        ("9231_s24_qp_11.pdf", ("fp4",)),
+        ("9231_s24_qp_41.pdf", ("fs2", "fs3")),
+    ]
+
+
+def test_parse_labels_rejects_code_from_the_wrong_taxonomy(tmp_path):
+    # a real code, but Physics -- not valid on a 9231 Paper 4 row
+    path = _write_labels(tmp_path, "9231_s24_qp_41.pdf\t1\ts02\thand\n")
+    with pytest.raises(ValueError, match="Further Probability & Statistics"):
+        parse_labels(path)
+    # and the reverse: fp1 on a Physics row
+    path = _write_labels(tmp_path, "9702_s26_qp_11.pdf\t1\tfp1\thand\n")
+    with pytest.raises(ValueError, match="Physics"):
+        parse_labels(path)
+    # 9231 Paper 1 tagged with a Paper 4 (stats) code
+    path = _write_labels(tmp_path, "9231_s24_qp_11.pdf\t1\tfs1\thand\n")
+    with pytest.raises(ValueError, match="Further Pure Mathematics"):
+        parse_labels(path)
+
+
 def test_parse_labels_rejects_empty_code_list(tmp_path):
     path = _write_labels(tmp_path, "9702_s26_qp_11.pdf\t1\t\thand\n")
     with pytest.raises(ValueError, match="no topic codes"):
