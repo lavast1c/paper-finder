@@ -1,8 +1,39 @@
-from paper_finder.marks import parse_mcq_answers, parse_structured_answers
+from paper_finder.marks import (
+    _answer_crop_rects,
+    parse_mcq_answers,
+    parse_structured_answers,
+)
+
+_MS_H = 595.0
 
 
 def _lines(texts):
-    return [{"text": t, "x0": 50.0, "page": 2, "in_body": True, "y_frac": 0.3} for t in texts]
+    return [
+        {
+            "text": t,
+            "x0": 50.0,
+            "page": 2,
+            "in_body": True,
+            "y_frac": 0.3,
+            "y0": 0.3 * _MS_H,
+            "y1": 0.3 * _MS_H + 10.0,
+            "height": _MS_H,
+        }
+        for t in texts
+    ]
+
+
+def _ln(text, page=2, y0=100.0, height=_MS_H):
+    return {
+        "text": text,
+        "x0": 80.0,
+        "page": page,
+        "in_body": True,
+        "y_frac": y0 / height,
+        "y0": y0,
+        "y1": y0 + 10.0,
+        "height": height,
+    }
 
 
 def test_parse_mcq_answers_reads_triples():
@@ -47,3 +78,39 @@ def test_parse_structured_answers_groups_by_question():
     assert "area under the graph" in answers[0].answer_text
     assert "distance = 390 m" in answers[0].answer_text
     assert answers[1].answer_text.startswith("2(a)")
+
+
+def test_answer_crop_rects_single_page_stops_at_next_question():
+    block = [_ln("1(a)", y0=100.0), _ln("mark point", y0=130.0)]
+    next_start = _ln("2(a)", y0=300.0)
+    rects = _answer_crop_rects(block, next_start)
+    assert len(rects) == 1
+    page, x0, y0, x1, y1 = rects[0]
+    assert page == 2
+    assert (x0, x1) == (55.0, 795.0)
+    assert y0 == round(100.0 - 4.0, 1)
+    assert y1 == round(300.0 - 4.0, 1)
+
+
+def test_answer_crop_rects_last_question_runs_to_body_bottom():
+    block = [_ln("5(a)", y0=400.0), _ln("mark point", y0=430.0)]
+    rects = _answer_crop_rects(block, None)
+    assert len(rects) == 1
+    assert rects[0][4] == round(0.915 * _MS_H, 1)
+
+
+def test_answer_crop_rects_spans_pages_and_uses_block_extremes():
+    block = [
+        _ln("3(b)", page=4, y0=520.0),  # not the first line in reading order
+        _ln("3(a)", page=4, y0=90.0),
+        _ln("continued", page=6, y0=200.0),  # nothing on page 5
+    ]
+    rects = _answer_crop_rects(block, None)
+    assert [r[0] for r in rects] == [4, 5, 6]
+    assert rects[0][2] == round(90.0 - 4.0, 1)  # top = min y0 on the first page
+
+
+def test_answer_crop_rects_drops_a_sliver():
+    block = [_ln("6(a)", y0=200.0)]
+    next_start = _ln("7(a)", y0=210.0)  # only 10 pt tall -> below _MS_CROP_MIN_HEIGHT
+    assert _answer_crop_rects(block, next_start) == ()
