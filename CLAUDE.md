@@ -240,14 +240,19 @@ flashcard deck: one card at a time, ◂ ▸ / ←→ to move, and a **`#reveal`
 toggle** on the right of the `.card-head` row (the site's solid-accent button
 when hidden, a quiet outline when shown) — or the space bar — reveals **and
 re-hides** the answer (`topics.js` `toggleAnswer`; `#card-answer` is `hidden`
-until revealed). A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
-press `f`) blows the current card up via the Fullscreen API on `#card`
-(`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs` on
-`fullscreenchange`); once revealed it lays the question crop and the mark-scheme
-crop out side by side (`.card--fs.is-revealed .card-body` = a two-column grid,
-each column scrolling on its own; stacks under 640px). Prev/Next (buttons or
-arrow keys) and Reveal keep working — the whole `#card` subtree is what goes
-fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
+until revealed). **Reveal splits the card into two columns** — question crop
+left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
+.card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
+640px inside fullscreen). A **`.zoombar`** in `.card-nav` (− / % / +, or the
+`+` `-` `0` keys) scales both crops via a `--img-zoom` custom property on
+`#card-images` / `#answer-images` (0.5×–3×, `localStorage`
+`paper-finder.zoom`). A **fullscreen toggle** (`#fullscreen-toggle` in
+`.card-nav`, or press `f`) blows the current card up via the Fullscreen API on
+`#card` (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs`
+on `fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the
+page scroll for a per-column one so the nav/head stay pinned. Prev/Next
+(buttons or arrow keys), Reveal and zoom keep working — the whole `#card`
+subtree is what goes fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
