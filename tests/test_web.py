@@ -127,6 +127,7 @@ def test_browse_page_has_crop_container(client):
     assert 'id="show-text"' in r.text
     assert 'id="answer-images"' in r.text  # mark-scheme crop container
     assert 'id="answer-show-text"' in r.text
+    assert 'id="fullscreen-toggle"' in r.text  # flashcard fullscreen control
     assert 'id="f-topic"' in r.text  # topic dropdown replaced the chip row
 
 

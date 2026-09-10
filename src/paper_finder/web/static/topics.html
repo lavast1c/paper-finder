@@ -174,7 +174,12 @@
       <div id="card" class="card" hidden>
         <div class="card-nav">
           <button id="prev" type="button" class="card-arrow" aria-label="Previous question">&#9666;</button>
-          <span id="pos" class="card-pos"></span>
+          <span class="card-nav-mid">
+            <span id="pos" class="card-pos"></span>
+            <button id="fullscreen-toggle" type="button" class="card-fs-btn"
+                    aria-label="Enter fullscreen" aria-pressed="false"
+                    title="Fullscreen (press f)">&#9974;</button>
+          </span>
           <button id="next" type="button" class="card-arrow" aria-label="Next question">&#9656;</button>
         </div>
         <div class="card-head">
@@ -182,15 +187,19 @@
           <code id="card-file"></code>
           <span id="card-marks" class="marks" hidden></span>
         </div>
-        <div id="card-images" class="card-images" hidden></div>
-        <button type="button" id="show-text" class="linkbtn" hidden>Show text</button>
-        <div id="card-question"></div>
-        <p id="card-figure" class="figure-note" hidden>◧ Has a diagram, graph or table — see the original paper</p>
-        <div id="card-answer" class="card-answer">
-          <div id="answer-images" class="card-images" hidden></div>
-          <button type="button" id="answer-show-text" class="linkbtn" hidden>Show text</button>
-          <div id="answer-body">
-            <button id="reveal" type="button">Reveal answer</button>
+        <div id="card-body" class="card-body">
+          <div id="card-stage" class="card-stage">
+            <div id="card-images" class="card-images" hidden></div>
+            <button type="button" id="show-text" class="linkbtn" hidden>Show text</button>
+            <div id="card-question"></div>
+            <p id="card-figure" class="figure-note" hidden>◧ Has a diagram, graph or table — see the original paper</p>
+          </div>
+          <div id="card-answer" class="card-answer">
+            <div id="answer-images" class="card-images" hidden></div>
+            <button type="button" id="answer-show-text" class="linkbtn" hidden>Show text</button>
+            <div id="answer-body">
+              <button id="reveal" type="button">Reveal answer</button>
+            </div>
           </div>
         </div>
       </div>
