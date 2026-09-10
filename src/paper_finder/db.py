@@ -43,10 +43,12 @@ CREATE TABLE IF NOT EXISTS questions (
 );
 
 CREATE TABLE IF NOT EXISTS answers (
-    id          INTEGER PRIMARY KEY,
-    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
-    answer_text TEXT NOT NULL,
-    source      TEXT
+    id                INTEGER PRIMARY KEY,
+    question_id       INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    answer_text       TEXT NOT NULL,
+    source            TEXT,
+    answer_crop_rects TEXT,                       -- JSON [[page,x0,y0,x1,y1], ...] MS regions
+    answer_crop_count INTEGER NOT NULL DEFAULT 0  -- len(answer_crop_rects); 0 = show text only
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS questions_fts USING fts5 (
