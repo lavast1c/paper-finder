@@ -80,6 +80,60 @@ def test_parse_structured_answers_groups_by_question():
     assert answers[1].answer_text.startswith("2(a)")
 
 
+def _row(text, x0, page=6, y0=100.0):
+    return {
+        "text": text,
+        "x0": x0,
+        "page": page,
+        "in_body": True,
+        "y_frac": y0 / _MS_H,
+        "y0": y0,
+        "y1": y0 + 10.0,
+        "height": _MS_H,
+    }
+
+
+def test_structured_answers_read_bare_number_labels_in_the_table():
+    # CIE 9231: a question with no lettered parts is labelled with a bare number
+    # in the Question column. It must still be picked up once the table starts.
+    lines = [
+        _row("Cambridge International – Mathematics-Specific Marking Principles", 60, page=3),
+        _row("1", 68, page=3, y0=80.0),  # a marking principle, NOT question 1
+        _row("Unless a particular method has been specified, allow full marks.", 90, page=3, y0=95),
+        _row("Question", 69, page=6, y0=55.0),
+        _row("1", 87, page=6, y0=80.0),
+        _row("H0: the die is fair", 122, page=6, y0=95.0),
+        _row("Question", 69, page=7, y0=55.0),
+        _row("2", 87, page=7, y0=80.0),
+        _row("mean = 4.7", 122, page=7, y0=95.0),
+        _row("3(a)", 81, page=8, y0=80.0),
+        _row("chi-squared = 2.1", 122, page=8, y0=95.0),
+    ]
+    answers = parse_structured_answers(lines)
+    assert [a.question_number for a in answers] == [1, 2, 3]
+    assert "H0: the die is fair" in answers[0].answer_text
+    assert "mean = 4.7" in answers[1].answer_text
+    # the page-3 marking principle did not become question 1's text
+    assert "Unless a particular method" not in answers[0].answer_text
+
+
+def test_structured_answers_ignore_stray_small_integers_in_the_body():
+    lines = [
+        _row("Question", 69, page=6, y0=55.0),
+        _row("1(a)", 55, page=6, y0=80.0),
+        _row("2", 106, page=6, y0=95.0),  # a coefficient, near-ish the margin
+        _row("k + 12c = 2", 122, page=6, y0=110.0),
+        _row("1(b)", 54, page=6, y0=200.0),
+        _row("IQR = 4", 122, page=6, y0=215.0),
+        _row("2(a)", 55, page=7, y0=80.0),
+        _row("next question", 122, page=7, y0=95.0),
+    ]
+    answers = parse_structured_answers(lines)
+    assert [a.question_number for a in answers] == [1, 2]
+    assert "k + 12c = 2" in answers[0].answer_text
+    assert "IQR = 4" in answers[0].answer_text
+
+
 def test_answer_crop_rects_single_page_stops_at_next_question():
     block = [_ln("1(a)", y0=100.0), _ln("mark point", y0=130.0)]
     next_start = _ln("2(a)", y0=300.0)

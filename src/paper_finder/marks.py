@@ -24,7 +24,28 @@ from paper_finder.segment import MCQ_QUESTION_COUNT, is_noise, load_lines, looks
 _LETTER = re.compile(r"^[A-D]$")
 _SMALL_INT = re.compile(r"^\d{1,2}$")
 _PART_LABEL = re.compile(r"^(\d{1,2})\([a-z]\)(?:\([ivx]+\))?\s*$")
+# A question with no lettered parts is labelled with a bare number in the
+# Question column (CIE 9231 does this for its shorter questions). The column
+# starts at x0 ~= 69-90; answer text sits at x0 ~= 122, so a low x0 disambiguates
+# a question label from a stray "5" inside an answer.
+_BARE_LABEL = re.compile(r"^(\d{1,2})$")
+_MS_QUESTION_COL_MAX_X = 95.0  # fallback ceiling when a scheme has no part labels
+_MS_QUESTION_COL_TOLERANCE = 14.0  # px a bare label may sit from the part-label column
 _DOT_RUN = re.compile(r"\.{3,}")
+
+
+def _part_label_number(text: str) -> int | None:
+    part = _PART_LABEL.match(text)
+    return int(part.group(1)) if part else None
+
+
+def _question_column_x0(lines: list[dict]) -> float:
+    """Left edge of the Question column, taken from the (unambiguous) lettered
+    part labels -- ``1(a)``, ``4(b)`` never occur inside an answer body. Falls
+    back to a fixed ceiling when a scheme has no lettered parts at all."""
+    xs = [ln.get("x0", 0.0) for ln in lines if _PART_LABEL.match(ln["text"].strip())]
+    return min(xs) if xs else _MS_QUESTION_COL_MAX_X
+
 
 # --- mark-scheme crop rectangles ---
 # The MS is a landscape Question / Answer / Marks table; a crop is the full-width
@@ -125,19 +146,60 @@ def parse_mcq_answers(lines: list[dict]) -> list[Answer]:
     return answers
 
 
+def _answer_table_first_page(lines: list[dict]) -> int | None:
+    """First page of the Question/Answer/Marks table.
+
+    The generic and subject-specific marking principles that open every mark
+    scheme are a numbered list at the same left margin as the Question column,
+    so a bare "1".."6" there is indistinguishable from a question label. The
+    standalone "Question" table header (dropped by ``is_noise`` from the content
+    stream, but present in the raw lines) tells us where the real table starts.
+    """
+    pages = [
+        ln["page"]
+        for ln in lines
+        if ln["text"].strip().lower() == "question" and ln.get("x0", 999.0) < 120.0
+    ]
+    return min(pages) if pages else None
+
+
+def _bare_label_number(line: dict, col_x0: float, expected: int) -> int | None:
+    """A bare number is a question label only if it (a) sits in the Question
+    column and (b) is the next question in sequence -- answer bodies are full of
+    stray small integers, some of them near the left margin."""
+    bare = _BARE_LABEL.match(line["text"].strip())
+    if not bare:
+        return None
+    n = int(bare.group(1))
+    x0 = line.get("x0", 999.0)
+    near_column = abs(x0 - col_x0) <= _MS_QUESTION_COL_TOLERANCE or x0 < _MS_QUESTION_COL_MAX_X
+    return n if n == expected and near_column else None
+
+
 def parse_structured_answers(lines: list[dict]) -> list[Answer]:
     grouped: dict[int, list[str]] = {}
     grouped_lines: dict[int, list[dict]] = {}
     current: int | None = None
+    expected = 1  # next question number we have not seen a label for
+    col_x0 = _question_column_x0(lines)
+    table_page = _answer_table_first_page(lines)
+    seen_part_label = False  # fallback trip if the header line was not extracted
     for line in _content_lines(lines):
         text = line["text"].strip()
-        label = _PART_LABEL.match(text)
-        if label:
-            current = int(label.group(1))
+        in_table = seen_part_label or (table_page is not None and line["page"] >= table_page)
+        if not in_table:
+            if _PART_LABEL.match(text):
+                seen_part_label = True
+            else:
+                continue
+        number = _part_label_number(text) or _bare_label_number(line, col_x0, expected)
+        if number is not None:
+            current = number
+            expected = max(expected, number + 1)
             grouped.setdefault(current, []).append(text)
             grouped_lines.setdefault(current, []).append(line)
             continue
-        if current is None:  # still in the pre-table marking-principles pages
+        if current is None:  # in the table, but the first question row not yet
             continue
         grouped_lines[current].append(line)
         cleaned = re.sub(r"\s+", " ", _DOT_RUN.sub(" ", text)).strip()

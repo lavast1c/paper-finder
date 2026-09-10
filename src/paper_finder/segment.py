@@ -33,8 +33,14 @@ _MARGIN_X = 60.0  # question numbers sit at x0 ~= 49; body text starts ~= 72
 _BODY_TOP = 0.055
 _BODY_BOTTOM = 0.93
 
-# A structured question number is near the very top of its page.
-_STRUCTURED_START_MAX_Y = 0.18
+# A structured question number sits high on its page. CIE Physics Paper 2 puts
+# it at ~0.07; Further Maths 9231 does too, but a diagram or a displayed formula
+# can sit between the number and the first prose line, so the "body" line we look
+# for may be several lines down (see _STRUCTURED_BODY_LOOKAHEAD).
+_STRUCTURED_START_MAX_Y = 0.30
+# How many lines after a bare question number to scan for a body-like line (a
+# part label or a sentence) before giving up on it being a question start.
+_STRUCTURED_BODY_LOOKAHEAD = 8
 
 # --- question-image crop rectangles (Stage 2) ---
 # A crop is the whole question column, page by page, at fixed x-bounds -- NOT the
@@ -348,14 +354,23 @@ def _format_structured_question(block: list[dict]) -> str:
 def _is_structured_question_start(content: list[dict], i: int, expected: int) -> bool:
     line = content[i]
     match = _BARE_NUMBER.match(line["text"].strip())
-    return bool(
+    if not (
         match
         and int(match.group(1)) == expected
         and line["x0"] < _MARGIN_X
         and line["y_frac"] < _STRUCTURED_START_MAX_Y
-        and i + 1 < len(content)
-        and _looks_like_question_body(content[i + 1]["text"].strip())
-    )
+    ):
+        return False
+    # The first prose/part line usually follows immediately, but a figure or a
+    # displayed formula (e.g. an "f(x)" axis label) can sit in between -- scan a
+    # few lines ahead, stopping if another bare margin number appears first.
+    for j in range(i + 1, min(i + 1 + _STRUCTURED_BODY_LOOKAHEAD, len(content))):
+        nxt = content[j]["text"].strip()
+        if _BARE_NUMBER.match(nxt) and content[j]["x0"] < _MARGIN_X:
+            return False
+        if _looks_like_question_body(nxt):
+            return True
+    return False
 
 
 def segment_structured(lines: list[dict]) -> list[Question]:
