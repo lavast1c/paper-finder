@@ -7,9 +7,9 @@ const { el } = PF;
 
 const form = document.getElementById("search");
 const input = document.getElementById("q");
-const paperEl = document.getElementById("f-paper"); // toggle group: CIE variant numbers
-const yearEl = document.getElementById("f-year"); // toggle group: years
-const seasonEl = document.getElementById("f-season"); // toggle group: CIE session letters
+const paperEl = document.getElementById("f-paper"); // multi-select dropdown: CIE variant numbers
+const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
+const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const historyEl = document.getElementById("history"); // custom recent-search panel
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
@@ -103,15 +103,15 @@ function clearResults() {
 // --- search sources ------------------------------------------------------
 
 // The filter bar: Paper(s) = CIE variant number, Season(s) = session letter.
-// Each is a group of multi-select toggle buttons; no button pressed = no
-// restriction on that axis.
-function pressed(groupEl) {
+// Each is a multi-select dropdown of checkboxes; nothing ticked = no restriction
+// on that axis.
+function picked(groupEl) {
   return groupEl
-    ? [...groupEl.querySelectorAll('.fb-toggle[aria-pressed="true"]')].map((b) => b.dataset.v)
+    ? [...groupEl.querySelectorAll('input[type="checkbox"]:checked')].map((b) => b.value)
     : [];
 }
 function scope() {
-  return { variants: pressed(paperEl), years: pressed(yearEl), sessions: pressed(seasonEl) };
+  return { variants: picked(paperEl), years: picked(yearEl), sessions: picked(seasonEl) };
 }
 
 async function localSearch(q) {
@@ -236,10 +236,8 @@ input.addEventListener("keydown", (e) => {
 
 for (const group of [paperEl, yearEl, seasonEl]) {
   if (!group) continue;
-  group.addEventListener("click", (e) => {
-    const btn = e.target.closest(".fb-toggle");
-    if (!btn || !group.contains(btn)) return;
-    btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  PF.multiSelect(group);
+  group.addEventListener("change", () => {
     if (input.value.trim()) run();
   });
 }

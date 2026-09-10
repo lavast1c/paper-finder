@@ -30,6 +30,84 @@ PF.el = el;
 
 PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 
+// --- multi-select dropdown ----------------------------------------------
+//
+// Upgrades <div class="multiselect"> (a .ms-toggle button + a hidden .ms-panel
+// of checkbox <label>s) into a closeable dropdown that takes several picks. The
+// checkboxes are real, so their native `change` events bubble to the root --
+// page code listens for `change` on the root and reads the picks. The returned
+// api is also stashed on `root._ms` for programmatic get/set (deep links).
+//
+//   const ms = PF.multiSelect(root);
+//   ms.values();            // ["1", "2"]
+//   ms.setValues(["3"]);    // ticks the boxes + repaints the label, no event
+//
+// Keyboard: the toggle is a plain <button> (Space/Enter opens); Escape closes
+// and returns focus; the panel is the native focus order of its checkboxes.
+function multiSelect(root) {
+  if (root._ms) return root._ms;
+  const toggle = root.querySelector(".ms-toggle");
+  const panel = root.querySelector(".ms-panel");
+  const valueEl = root.querySelector(".ms-value");
+  const boxes = [...panel.querySelectorAll('input[type="checkbox"]')];
+  const placeholder = root.dataset.placeholder || "Any";
+
+  function values() {
+    return boxes.filter((b) => b.checked).map((b) => b.value);
+  }
+
+  function paintLabel() {
+    const picked = boxes.filter((b) => b.checked);
+    valueEl.textContent = picked.length
+      ? picked.map((b) => b.dataset.short || b.nextElementSibling.textContent.trim()).join(", ")
+      : placeholder;
+    root.classList.toggle("ms--set", picked.length > 0);
+  }
+
+  function onDocClick(e) {
+    if (!root.contains(e.target)) close();
+  }
+  function onKey(e) {
+    if (e.key === "Escape") {
+      close();
+      toggle.focus();
+    }
+  }
+  function open() {
+    if (!panel.hidden) return;
+    panel.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("keydown", onKey, true);
+  }
+  function close() {
+    if (panel.hidden) return;
+    panel.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", onDocClick, true);
+    document.removeEventListener("keydown", onKey, true);
+  }
+
+  toggle.addEventListener("click", () => (panel.hidden ? open() : close()));
+  panel.addEventListener("change", (e) => {
+    if (e.target.matches('input[type="checkbox"]')) paintLabel();
+  });
+
+  paintLabel();
+  const api = {
+    values,
+    setValues(list) {
+      const want = new Set(list || []);
+      for (const b of boxes) b.checked = want.has(b.value);
+      paintLabel();
+    },
+    close,
+  };
+  root._ms = api;
+  return api;
+}
+PF.multiSelect = multiSelect;
+
 // --- query-term highlighting -----------------------------------------
 
 const STOPWORDS = new Set(

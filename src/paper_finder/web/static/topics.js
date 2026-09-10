@@ -8,9 +8,9 @@
 
 const { el } = PF;
 
-const paperEl = document.getElementById("f-paper"); // toggle group: CIE variant numbers
-const seasonEl = document.getElementById("f-season"); // toggle group: CIE session letters
-const yearEl = document.getElementById("f-year"); // toggle group: years
+const paperEl = document.getElementById("f-paper"); // multi-select dropdown: CIE variant numbers
+const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
+const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const topicEl = document.getElementById("f-topic"); // syllabus section; deck stays hidden until one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
@@ -37,8 +37,9 @@ const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this clos
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
 let selected = new Set(); // the picked topic (0 or 1 code); a Set keeps the deck/browse plumbing unchanged
-// Multi-select scope filters. Paper(s) = CIE variant numbers, Season(s) = session
-// letters, Year(s) = years. An empty array = no restriction on that axis.
+// Multi-select scope filters (each a .multiselect dropdown). Paper(s) = CIE
+// variant numbers, Season(s) = session letters, Year(s) = years. An empty array
+// = no restriction on that axis.
 const filters = { variants: [], seasons: [], years: [] };
 
 const csv = (s) => (s || "").split(",").map((x) => x.trim()).filter(Boolean);
@@ -468,40 +469,33 @@ async function refresh() {
 
 // --- wiring --------------------------------------------------------
 
-// Paint every toggle button's aria-pressed from the current `filters` arrays.
+const SCOPE_GROUPS = [
+  [paperEl, "variants"],
+  [yearEl, "years"],
+  [seasonEl, "seasons"],
+];
+
+// Push the current `filters` arrays back into the dropdowns (deep-link restore).
 function syncToggleUI() {
-  for (const [group, key] of [
-    [paperEl, "variants"],
-    [yearEl, "years"],
-    [seasonEl, "seasons"],
-  ]) {
-    if (!group) continue;
-    for (const btn of group.querySelectorAll(".fb-toggle")) {
-      btn.setAttribute("aria-pressed", filters[key].includes(btn.dataset.v) ? "true" : "false");
-    }
+  for (const [group, key] of SCOPE_GROUPS) {
+    if (group && group._ms) group._ms.setValues(filters[key]);
   }
 }
 
-// A group of multi-select toggle buttons -> the `filters[key]` array: click to add,
-// click again to drop.
-function wireToggleGroup(groupEl, key) {
+// A .multiselect dropdown -> the `filters[key]` array. The checkboxes are real,
+// so their `change` bubbles to the root; read every ticked box off it.
+function wireScopeGroup(groupEl, key) {
   if (!groupEl) return;
-  groupEl.addEventListener("click", (e) => {
-    const btn = e.target.closest(".fb-toggle");
-    if (!btn || !groupEl.contains(btn)) return;
-    const v = btn.dataset.v;
-    const arr = filters[key];
-    const at = arr.indexOf(v);
-    if (at >= 0) arr.splice(at, 1);
-    else arr.push(v);
-    btn.setAttribute("aria-pressed", at >= 0 ? "false" : "true");
+  PF.multiSelect(groupEl);
+  groupEl.addEventListener("change", () => {
+    filters[key] = [...groupEl.querySelectorAll('input[type="checkbox"]:checked')].map(
+      (b) => b.value,
+    );
     idx = 0;
     refresh();
   });
 }
-wireToggleGroup(paperEl, "variants");
-wireToggleGroup(yearEl, "years");
-wireToggleGroup(seasonEl, "seasons");
+for (const [group, key] of SCOPE_GROUPS) wireScopeGroup(group, key);
 
 topicEl.addEventListener("change", () => {
   selected.clear();

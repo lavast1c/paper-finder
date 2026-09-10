@@ -100,29 +100,47 @@
           </span>
         </div>
         <div class="filterbar-fields">
-          <div class="fb-field">
+          <div class="fb-field fb-field--ms">
             <span class="fb-label" id="lbl-paper">Paper(s)</span>
-            <div class="fb-toggles" id="f-paper" role="group" aria-labelledby="lbl-paper">
-              <button type="button" class="fb-toggle" data-v="1" aria-pressed="false">1</button>
-              <button type="button" class="fb-toggle" data-v="2" aria-pressed="false">2</button>
-              <button type="button" class="fb-toggle" data-v="3" aria-pressed="false">3</button>
-              <button type="button" class="fb-toggle" data-v="4" aria-pressed="false">4</button>
+            <div class="multiselect" id="f-paper" data-placeholder="Any paper">
+              <button type="button" class="ms-toggle" aria-haspopup="listbox"
+                      aria-expanded="false" aria-labelledby="lbl-paper ms-val-paper">
+                <span class="ms-value" id="ms-val-paper">Any paper</span>
+              </button>
+              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+                <label class="ms-opt"><input type="checkbox" value="1" data-short="P1"><span>Paper 1</span></label>
+                <label class="ms-opt"><input type="checkbox" value="2" data-short="P2"><span>Paper 2</span></label>
+                <label class="ms-opt"><input type="checkbox" value="3" data-short="P3"><span>Paper 3</span></label>
+                <label class="ms-opt"><input type="checkbox" value="4" data-short="P4"><span>Paper 4</span></label>
+              </div>
             </div>
           </div>
-          <div class="fb-field">
+          <div class="fb-field fb-field--ms">
             <span class="fb-label" id="lbl-year">Year(s)</span>
-            <div class="fb-toggles" id="f-year" role="group" aria-labelledby="lbl-year">
-              <button type="button" class="fb-toggle" data-v="2026" aria-pressed="false">2026</button>
-              <button type="button" class="fb-toggle" data-v="2025" aria-pressed="false">2025</button>
-              <button type="button" class="fb-toggle" data-v="2024" aria-pressed="false">2024</button>
+            <div class="multiselect" id="f-year" data-placeholder="Any year">
+              <button type="button" class="ms-toggle" aria-haspopup="listbox"
+                      aria-expanded="false" aria-labelledby="lbl-year ms-val-year">
+                <span class="ms-value" id="ms-val-year">Any year</span>
+              </button>
+              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+                <label class="ms-opt"><input type="checkbox" value="2026"><span>2026</span></label>
+                <label class="ms-opt"><input type="checkbox" value="2025"><span>2025</span></label>
+                <label class="ms-opt"><input type="checkbox" value="2024"><span>2024</span></label>
+              </div>
             </div>
           </div>
-          <div class="fb-field">
+          <div class="fb-field fb-field--ms">
             <span class="fb-label" id="lbl-season">Season(s)</span>
-            <div class="fb-toggles" id="f-season" role="group" aria-labelledby="lbl-season">
-              <button type="button" class="fb-toggle" data-v="s" aria-pressed="false">May/June</button>
-              <button type="button" class="fb-toggle" data-v="m" aria-pressed="false">Feb/March</button>
-              <button type="button" class="fb-toggle" data-v="w" aria-pressed="false">Oct/Nov</button>
+            <div class="multiselect" id="f-season" data-placeholder="Any season">
+              <button type="button" class="ms-toggle" aria-haspopup="listbox"
+                      aria-expanded="false" aria-labelledby="lbl-season ms-val-season">
+                <span class="ms-value" id="ms-val-season">Any season</span>
+              </button>
+              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+                <label class="ms-opt"><input type="checkbox" value="s"><span>May/June</span></label>
+                <label class="ms-opt"><input type="checkbox" value="m"><span>Feb/March</span></label>
+                <label class="ms-opt"><input type="checkbox" value="w"><span>Oct/Nov</span></label>
+              </div>
             </div>
           </div>
         </div>
