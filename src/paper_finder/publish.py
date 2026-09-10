@@ -20,7 +20,7 @@ from typing import Any
 
 from paper_finder import config
 from paper_finder.db import connect
-from paper_finder.topics import TOPICS
+from paper_finder.topics import TAXONOMIES
 
 # str (db url) -> a context-manager connection with .cursor() and commit-on-exit
 Connector = Callable[[str], Any]
@@ -39,7 +39,8 @@ SELECT q.id, q.paper_id, q.question_number, q.question_text, q.marks, q.has_figu
        (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1),
        (SELECT group_concat(qt.topic_code) FROM question_topics qt WHERE qt.question_id = q.id),
        q.crop_count,
-       (SELECT a.answer_crop_count FROM answers a WHERE a.question_id = q.id LIMIT 1)
+       (SELECT a.answer_crop_count FROM answers a WHERE a.question_id = q.id LIMIT 1),
+       COALESCE(q.is_mcq, 0)
 FROM questions q
 JOIN papers p ON p.id = q.paper_id
 WHERE p.paper_type = 'qp'
@@ -54,19 +55,25 @@ _INSERT_PAPERS = (
 _INSERT_QUESTIONS = (
     "INSERT INTO public.questions "
     "(id, paper_id, question_number, question_text, marks, has_figure, answer_text, "
-    "topic_codes, crop_count, answer_crop_count) "
-    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    "topic_codes, crop_count, answer_crop_count, is_mcq) "
+    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 )
 # public.topics has no FK from public.papers, so `DELETE FROM public.papers` does
-# not cascade to it -- re-upsert it from the taxonomy on every publish so it
-# cannot drift. paper_finder.topics stays the single source of truth.
+# not cascade to it -- re-upsert it from the taxonomies on every publish so it
+# cannot drift. paper_finder.topics stays the single source of truth. `subject`
+# is the taxonomy's subject_name (matches papers.subject_name).
 _UPSERT_TOPICS = (
-    "INSERT INTO public.topics (code, number, name, subsections) "
-    "VALUES (%s, %s, %s, %s) "
+    "INSERT INTO public.topics (code, number, name, subsections, subject) "
+    "VALUES (%s, %s, %s, %s, %s) "
     "ON CONFLICT (code) DO UPDATE SET "
-    "number = excluded.number, name = excluded.name, subsections = excluded.subsections"
+    "number = excluded.number, name = excluded.name, "
+    "subsections = excluded.subsections, subject = excluded.subject"
 )
-_TOPIC_ROWS = [(t.code, t.number, t.name, list(t.subsections)) for t in TOPICS]
+_TOPIC_ROWS = [
+    (t.code, t.number, t.name, list(t.subsections), tax.subject_name)
+    for tax in TAXONOMIES
+    for t in tax.topics
+]
 
 
 @dataclass
@@ -90,15 +97,17 @@ def read_local(db_path: Path | None = None) -> tuple[list[tuple], list[tuple]]:
 
 
 def _question_row(row: tuple) -> tuple:
-    """SQLite row -> INSERT tuple. Coerce ``has_figure`` (col 5, stored 0/1) to a
-    real ``bool`` and the ``group_concat`` topic codes (col 7, ``"s02,s09"`` or
-    ``None``) to a sorted ``list`` -- psycopg3 adapts a list to a Postgres array.
-    Col 8 (``crop_count``) is already an int and rides along untouched. Col 9
-    (``answer_crop_count``) is NULL when the question has no answer row -- send 0."""
+    """SQLite row -> INSERT tuple. Coerce ``has_figure`` (col 5, stored 0/1) and
+    ``is_mcq`` (col 10, stored 0/1) to real ``bool``s, and the ``group_concat``
+    topic codes (col 7, ``"s02,s09"`` or ``None``) to a sorted ``list`` --
+    psycopg3 adapts a list to a Postgres array. Col 8 (``crop_count``) is already
+    an int and rides along untouched. Col 9 (``answer_crop_count``) is NULL when
+    the question has no answer row -- send 0."""
     values = list(row)
     values[5] = bool(values[5])
     values[7] = sorted(values[7].split(",")) if values[7] else []
     values[9] = values[9] or 0
+    values[10] = bool(values[10])
     return tuple(values)
 
 

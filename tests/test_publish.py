@@ -103,6 +103,7 @@ def test_read_local_only_qp_with_questions(local_db):
     assert questions[1][7] == ["s03", "s04"]
     assert (questions[0][8], questions[1][8]) == (1, 3)  # crop_count rides at index 8
     assert (questions[0][9], questions[1][9]) == (2, 0)  # answer_crop_count; 0 when no answer row
+    assert (questions[0][10], questions[1][10]) == (True, False)  # is_mcq -> real bool
 
 
 def test_dry_run_counts_and_sends_nothing(local_db):
@@ -126,6 +127,22 @@ def test_publish_statement_order_and_commit(local_db):
     assert "INSERT INTO public.papers" in sqls[2]
     assert "INSERT INTO public.questions" in sqls[3]
     assert conn.committed and not conn.rolled_back
+
+    # the topics upsert carries every taxonomy, each row tagged with its subject
+    topic_rows = log[1][2]
+    assert {r[0] for r in topic_rows} == {
+        *(f"s{n:02d}" for n in range(1, 12)),
+        *(f"fp{n}" for n in range(1, 8)),
+        *(f"fs{n}" for n in range(1, 6)),
+    }
+    by_code = {r[0]: r for r in topic_rows}
+    assert by_code["s01"][4] == "Physics"
+    assert by_code["fp1"][4] == "Further Pure Mathematics"
+    assert by_code["fs1"][4] == "Further Probability & Statistics"
+
+    # every question row carries the is_mcq bool as its last value
+    question_rows = log[3][2]
+    assert [r[-1] for r in question_rows] == [True, False]
 
 
 def test_publish_rolls_back_on_failure(local_db):
