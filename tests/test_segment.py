@@ -92,9 +92,11 @@ def test_segment_structured_basic():
     assert "[Total" not in questions[0].text
 
 
-def test_structured_start_needs_top_of_page():
+def test_structured_start_ignores_a_margin_number_with_no_prose_after_it():
     lines = _structured_lines()
-    # a mid-page "2" in the left margin (e.g. a graph axis label) inside question 1
+    # a stray "2" in the left margin (e.g. a graph axis label) inside question 1,
+    # with only an answer line + [Total] before the real question 2 -- no prose
+    # follows it and the real "2" downstream is a rival margin number
     lines.insert(5, _line("2", x0=49.6, page=4, y_frac=0.75))
     assert [q.number for q in segment_structured(lines)] == [1, 2]
 
@@ -115,6 +117,50 @@ def test_structured_start_survives_a_figure_between_number_and_prose():
         _line("[Total: 6]", x0=498.0, page=5, y_frac=0.8),
     ]
     assert [q.number for q in segment_structured(lines)] == [1, 2]
+
+
+def test_structured_start_survives_a_full_page_graph_before_any_prose():
+    # 9709 Pure Maths opens many questions with a full-width graph whose axis
+    # labels ("x", "y", "4pi", "-1"...) run past the body lookahead before the
+    # first sentence. A margin number at the very top of a page still starts one.
+    lines = [
+        _line("1", x0=49.3, page=4, y_frac=0.078),
+        _line("The sum of the first 20 terms of an arithmetic progression is 1410.", page=4),
+        _line("[Total: 5]", x0=498.0, page=4, y_frac=0.9),
+        _line("2", x0=49.3, page=5, y_frac=0.078),
+        _line("x", x0=530.9, page=5, y_frac=0.212),
+        _line("y", x0=142.0, page=5, y_frac=0.089),
+        _line("−1", x0=82.3, page=5, y_frac=0.220),
+        _line("4π", x0=89.8, page=5, y_frac=0.221),
+        _line("2π", x0=242.3, page=5, y_frac=0.221),
+        _line("π", x0=346.2, page=5, y_frac=0.220),
+        _line("−6", x0=120.0, page=5, y_frac=0.30),
+        _line("−4", x0=120.0, page=5, y_frac=0.35),
+        _line("The diagram shows part of the graph of y = f(x).", page=5, y_frac=0.55),
+        _line("[Total: 6]", x0=498.0, page=5, y_frac=0.9),
+        _line("3", x0=49.3, page=6, y_frac=0.078),
+        _line("The fifth, sixth and seventh terms of a geometric progression.", page=6),
+        _line("[Total: 4]", x0=498.0, page=6, y_frac=0.9),
+    ]
+    assert [q.number for q in segment_structured(lines)] == [1, 2, 3]
+
+
+def test_structured_start_deep_into_a_shared_page_with_prose():
+    # 9709 Stats packs short questions two to a page -- question 2 can begin past
+    # the half-way mark of the page it shares with question 1's answer space.
+    lines = [
+        _line("1", x0=49.3, page=2, y_frac=0.078),
+        _line("The 40 members of a club include Ranuf and Saed.", page=2),
+        _line("[Total: 4]", x0=498.0, page=2, y_frac=0.45),
+        _line("2", x0=49.3, page=2, y_frac=0.512),
+        _line("An ordinary fair die is thrown repeatedly until a 1 or a 6 is obtained.", page=2),
+        _line("(a) Find the probability that it takes at least 3 throws.", page=2),
+        _line("[Total: 6]", x0=498.0, page=3, y_frac=0.9),
+        _line("3", x0=49.3, page=4, y_frac=0.078),
+        _line("The weights of apples are normally distributed.", page=4),
+        _line("[Total: 5]", x0=498.0, page=4, y_frac=0.9),
+    ]
+    assert [q.number for q in segment_structured(lines)] == [1, 2, 3]
 
 
 def test_structured_start_rejected_when_only_a_bare_number_follows():
