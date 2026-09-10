@@ -117,6 +117,7 @@ def test_static_assets_served(client):
         "/static/dotgrid.js",
         "/static/style.css",
         "/static/index.html",
+        "/static/favicon.svg",
     ):
         assert client.get(asset).status_code == 200
 
@@ -128,6 +129,7 @@ def test_browse_page_has_crop_container(client):
     assert 'id="answer-images"' in r.text  # mark-scheme crop container
     assert 'id="answer-show-text"' in r.text
     assert 'id="fullscreen-toggle"' in r.text  # flashcard fullscreen control
+    assert "/static/favicon.svg" in r.text  # browser-tab icon
     assert 'id="f-topic"' in r.text  # topic dropdown replaced the chip row
 
 

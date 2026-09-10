@@ -9,14 +9,14 @@
 :root {
   color-scheme: light;
 
-  /* colour — light. Warm parchment ground: a hint of Solarized so the "white"
-     reads as tinted paper, not a screen grey. (The explicit light theme goes
-     the whole way to base3 #fdf6e3.) */
-  --bg: #f0ede2;
+  /* colour — light. Warm parchment ground: a yellow-tinted Solarized cast so the
+     "white" reads as aged paper, not a screen grey. (The explicit light theme
+     goes to base3 #fdf6e3; this system-default is a shade deeper and warmer.) */
+  --bg: #f4edcf;
   --text: #16191d;
   --text-muted: #5c6270;
-  --surface: rgba(255, 253, 247, 0.54);
-  --surface-strong: rgba(255, 253, 247, 0.76);
+  --surface: rgba(255, 252, 240, 0.56);
+  --surface-strong: rgba(255, 252, 240, 0.8);
   /* "liquid glass" — header + search/filter trays: no fill at all, just an SVG
      refraction that bends the dot grid behind them, a whisper of blur + a lens
      tint. --glass-backdrop drops to `none` when the OS asks for less transparency. */
@@ -94,11 +94,11 @@
    dark-OS machine too. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #fdf6e3;
+  --bg: #fcf4d9;                    /* base3 warmed a touch yellower, per request */
   --text: #073642;
   --text-muted: #586e75;           /* Solarized base01 — AA on the cream */
-  --surface: rgba(255, 253, 246, 0.58);
-  --surface-strong: rgba(255, 253, 246, 0.82);
+  --surface: rgba(255, 253, 244, 0.6);
+  --surface-strong: rgba(255, 253, 244, 0.84);
   --border: rgba(147, 161, 161, 0.45);
   --hairline: rgba(88, 110, 117, 0.18);
   --specular: rgba(255, 255, 255, 0.9);
@@ -898,18 +898,21 @@ ol#results li {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
   line-height: 1;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.55rem;
   color: var(--text-muted);
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
-  transition: box-shadow 0.15s var(--ease-out);
+  transition: box-shadow 0.15s var(--ease-out), color 0.15s var(--ease-out);
 }
-.card-fs-btn:hover { box-shadow: var(--shadow-sm), var(--edge), 0 0 0 3px var(--focus-ring); }
+.card-fs-btn svg { display: block; }
+.card-fs-btn:hover {
+  color: var(--text);
+  box-shadow: var(--shadow-sm), var(--edge), 0 0 0 3px var(--focus-ring);
+}
 
 /* ---------- flashcard fullscreen ---------- */
 /* #card is the fullscreen element; browsers paint a black backdrop behind it, so
@@ -981,9 +984,9 @@ footer {
    (--glass has no blur to hide behind, so it must fall back to a real fill) */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
-    --surface: rgba(255, 253, 247, 0.93);
-    --surface-strong: #fffdf7;
-    --glass: rgba(255, 253, 247, 0.86);
+    --surface: rgba(255, 252, 240, 0.93);
+    --surface-strong: #fffcf0;
+    --glass: rgba(255, 252, 240, 0.86);
   }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -995,9 +998,9 @@ footer {
 /* honour the OS "reduce transparency" switch */
 @media (prefers-reduced-transparency: reduce) {
   :root {
-    --surface: rgba(255, 253, 247, 0.95);
-    --surface-strong: #fffdf7;
-    --glass: rgba(255, 253, 247, 0.9);
+    --surface: rgba(255, 252, 240, 0.95);
+    --surface-strong: #fffcf0;
+    --glass: rgba(255, 252, 240, 0.9);
     --glass-backdrop: none;
     --blur: 0px;
     --blur-thick: 0px;

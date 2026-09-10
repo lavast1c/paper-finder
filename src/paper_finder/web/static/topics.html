@@ -11,6 +11,7 @@
       if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
     } catch (e) {}
   </script>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
@@ -178,7 +179,12 @@
             <span id="pos" class="card-pos"></span>
             <button id="fullscreen-toggle" type="button" class="card-fs-btn"
                     aria-label="Enter fullscreen" aria-pressed="false"
-                    title="Fullscreen (press f)">&#9974;</button>
+                    title="Fullscreen (press f)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+              </svg>
+            </button>
           </span>
           <button id="next" type="button" class="card-arrow" aria-label="Next question">&#9656;</button>
         </div>
