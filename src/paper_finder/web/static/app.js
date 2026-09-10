@@ -242,6 +242,16 @@ for (const group of [paperEl, yearEl, seasonEl]) {
   });
 }
 
+const clearAllBtn = document.getElementById("clear-all");
+if (clearAllBtn) {
+  clearAllBtn.addEventListener("click", () => {
+    for (const group of [paperEl, yearEl, seasonEl]) {
+      if (group && group._ms) group._ms.setValues([]);
+    }
+    if (input.value.trim()) run();
+  });
+}
+
 // --- boot ------------------------------------------------------------
 
 function onReady(email, client) {

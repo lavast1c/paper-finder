@@ -104,7 +104,11 @@ label; the checkboxes are real so their `change` bubbles to the root and the api
 is stashed on `root._ms` for deep-link restore). `app.js` `picked()` /
 `topics.js` `wireScopeGroup()` read the ticked boxes; nothing ticked = no
 restriction on that axis; values serialize to the URL as comma lists
-(`?variant=1,2&season=s,w`). There is no corpus-freshness badge.
+(`?variant=1,2&season=s,w`). A **"Clear all"** link (`#clear-all`) sits below the
+fields on both pages and resets every filter. There is no corpus-freshness badge.
+`.filterbar` is `z-index: 5` (and `form#search` / `.tray` `z-index: 6`) so an
+open `.ms-panel` — or the recent-search dropdown — layers over the flashcard /
+results below, while staying under the sticky header (`z-index: 10`).
 `search.py._paper_scope()` turns
 both `search()` and `browse_by_topic()` / `topic_counts()`; the local endpoints
 parse them with `_int_csv` / `_csv_param`, cloud passes them straight to the RPCs.

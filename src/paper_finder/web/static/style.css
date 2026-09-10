@@ -267,6 +267,10 @@ form#search,
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md), var(--edge);
+  /* above .filterbar (z-index 6 vs 5) so the recent-search dropdown, which
+     drops down over the filter bar, is never hidden behind it */
+  position: relative;
+  z-index: 6;
 }
 
 /* ---- search box + its recent-search dropdown ---- */
@@ -581,6 +585,10 @@ ol#results li {
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md), var(--edge);
+  /* lift the bar (and so its open multi-select panels) above the flashcard /
+     results below it, but keep it under the sticky header (z-index 10) */
+  position: relative;
+  z-index: 5;
 }
 .filterbar-context {
   display: flex;
