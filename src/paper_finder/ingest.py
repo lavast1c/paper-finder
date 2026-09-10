@@ -65,6 +65,9 @@ def ingest(raw_dir: Path | None = None, db_path: Path | None = None) -> IngestRe
 
     parsed: list[tuple[PaperName, float]] = []
     for pdf in pdfs:
+        if pdf.name in config.EXCLUDE_FILENAMES:
+            report.skipped.append(pdf.name)
+            continue
         paper = parse_filename(pdf.name)
         if paper is None or paper.paper_type not in config.PAPER_TYPES:
             report.skipped.append(pdf.name)

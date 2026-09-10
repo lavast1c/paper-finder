@@ -59,6 +59,20 @@ def test_iter_candidates_order_and_filenames():
     ]
 
 
+def test_iter_candidates_skips_excluded_filenames():
+    # config.EXCLUDE_FILENAMES holds 9702_s26_qp_21.pdf (mark scheme never
+    # published) -- iter_candidates must not emit it even when the scope covers it.
+    scope = {
+        "subjects": {"9702": {"papers": [2], "variants": [1]}},
+        "years": [2026],
+        "sessions": ["s"],
+        "types": ["qp", "ms"],
+    }
+    names = [c.filename for c in iter_candidates(scope)]
+    assert "9702_s26_qp_21.pdf" not in names
+    assert names == ["9702_s26_ms_21.pdf"]
+
+
 def test_iter_candidates_uses_each_subjects_own_papers_and_variants():
     cands = list(iter_candidates(_MULTI_SUBJECT_SCOPE))
     names = [c.filename for c in cands]

@@ -27,9 +27,11 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 
 - **Physics** — 9702 2020-2026 (`m20`..`m26` Feb/March, `s20`..`s26`,
   `w20`..`w25`), Papers 1 & 2, variants 1-4 where they exist (s25/w25/s26 have a
-  4th variant `qp_14/24`; the "m" series is variant 2 only — `9702_m2X_qp_12/22`)
-  = 98 question papers, 2290 questions, 2285 answers linked, ~640 flagged
-  `has_figure`, all 2290 tagged into the 11 CIE 9702 AS syllabus sections
+  4th variant `qp_14/24`; the "m" series is variant 2 only — `9702_m2X_qp_12/22`;
+  `9702_s26_qp_21` is excluded via `config.EXCLUDE_FILENAMES` — its mark scheme
+  was never published, so every question showed unanswered)
+  = 97 question papers, 2285 questions, 2285 answers linked, ~640 flagged
+  `has_figure`, all 2285 tagged into the 11 CIE 9702 AS syllabus sections
   (`s01`..`s11`, multi-label, 155 multi-section).
 - **Further Pure Mathematics** — 9231 Paper 1, variants 1-3, `s20`..`s26` +
   `w20`..`w25` (no `m` series, no `w26`) = 39 question papers, 273 questions,
@@ -99,8 +101,10 @@ Fixed (2026-09-10): **landscape/rotated** Paper 2 mark-scheme pages (e.g.
 so `marks.py` linked 0 answers for them. `extract.py` now maps every line bbox
 through `page.rotation_matrix` (then `.normalize()`) into the rotated/display
 frame that `page.rect` and `page.get_pixmap(clip=)` already use, so both the
-segmenter and `figures.py` see coherent coords. `9702_s26_qp_21` still has 0
-answers — its mark scheme was never published to the mirror.
+segmenter and `figures.py` see coherent coords. `9702_s26_qp_21`'s mark scheme
+was never published to the mirror (every question unanswered), so the paper is
+now listed in `config.EXCLUDE_FILENAMES` — `download` will not fetch it and
+`ingest` skips it and prunes any existing row.
 
 **Stage 7b — deployed** to Vercel + Supabase (`~/.claude/plans/yes-can-you-...md`,
 `DEPLOY_PROGRESS.md`). The local build pipeline is 100% unchanged (still SQLite).
@@ -265,9 +269,10 @@ persists the toggle. An `<img>` load failure or no resolved URL falls back to
 `PF.answerBlock` for that one card. MCQ answers (`answer_crop_count = 0`) keep
 the single letter, no image, no toggle.
 
-**Cloud live:** 0005 + 0007 applied; `publish` run (98 papers, 2289 questions,
-cloud `crop_count` on all, `answer_crop_count` > 0 on 324); `publish-figures`
-uploaded the 2715 question PNGs + 547 `ms_` PNGs to the private `question-crops`
+**Cloud live:** 0005 + 0007 applied; `publish` run (all three subjects / five
+taxonomies — 267 qp papers, 3604 questions, cloud `crop_count` on all,
+`answer_crop_count` > 0 where the ms was published); `publish-figures`
+uploaded the question + `ms_` PNGs to the private `question-crops`
 bucket (anon `list` → `[]`, anon `sign` → 404 — genuinely private).
 `publish-figures` needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — both now
 in `.env` (`SUPABASE_URL` is the browser-safe project URL, not a secret).

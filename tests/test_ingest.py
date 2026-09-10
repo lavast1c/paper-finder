@@ -1,3 +1,4 @@
+from paper_finder import config
 from paper_finder import db as db_mod
 from paper_finder.ingest import ingest
 
@@ -32,3 +33,27 @@ def test_ingest_records_prunes_and_skips(tmp_path):
     with db_mod.connect(db_path) as conn:
         rows = conn.execute("SELECT filename FROM papers").fetchall()
     assert [r["filename"] for r in rows] == ["9702_s23_qp_12.pdf"]
+
+
+def test_ingest_excludes_and_prunes_config_exclude_filenames(tmp_path, monkeypatch):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    db_path = tmp_path / "papers.db"
+    monkeypatch.setattr(config, "EXCLUDE_FILENAMES", frozenset({"9702_s23_qp_13.pdf"}))
+
+    _touch(raw / "9702_s23_qp_12.pdf")
+    _touch(raw / "9702_s23_qp_13.pdf")  # excluded -> never recorded
+
+    report = ingest(raw_dir=raw, db_path=db_path)
+    assert report.ingested == 1
+    assert "9702_s23_qp_13.pdf" in report.skipped
+    with db_mod.connect(db_path) as conn:
+        names = [r["filename"] for r in conn.execute("SELECT filename FROM papers")]
+    assert names == ["9702_s23_qp_12.pdf"]
+
+    # A row already present for a now-excluded file is pruned on the next run.
+    monkeypatch.setattr(config, "EXCLUDE_FILENAMES", frozenset())
+    ingest(raw_dir=raw, db_path=db_path)
+    monkeypatch.setattr(config, "EXCLUDE_FILENAMES", frozenset({"9702_s23_qp_13.pdf"}))
+    report = ingest(raw_dir=raw, db_path=db_path)
+    assert report.pruned == ["9702_s23_qp_13.pdf"]
