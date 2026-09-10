@@ -75,12 +75,15 @@ class Candidate:
 
 
 def iter_candidates(scope: dict | None = None) -> Iterator[Candidate]:
+    """Enumerate candidate PDFs. ``scope["subjects"]`` maps a subject code to its
+    own ``{"papers": [...], "variants": [...]}``; ``years`` / ``sessions`` /
+    ``types`` are shared across subjects."""
     scope = scope if scope is not None else config.DOWNLOAD_SCOPE
-    for subject_code in scope["subjects"]:
+    for subject_code, sub in scope["subjects"].items():
         for year in scope["years"]:
             for session in scope["sessions"]:
-                for paper in scope["papers"]:
-                    for variant in scope["variants"]:
+                for paper in sub["papers"]:
+                    for variant in sub["variants"]:
                         for paper_type in scope["types"]:
                             filename = build_filename(
                                 subject_code, session, year, paper_type, paper, variant

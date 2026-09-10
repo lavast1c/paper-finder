@@ -221,17 +221,32 @@ def _str_list(text: str) -> list[str]:
 
 
 def _scope_from_args(args: argparse.Namespace) -> dict:
-    scope = {key: list(value) for key, value in config.DOWNLOAD_SCOPE.items()}
-    if args.subject:
-        scope["subjects"] = list(args.subject)
-    if args.years:
-        scope["years"] = _parse_years(args.years)
-    if args.sessions:
-        scope["sessions"] = _str_list(args.sessions)
-    if args.papers:
-        scope["papers"] = _int_list(args.papers)
-    if args.variants:
-        scope["variants"] = _int_list(args.variants)
+    """Build a download scope from CLI flags, falling back to config.DOWNLOAD_SCOPE.
+
+    ``subjects`` is per-code: ``--papers`` / ``--variants`` set the papers/variants
+    for every selected subject (a one-off convenience), otherwise each subject
+    keeps its configured list. ``--subject`` (repeatable) picks which subjects to
+    fetch; without it, all configured subjects."""
+    cfg = config.DOWNLOAD_SCOPE
+    scope: dict = {
+        "years": _parse_years(args.years) if args.years else list(cfg["years"]),
+        "sessions": _str_list(args.sessions) if args.sessions else list(cfg["sessions"]),
+        "types": list(cfg["types"]),
+    }
+    papers = _int_list(args.papers) if args.papers else None
+    variants = _int_list(args.variants) if args.variants else None
+    codes = list(args.subject) if args.subject else list(cfg["subjects"])
+    scope["subjects"] = {
+        code: {
+            "papers": papers
+            if papers is not None
+            else list(cfg["subjects"].get(code, {}).get("papers", [1, 2])),
+            "variants": variants
+            if variants is not None
+            else list(cfg["subjects"].get(code, {}).get("variants", [1, 2, 3, 4])),
+        }
+        for code in codes
+    }
     return scope
 
 

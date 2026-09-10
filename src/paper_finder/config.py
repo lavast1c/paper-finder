@@ -88,11 +88,17 @@ CLASSIFY_MODEL = "claude-sonnet-5"
 CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cached across them
 
 # Default scope for `paper-finder download`; override per-run with CLI flags.
-DOWNLOAD_SCOPE: dict[str, list] = {
-    "subjects": ["9702"],  # Physics only for now
-    "years": [2024, 2025, 2026],  # recent, reliably published on the mirror
-    "sessions": ["s", "w", "m"],  # May/June, Oct/Nov, Feb/March (9702 gained an "m" series)
-    "papers": [1, 2],  # 1 = multiple choice, 2 = AS structured
-    "variants": [1, 2, 3, 4],  # regional time zones (a 4th was added from 2026)
+# `subjects` is per-code: each subject carries its own papers + variants, since
+# 9702 (P1 MCQ / P2 structured) and 9231 (P1 Further Pure / P4 Further Stats)
+# have nothing in common. years / sessions / types are shared. The candidate
+# cross-product over-generates (e.g. 9702 "m" is variant 2 only); 404s are
+# expected and harmless -- download treats "not on mirror" as a non-event.
+DOWNLOAD_SCOPE: dict = {
+    "subjects": {
+        "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
+        "9231": {"papers": [1, 4], "variants": [1, 2, 3]},  # Further Maths: Pure 1 + Prob & Stats
+    },
+    "years": [2020, 2021, 2022, 2023, 2024, 2025, 2026],
+    "sessions": ["s", "w", "m"],  # May/June, Oct/Nov, Feb/March
     "types": ["qp", "ms"],
 }
