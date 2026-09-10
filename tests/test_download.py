@@ -5,12 +5,20 @@ from paper_finder import download as dl
 from paper_finder.download import FetchResult, download, iter_candidates, mirror_url
 
 _TINY_SCOPE = {
-    "subjects": ["9702"],
+    "subjects": {"9702": {"papers": [1], "variants": [1, 2]}},
     "years": [2024],
     "sessions": ["s"],
-    "papers": [1],
-    "variants": [1, 2],
     "types": ["qp", "ms"],
+}
+
+_MULTI_SUBJECT_SCOPE = {
+    "subjects": {
+        "9702": {"papers": [1], "variants": [1]},
+        "9231": {"papers": [1, 4], "variants": [1]},
+    },
+    "years": [2024],
+    "sessions": ["s"],
+    "types": ["qp"],
 }
 
 
@@ -48,6 +56,18 @@ def test_iter_candidates_order_and_filenames():
         "9702_s24_qp_12.pdf",
         "9702_s24_ms_12.pdf",
     ]
+
+
+def test_iter_candidates_uses_each_subjects_own_papers_and_variants():
+    cands = list(iter_candidates(_MULTI_SUBJECT_SCOPE))
+    names = [c.filename for c in cands]
+    # 9702 keeps paper 1 only; 9231 gets its own papers 1 and 4
+    assert names == [
+        "9702_s24_qp_11.pdf",
+        "9231_s24_qp_11.pdf",
+        "9231_s24_qp_41.pdf",
+    ]
+    assert {c.subject_code for c in cands} == {"9702", "9231"}
 
 
 def _run(tmp_path, fetcher, **kw):
