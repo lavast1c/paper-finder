@@ -299,3 +299,91 @@ def test_topic_counts_variant_filter(variant_db):
     by_code = {t["code"]: t for t in result["topics"]}
     assert by_code["s07"]["count"] == 1
     assert result["total"] == 1
+
+
+# ----------------------------------------------------- subject axis (multi-subject)
+
+
+@pytest.fixture
+def multi_subject_db(tmp_path):
+    """Physics + both Further Maths subjects, one question each."""
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, ?, ?, 2024, 's', ?, 1, 'qp', ?)""",
+            [
+                (1, "9702", "Physics", 1, "9702_s24_qp_11.pdf"),
+                (2, "9231", "Further Pure Mathematics", 1, "9231_s24_qp_11.pdf"),
+                (3, "9231", "Further Probability & Statistics", 4, "9231_s24_qp_41.pdf"),
+            ],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, ?, 3, ?)""",
+            [
+                (1, 1, "A transverse wave travels along a stretched string.", 1),
+                (2, 2, "Find the roots of the polynomial equation by summation.", 0),
+                (3, 3, "Test the hypothesis using a chi-squared distribution.", 0),
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
+            [(1, "s07"), (2, "fp1"), (2, "fp3"), (3, "fs3")],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    return db_path
+
+
+def test_9231_paper_1_question_is_theory_not_mcq(multi_subject_db):
+    # the cloud RPCs key `kind` on paper==1; locally it must key on is_mcq,
+    # so a 9231 Paper 1 question counts as theory.
+    hits = search("roots polynomial", db_path=multi_subject_db, kind="theory")
+    assert [h.question_number for h in hits] == [1]
+    assert hits[0].subject_code == "9231"
+    assert search("roots polynomial", db_path=multi_subject_db, kind="mcq") == []
+
+
+def test_search_subject_scope(multi_subject_db):
+    q = "wave roots chi-squared string polynomial hypothesis"
+    all_hits = {h.subject_name for h in search(q, db_path=multi_subject_db, limit=20)}
+    assert all_hits == {
+        "Physics",
+        "Further Pure Mathematics",
+        "Further Probability & Statistics",
+    }
+    scoped = search(q, db_path=multi_subject_db, subjects=["Further Pure Mathematics"], limit=20)
+    assert {h.subject_name for h in scoped} == {"Further Pure Mathematics"}
+
+
+def test_browse_subject_scope(multi_subject_db):
+    _, total = browse_by_topic(["s07", "fp1", "fp3", "fs3"], db_path=multi_subject_db)
+    assert total == 3
+    page, total = browse_by_topic(
+        ["s07", "fp1", "fp3", "fs3"],
+        subjects=["Further Pure Mathematics"],
+        db_path=multi_subject_db,
+    )
+    assert total == 1
+    assert {h.filename for h in page} == {"9231_s24_qp_11.pdf"}
+
+
+def test_topic_counts_scoped_to_a_subject_returns_only_that_taxonomy(multi_subject_db):
+    result = topic_counts(subject="Further Pure Mathematics", db_path=multi_subject_db)
+    codes = {t["code"] for t in result["topics"]}
+    assert codes == {"fp1", "fp2", "fp3", "fp4", "fp5", "fp6", "fp7"}
+    by_code = {t["code"]: t for t in result["topics"]}
+    assert by_code["fp1"]["count"] == 1
+    assert by_code["fp3"]["count"] == 1
+    assert by_code["fp2"]["count"] == 0
+    assert result["total"] == 1  # only the one 9231 P1 question
+    assert result["unlabelled"] == 0
+
+
+def test_topic_counts_default_is_physics_only(multi_subject_db):
+    result = topic_counts(db_path=multi_subject_db)
+    assert {t["code"] for t in result["topics"]} == {f"s{n:02d}" for n in range(1, 12)}

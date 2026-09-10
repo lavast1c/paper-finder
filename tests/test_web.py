@@ -372,6 +372,24 @@ def test_api_topics_counts(client):
     assert body["unlabelled"] == 0
 
 
+def test_api_topics_subject_param_swaps_the_taxonomy(client):
+    body = client.get("/api/topics", params={"subject": "Further Pure Mathematics"}).json()
+    assert {t["code"] for t in body["topics"]} == {f"fp{n}" for n in range(1, 8)}
+    # the Physics-only fixture corpus has no 9231 questions
+    assert body["total"] == 0
+    assert all(t["count"] == 0 for t in body["topics"])
+
+
+def test_api_search_subject_param_scopes_results(client):
+    # every fixture paper is Physics, so scoping to another subject empties it
+    hit = client.get("/api/search", params={"q": "ball thrown", "subject": "Physics"}).json()
+    assert hit["count"] >= 1
+    empty = client.get(
+        "/api/search", params={"q": "ball thrown", "subject": "Further Pure Mathematics"}
+    ).json()
+    assert empty["count"] == 0
+
+
 def test_api_topics_kind_filter(client):
     body = client.get("/api/topics", params={"kind": "theory"}).json()
     by_code = {t["code"]: t for t in body["topics"]}
