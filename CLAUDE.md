@@ -195,8 +195,8 @@ the single letter, no image, no toggle.
 978, `answer_crop_count` > 0 on 133); `publish-figures` uploaded the 1155
 question PNGs + 192 `ms_` PNGs to the private `question-crops` bucket (62
 folders; anon `list` → `[]`, anon `sign` → 404 — genuinely private).
-`publish-figures` needs `SUPABASE_URL` (not in `.env` — pass it inline:
-`SUPABASE_URL=https://gfigwnbkzkgwxcdoqxtz.supabase.co`) + `SUPABASE_SERVICE_ROLE_KEY`.
+`publish-figures` needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — both now
+in `.env` (`SUPABASE_URL` is the browser-safe project URL, not a secret).
 
 Next: Stage 6 (semantic search) — see `PLAN.md`.
 
