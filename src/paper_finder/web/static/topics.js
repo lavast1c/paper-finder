@@ -24,6 +24,9 @@ const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
 const revealBtn = document.getElementById("reveal");
+const zoomOutBtn = document.getElementById("zoom-out");
+const zoomInBtn = document.getElementById("zoom-in");
+const zoomLevelEl = document.getElementById("zoom-level");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
@@ -37,6 +40,10 @@ const corpusEl = document.getElementById("corpus");
 
 const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question text visible beside the image
 const SHOWANSWERTEXT_KEY = "paper-finder.showanswertext"; // same, for the revealed mark scheme
+const ZOOM_KEY = "paper-finder.zoom"; // per-browser crop zoom level (question + mark scheme)
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
 const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
@@ -62,9 +69,12 @@ let renderedImagesKey = null; // `${filename}#${qnum}` currently shown in #card-
 let renderedAnswerKey = null; // same, for #answer-images (separate slot -- the two must not share a guard)
 let showText = false;
 let showAnswerText = false;
+let zoom = 1;
 try {
   showText = localStorage.getItem(SHOWTEXT_KEY) === "1";
   showAnswerText = localStorage.getItem(SHOWANSWERTEXT_KEY) === "1";
+  const z = parseFloat(localStorage.getItem(ZOOM_KEY));
+  if (z >= ZOOM_MIN && z <= ZOOM_MAX) zoom = z;
 } catch {
   /* private mode / storage blocked */
 }
@@ -443,6 +453,27 @@ function toggleAnswer() {
   renderCard();
 }
 
+// --- zoom: scale the question + mark-scheme crops via `--img-zoom` on their
+// containers. The crop <img>s (rebuilt on every card) inherit it; the inline
+// style survives a `replaceChildren()`, so this only runs on a change.
+function applyZoom() {
+  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom * 20) / 20));
+  cardImagesEl.style.setProperty("--img-zoom", String(zoom));
+  answerImagesEl.style.setProperty("--img-zoom", String(zoom));
+  zoomLevelEl.textContent = Math.round(zoom * 100) + "%";
+  zoomOutBtn.disabled = zoom <= ZOOM_MIN;
+  zoomInBtn.disabled = zoom >= ZOOM_MAX;
+  try {
+    localStorage.setItem(ZOOM_KEY, String(zoom));
+  } catch {
+    /* private mode / storage blocked */
+  }
+}
+function bumpZoom(delta) {
+  zoom += delta;
+  applyZoom();
+}
+
 // Walk forward one page at a time until the deck covers `target` -- used when a
 // deep-link ?i= lands past the first page.
 async function ensureLoaded(target, token) {
@@ -685,6 +716,13 @@ clearAllBtn.addEventListener("click", () => {
 prevBtn.addEventListener("click", () => go(-1));
 nextBtn.addEventListener("click", () => go(1));
 revealBtn.addEventListener("click", toggleAnswer);
+zoomInBtn.addEventListener("click", () => bumpZoom(ZOOM_STEP));
+zoomOutBtn.addEventListener("click", () => bumpZoom(-ZOOM_STEP));
+zoomLevelEl.addEventListener("click", () => {
+  zoom = 1;
+  applyZoom();
+});
+applyZoom(); // seed the containers from the persisted level
 
 showTextBtn.addEventListener("click", () => {
   showText = !showText;
@@ -728,6 +766,16 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === "f" || e.key === "F") {
     e.preventDefault();
     toggleFullscreen();
+  } else if (e.key === "+" || e.key === "=") {
+    e.preventDefault();
+    bumpZoom(ZOOM_STEP);
+  } else if (e.key === "-" || e.key === "_") {
+    e.preventDefault();
+    bumpZoom(-ZOOM_STEP);
+  } else if (e.key === "0") {
+    e.preventDefault();
+    zoom = 1;
+    applyZoom();
   }
 });
 
