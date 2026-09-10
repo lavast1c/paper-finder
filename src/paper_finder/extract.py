@@ -94,13 +94,23 @@ def extract_paper(pdf_path: Path) -> ExtractedPaper:
             rect = page.rect
             out_page = Page(page=index, width=rect.width, height=rect.height)
             data = page.get_text("dict")
+            # get_text() reports bboxes in the page's *unrotated* frame, but
+            # page.rect (so width/height above, and page.get_pixmap(clip=)) is the
+            # rotated/display frame. Map every bbox into that frame so the two
+            # agree -- otherwise a rotated page's y-coords fall outside the stored
+            # height and the segmenter / marks body-band silently drop them.
+            rot = page.rotation_matrix if page.rotation else None
             for block in data.get("blocks", []):
                 for line in block.get("lines", []):
                     text = _clean("".join(span["text"] for span in line.get("spans", [])))
                     if not text:
                         continue
-                    x0, y0, x1, y1 = line["bbox"]
-                    out_page.lines.append(Line(page=index, x0=x0, y0=y0, x1=x1, y1=y1, text=text))
+                    bbox = pymupdf.Rect(line["bbox"])
+                    if rot is not None:
+                        bbox = (bbox * rot).normalize()
+                    out_page.lines.append(
+                        Line(page=index, x0=bbox.x0, y0=bbox.y0, x1=bbox.x1, y1=bbox.y1, text=text)
+                    )
                     char_count += len(text)
             pages.append(out_page)
 

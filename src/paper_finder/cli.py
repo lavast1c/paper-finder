@@ -151,9 +151,6 @@ def _cmd_figures(args: argparse.Namespace) -> None:
     print(f"Crop files {verb:<12} : {report.total_rendered}")
     if report.skipped_existing:
         print(f"Already rendered (kept) : {report.skipped_existing}  (use --force to redo)")
-    if report.skipped_rotated:
-        print(f"Rotated pages skipped   : {', '.join(report.skipped_rotated)}")
-        print("    extract.py needs page-rotation handling before these can be cropped.")
     if report.bad_rects:
         print(f"Bad rectangles          : {len(report.bad_rects)}")
         for line in report.bad_rects[:10]:

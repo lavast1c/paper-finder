@@ -34,6 +34,29 @@ def test_extract_paper_reads_lines_and_flags_text_layer(tmp_path):
     assert first.x0 >= 0 and first.y1 > first.y0
 
 
+def test_extract_paper_maps_rotated_page_into_the_display_frame(tmp_path):
+    # A landscape (rotation 90) page: get_text() reports bboxes in the unrotated
+    # portrait frame, but page.rect -- and so the stored width/height -- is the
+    # rotated frame. Every line must land inside the stored height, or the
+    # segmenter / marks body-band drops it (the real 9702_s24_ms_21 bug).
+    pdf = tmp_path / "9702_s24_ms_21.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=595, height=842)
+    page.insert_text((72, 750), "1(a) mark scheme content near the page bottom")
+    page.set_rotation(90)
+    doc.save(pdf)
+    doc.close()
+
+    result = extract_paper(pdf)
+    pg = result.pages[0]
+
+    assert (pg.width, pg.height) == (842.0, 595.0)  # rotated frame
+    assert pg.lines, "expected at least one line"
+    for line in pg.lines:
+        assert 0 <= line.y0 <= pg.height
+        assert 0 <= line.x1 <= pg.width
+
+
 def test_extract_paper_flags_missing_text_layer(tmp_path):
     pdf = tmp_path / "9702_s26_qp_12.pdf"
     _make_pdf(pdf, body="1")  # almost no text -> looks scanned
