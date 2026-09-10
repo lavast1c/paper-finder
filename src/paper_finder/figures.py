@@ -38,7 +38,6 @@ _COLORSPACE = pymupdf.csGRAY
 class FigureReport:
     rendered: dict[str, int] = field(default_factory=dict)  # filename -> crop files written
     skipped_existing: int = 0
-    skipped_rotated: list[str] = field(default_factory=list)  # "<filename> p<n>"
     bad_rects: list[str] = field(default_factory=list)  # "<filename> Q<n>: <reason>"
     missing_pdf: list[str] = field(default_factory=list)
     dry_run: bool = False
@@ -123,16 +122,11 @@ def render_all(
                             f"{filename} Q{question_number}: page {page_number} out of range"
                         )
                         continue
+                    # extract.py maps every line bbox into the page's rotated
+                    # display frame, and page.get_pixmap(clip=) reads clip in that
+                    # same frame -- so a rotated page (landscape Paper 2 mark
+                    # schemes) crops correctly with no special handling.
                     page = doc[page_number - 1]
-                    if page.rotation:
-                        # extract.py does not carry page rotation, so a rotated
-                        # page's stored y-coords are in the wrong frame -- skip
-                        # rather than emit a silently wrong crop. (All 42 current
-                        # qp PDFs are rotation 0; this guards a future paper.)
-                        tag = f"{filename} p{page_number}"
-                        if tag not in report.skipped_rotated:
-                            report.skipped_rotated.append(tag)
-                        continue
                     if not dry_run:
                         _render_rect(page, rect, dest)
                     written += 1

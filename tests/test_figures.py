@@ -129,14 +129,17 @@ def test_page_out_of_range_is_reported_not_fatal(corpus):
     assert report.total_rendered == 3  # the other two questions still rendered
 
 
-def test_rotated_page_is_skipped_with_a_warning(tmp_path):
+def test_rotated_page_still_renders(tmp_path):
+    # extract.py maps a rotated page's coords into its display frame and
+    # page.get_pixmap(clip=) reads clip there too, so a rotation-90 page (landscape
+    # Paper 2 mark schemes) crops like any other -- no skip.
     db_path = tmp_path / "papers.db"
     raw_dir = tmp_path / "raw"
     crop_dir = tmp_path / "crops"
     raw_dir.mkdir()
 
     doc = pymupdf.open()
-    page = doc.new_page()
+    page = doc.new_page(width=595, height=842)
     page.insert_text((60, 120), "Rotated question.")
     page.set_rotation(90)
     doc.save(raw_dir / QP)
@@ -155,14 +158,14 @@ def test_rotated_page_is_skipped_with_a_warning(tmp_path):
                    (id, paper_id, question_number, question_text, marks, is_mcq,
                     page_start, has_figure, crop_rects, crop_count)
                VALUES (1, 1, 1, 'Q1', 1, 1, 1, 0, ?, 1)""",
-            (json.dumps([[1, 40.0, 90.0, 555.0, 300.0]]),),
+            (json.dumps([[1, 40.0, 90.0, 700.0, 300.0]]),),
         )
         conn.commit()
 
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
 
-    assert report.skipped_rotated == [f"{QP} p1"]
-    assert report.total_rendered == 0
+    assert report.total_rendered == 1
+    assert crop_path(QP[:-4], 1, 1, crop_dir).read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 
 
 def test_missing_pdf_is_reported(tmp_path):
