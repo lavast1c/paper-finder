@@ -5,7 +5,15 @@ import pytest
 from paper_finder.db import connect, init_db
 from paper_finder.labels import load_topic_labels, parse_labels
 from paper_finder.segment import segment_all
-from paper_finder.topics import BY_CODE, CODES, TOPICS
+from paper_finder.topics import (
+    ALL_TOPICS,
+    BY_CODE,
+    CODES,
+    TAXONOMIES,
+    TOPICS,
+    taxonomy_by_name,
+    taxonomy_for,
+)
 
 
 def _write_labels(tmp_path, body):
@@ -71,24 +79,55 @@ def segmented_db(tmp_path):
     return db_path, processed
 
 
-def test_taxonomy_is_the_eleven_syllabus_sections():
+def test_physics_taxonomy_is_the_eleven_syllabus_sections():
     assert len(TOPICS) == 11
     assert [t.code for t in TOPICS] == [f"s{n:02d}" for n in range(1, 12)]
     assert [t.number for t in TOPICS] == list(range(1, 12))
 
 
+def test_each_taxonomy_numbers_its_topics_from_one():
+    for tax in TAXONOMIES:
+        assert [t.number for t in tax.topics] == list(range(1, len(tax.topics) + 1)), tax.key
+    codes = {"9702": "s", "9231p1": "fp", "9231p4": "fs"}
+    for tax in TAXONOMIES:
+        assert all(t.code.startswith(codes[tax.key]) for t in tax.topics), tax.key
+
+
 def test_every_topic_has_a_name_blurb_and_subsections():
-    for t in TOPICS:
+    for t in ALL_TOPICS:
         assert t.name.strip()
         assert len(t.blurb) > 80, f"{t.code} blurb is too thin to classify against"
         assert t.subsections, t.code
         assert all(s.strip() for s in t.subsections)
 
 
-def test_lookup_tables_agree_with_the_tuple():
-    assert set(CODES) == {t.code for t in TOPICS}
+def test_lookup_tables_are_the_union_of_every_taxonomy():
+    assert set(CODES) == {t.code for t in ALL_TOPICS}
+    assert len(ALL_TOPICS) == sum(len(tax.topics) for tax in TAXONOMIES)
+    assert len({t.code for t in ALL_TOPICS}) == len(ALL_TOPICS), (
+        "topic codes collide across taxonomies"
+    )
     assert BY_CODE["s07"].name == "Waves"
-    assert all(BY_CODE[t.code] is t for t in TOPICS)
+    assert BY_CODE["fp4"].name == "Matrices"
+    assert BY_CODE["fs3"].name == "Chi-squared tests"
+    assert all(BY_CODE[t.code] is t for t in ALL_TOPICS)
+
+
+def test_taxonomy_for_picks_by_subject_code_and_paper():
+    assert taxonomy_for("9702", 1).subject_name == "Physics"
+    assert taxonomy_for("9702", 2).subject_name == "Physics"
+    assert taxonomy_for("9231", 1).subject_name == "Further Pure Mathematics"
+    assert taxonomy_for("9231", 4).subject_name == "Further Probability & Statistics"
+    assert taxonomy_for("9231", 2) is None
+    assert taxonomy_for("0000", 1) is None
+    # paper unknown -> first taxonomy for that subject code
+    assert taxonomy_for("9231", None).subject_code == "9231"
+
+
+def test_taxonomy_by_name_round_trips():
+    for tax in TAXONOMIES:
+        assert taxonomy_by_name(tax.subject_name) is tax
+    assert taxonomy_by_name("Chemistry") is None
 
 
 def test_topic_is_frozen():
