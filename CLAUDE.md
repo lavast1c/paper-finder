@@ -244,8 +244,10 @@ until revealed). **Reveal splits the card into two columns** — question crop
 left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
 .card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
 640px inside fullscreen). **Two `.zoombar` controls** (one `#q-zoombar` in `.card-stage`, one
-`#a-zoombar` in `.card-answer` — each `− / % / +`, sticky to the top of its
-column): the question and the mark scheme zoom independently via an
+`#a-zoombar` in `.card-answer` — each a `− / % / +` toolbar chip styled like
+the marks badge / fullscreen button, sticky to the top of its column;
+`.card` scroll areas get accent-tinted scrollbars via `scrollbar-color:
+var(--rule)` + a `::-webkit-scrollbar` fallback): the question and the mark scheme zoom independently via an
 `--img-zoom` custom property on their own `.card-images`
 (`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.5×–3× step 0.25,
 click the % to reset, persisted separately (`localStorage`
