@@ -243,10 +243,14 @@ re-hides** the answer (`topics.js` `toggleAnswer`; `#card-answer` is `hidden`
 until revealed). **Reveal splits the card into two columns** — question crop
 left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
 .card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
-640px inside fullscreen). A **`.zoombar`** in `.card-nav` (− / % / +, or the
-`+` `-` `0` keys) scales both crops via a `--img-zoom` custom property on
-`#card-images` / `#answer-images` (0.5×–3×, `localStorage`
-`paper-finder.zoom`). A **fullscreen toggle** (`#fullscreen-toggle` in
+640px inside fullscreen). **Two `.zoombar` controls** (one `#q-zoombar` in `.card-stage`, one
+`#a-zoombar` in `.card-answer` — each `− / % / +`, sticky to the top of its
+column): the question and the mark scheme zoom independently via an
+`--img-zoom` custom property on their own `.card-images`
+(`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.5×–3× step 0.25,
+click the % to reset, persisted separately (`localStorage`
+`paper-finder.qzoom` / `.azoom`). `topics.js` `makeZoom()` is the shared
+factory. The `+` `-` `0` keys drive the question only. A **fullscreen toggle** (`#fullscreen-toggle` in
 `.card-nav`, or press `f`) blows the current card up via the Fullscreen API on
 `#card` (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs`
 on `fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the

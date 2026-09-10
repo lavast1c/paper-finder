@@ -927,11 +927,28 @@ ol#results li {
   gap: 0.5rem;
 }
 
-/* zoom control — scales the question + mark-scheme crops (`--img-zoom`) */
+/* zoom control — one per crop column: `#q-zoombar` in `.card-stage` scales the
+   question crop, `#a-zoombar` in `.card-answer` the mark scheme, each via an
+   `--img-zoom` custom property on its own `.card-images`. Sticky to the top of
+   the (scrolling, in fullscreen) column so it stays reachable. */
 .zoombar {
-  display: inline-flex;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  margin: 0 0 0.5rem;
+  padding: 0.2rem 0;
+  background: var(--field-bg);
+}
+.zoombar-label {
+  margin-right: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 .zoom-btn {
   width: 1.75rem;

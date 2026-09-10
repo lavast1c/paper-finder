@@ -177,12 +177,6 @@
           <button id="prev" type="button" class="card-arrow" aria-label="Previous question">&#9666;</button>
           <span class="card-nav-mid">
             <span id="pos" class="card-pos"></span>
-            <span class="zoombar" role="group" aria-label="Zoom question">
-              <button type="button" id="zoom-out" class="zoom-btn" aria-label="Zoom out">&#8722;</button>
-              <button type="button" id="zoom-level" class="zoom-level"
-                      title="Reset zoom" aria-label="Reset zoom">100%</button>
-              <button type="button" id="zoom-in" class="zoom-btn" aria-label="Zoom in">+</button>
-            </span>
             <button id="fullscreen-toggle" type="button" class="card-fs-btn"
                     aria-label="Enter fullscreen" aria-pressed="false"
                     title="Fullscreen (press f)">
@@ -202,12 +196,26 @@
         </div>
         <div id="card-body" class="card-body">
           <div id="card-stage" class="card-stage">
+            <div class="zoombar" id="q-zoombar" role="group" aria-label="Zoom the question" hidden>
+              <span class="zoombar-label">Question</span>
+              <button type="button" id="q-zoom-out" class="zoom-btn" aria-label="Zoom question out">&#8722;</button>
+              <button type="button" id="q-zoom-level" class="zoom-level"
+                      title="Reset question zoom (+ / − / 0)" aria-label="Reset question zoom">100%</button>
+              <button type="button" id="q-zoom-in" class="zoom-btn" aria-label="Zoom question in">+</button>
+            </div>
             <div id="card-images" class="card-images" hidden></div>
             <button type="button" id="show-text" class="linkbtn" hidden>Show text</button>
             <div id="card-question"></div>
             <p id="card-figure" class="figure-note" hidden>◧ Has a diagram, graph or table — see the original paper</p>
           </div>
           <div id="card-answer" class="card-answer" hidden>
+            <div class="zoombar" id="a-zoombar" role="group" aria-label="Zoom the mark scheme" hidden>
+              <span class="zoombar-label">Mark scheme</span>
+              <button type="button" id="a-zoom-out" class="zoom-btn" aria-label="Zoom mark scheme out">&#8722;</button>
+              <button type="button" id="a-zoom-level" class="zoom-level"
+                      title="Reset mark scheme zoom" aria-label="Reset mark scheme zoom">100%</button>
+              <button type="button" id="a-zoom-in" class="zoom-btn" aria-label="Zoom mark scheme in">+</button>
+            </div>
             <div id="answer-images" class="card-images" hidden></div>
             <button type="button" id="answer-show-text" class="linkbtn" hidden>Show text</button>
             <div id="answer-body"></div>

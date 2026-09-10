@@ -24,9 +24,8 @@ const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
 const revealBtn = document.getElementById("reveal");
-const zoomOutBtn = document.getElementById("zoom-out");
-const zoomInBtn = document.getElementById("zoom-in");
-const zoomLevelEl = document.getElementById("zoom-level");
+const qZoombarEl = document.getElementById("q-zoombar");
+const aZoombarEl = document.getElementById("a-zoombar");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
@@ -40,7 +39,8 @@ const corpusEl = document.getElementById("corpus");
 
 const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question text visible beside the image
 const SHOWANSWERTEXT_KEY = "paper-finder.showanswertext"; // same, for the revealed mark scheme
-const ZOOM_KEY = "paper-finder.zoom"; // per-browser crop zoom level (question + mark scheme)
+const QZOOM_KEY = "paper-finder.qzoom"; // per-browser question-crop zoom level
+const AZOOM_KEY = "paper-finder.azoom"; // per-browser mark-scheme-crop zoom level
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.25;
@@ -69,14 +69,21 @@ let renderedImagesKey = null; // `${filename}#${qnum}` currently shown in #card-
 let renderedAnswerKey = null; // same, for #answer-images (separate slot -- the two must not share a guard)
 let showText = false;
 let showAnswerText = false;
-let zoom = 1;
 try {
   showText = localStorage.getItem(SHOWTEXT_KEY) === "1";
   showAnswerText = localStorage.getItem(SHOWANSWERTEXT_KEY) === "1";
-  const z = parseFloat(localStorage.getItem(ZOOM_KEY));
-  if (z >= ZOOM_MIN && z <= ZOOM_MAX) zoom = z;
 } catch {
   /* private mode / storage blocked */
+}
+
+function readZoom(key) {
+  try {
+    const z = parseFloat(localStorage.getItem(key));
+    if (z >= ZOOM_MIN && z <= ZOOM_MAX) return z;
+  } catch {
+    /* private mode / storage blocked */
+  }
+  return 1;
 }
 const signedCache = new Map(); // storage path -> { url, exp } (cloud mode signed URLs)
 let loadingPage = false;
@@ -407,6 +414,7 @@ function renderCard() {
     cardImagesEl.hidden = true;
     showTextBtn.hidden = true;
   }
+  qZoombarEl.hidden = !hasCrops; // the zoom control only makes sense with a crop
 
   const textVisible = !hasCrops || showText;
   cardQuestionEl.hidden = !textVisible;
@@ -425,9 +433,11 @@ function renderCard() {
     answerImagesEl.replaceChildren();
     answerImagesEl.hidden = true;
     answerShowTextBtn.hidden = true;
+    aZoombarEl.hidden = true;
     return;
   }
 
+  aZoombarEl.hidden = r.answer_crop_count === 0;
   if (r.answer_crop_count > 0) {
     const akey = cardKey(r);
     if (renderedAnswerKey !== akey) {
@@ -453,26 +463,43 @@ function toggleAnswer() {
   renderCard();
 }
 
-// --- zoom: scale the question + mark-scheme crops via `--img-zoom` on their
-// containers. The crop <img>s (rebuilt on every card) inherit it; the inline
-// style survives a `replaceChildren()`, so this only runs on a change.
-function applyZoom() {
-  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom * 20) / 20));
-  cardImagesEl.style.setProperty("--img-zoom", String(zoom));
-  answerImagesEl.style.setProperty("--img-zoom", String(zoom));
-  zoomLevelEl.textContent = Math.round(zoom * 100) + "%";
-  zoomOutBtn.disabled = zoom <= ZOOM_MIN;
-  zoomInBtn.disabled = zoom >= ZOOM_MAX;
-  try {
-    localStorage.setItem(ZOOM_KEY, String(zoom));
-  } catch {
-    /* private mode / storage blocked */
+// --- zoom: one control per crop column. Each scales its own `.card-images`
+// via an `--img-zoom` custom property; the crop <img>s (rebuilt on every card)
+// inherit it, and the inline style survives a `replaceChildren()`, so it only
+// runs on a change. `#q-zoombar` drives the question, `#a-zoombar` the scheme.
+function makeZoom({ barEl, imagesEl, storeKey }) {
+  let z = readZoom(storeKey);
+  const outBtn = barEl.querySelector('[id$="-zoom-out"]');
+  const inBtn = barEl.querySelector('[id$="-zoom-in"]');
+  const levelEl = barEl.querySelector('[id$="-zoom-level"]');
+  function apply() {
+    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 20) / 20));
+    imagesEl.style.setProperty("--img-zoom", String(z));
+    levelEl.textContent = Math.round(z * 100) + "%";
+    outBtn.disabled = z <= ZOOM_MIN;
+    inBtn.disabled = z >= ZOOM_MAX;
+    try {
+      localStorage.setItem(storeKey, String(z));
+    } catch {
+      /* private mode / storage blocked */
+    }
   }
+  function bump(delta) {
+    z += delta;
+    apply();
+  }
+  function reset() {
+    z = 1;
+    apply();
+  }
+  outBtn.addEventListener("click", () => bump(-ZOOM_STEP));
+  inBtn.addEventListener("click", () => bump(ZOOM_STEP));
+  levelEl.addEventListener("click", reset);
+  apply();
+  return { bump, reset };
 }
-function bumpZoom(delta) {
-  zoom += delta;
-  applyZoom();
-}
+const qZoom = makeZoom({ barEl: qZoombarEl, imagesEl: cardImagesEl, storeKey: QZOOM_KEY });
+const aZoom = makeZoom({ barEl: aZoombarEl, imagesEl: answerImagesEl, storeKey: AZOOM_KEY });
 
 // Walk forward one page at a time until the deck covers `target` -- used when a
 // deep-link ?i= lands past the first page.
@@ -716,13 +743,6 @@ clearAllBtn.addEventListener("click", () => {
 prevBtn.addEventListener("click", () => go(-1));
 nextBtn.addEventListener("click", () => go(1));
 revealBtn.addEventListener("click", toggleAnswer);
-zoomInBtn.addEventListener("click", () => bumpZoom(ZOOM_STEP));
-zoomOutBtn.addEventListener("click", () => bumpZoom(-ZOOM_STEP));
-zoomLevelEl.addEventListener("click", () => {
-  zoom = 1;
-  applyZoom();
-});
-applyZoom(); // seed the containers from the persisted level
 
 showTextBtn.addEventListener("click", () => {
   showText = !showText;
@@ -768,14 +788,13 @@ document.addEventListener("keydown", (e) => {
     toggleFullscreen();
   } else if (e.key === "+" || e.key === "=") {
     e.preventDefault();
-    bumpZoom(ZOOM_STEP);
+    qZoom.bump(ZOOM_STEP); // the keys drive the question; the mark scheme has its own buttons
   } else if (e.key === "-" || e.key === "_") {
     e.preventDefault();
-    bumpZoom(-ZOOM_STEP);
+    qZoom.bump(-ZOOM_STEP);
   } else if (e.key === "0") {
     e.preventDefault();
-    zoom = 1;
-    applyZoom();
+    qZoom.reset();
   }
 });
 
