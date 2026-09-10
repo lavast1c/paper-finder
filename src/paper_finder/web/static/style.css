@@ -137,6 +137,17 @@ header {
   backdrop-filter: var(--glass-backdrop);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow-sm), var(--edge);
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.5s var(--ease-out);
+  will-change: opacity, transform;
+}
+/* Shown only near the top of the page; `common.js` adds .is-hidden once the
+   page is scrolled, and the bar fades + slides up out of the way. */
+header.is-hidden {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
 }
 .bar-inner {
   max-width: 72rem;
@@ -856,4 +867,7 @@ footer {
   #verify-code,
   .card-arrow { transition: none; }
   button:active { transform: none; }
+  /* still hide the bar on scroll, just without the long slide */
+  header { transition: opacity 0.2s linear; }
+  header.is-hidden { transform: none; }
 }
