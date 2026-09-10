@@ -1,12 +1,21 @@
-"""The CIE 9702 AS syllabus taxonomy: subject-content sections 1-11.
+"""CIE syllabus taxonomies -- one per (subject, paper group) the corpus covers.
 
 Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Sections are from "Cambridge International AS & A Level Physics 9702 syllabus for
-2025, 2026 and 2027", AS Level subject content. Section 1 already covers SI units,
-errors/uncertainties and scalars/vectors, so there is no separate "chapter 0".
+Three taxonomies today:
+
+* ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
+  International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
+* ``FURTHER_PURE_1`` -- 9231 Paper 1 (Further Pure Mathematics 1), ``fp1``..``fp7``.
+* ``FURTHER_PROB_STATS`` -- 9231 Paper 4 (Further Probability & Statistics),
+  ``fs1``..``fs5``.
+
+Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
+``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
+Use :func:`taxonomy_for` (from a filename's subject code + paper number) or
+:func:`taxonomy_by_name` (from ``papers.subject_name``) to pick the right one.
 
 IMPORTANT: this module must stay stdlib-only. ``web/app.py`` imports it and the
 deployed Vercel import chain is fastapi-only -- a stray ``import pymupdf`` here
@@ -20,14 +29,33 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Topic:
-    code: str  # 's01'..'s11' -- DB key and URL token; stable forever
-    number: int  # 1..11 -- syllabus section number, also display order
+    code: str  # e.g. 's07' / 'fp4' -- DB key and URL token; stable forever
+    number: int  # syllabus section number within its taxonomy, also display order
     name: str  # 'Waves'
     blurb: str  # what belongs here; goes verbatim into the classifier prompt
     subsections: tuple[str, ...]  # ('7.1 Progressive waves', ...) -- shown in the UI
 
 
-TOPICS: tuple[Topic, ...] = (
+@dataclass(frozen=True)
+class Taxonomy:
+    """One syllabus's section list, tied to the subject + papers it labels."""
+
+    key: str  # stable id: '9702' / '9231p1' / '9231p4'
+    subject_code: str  # CIE code from the filename: '9702' / '9231'
+    papers: tuple[int, ...]  # paper numbers this taxonomy applies to
+    subject_name: str  # matches papers.subject_name (the UI's Subject value)
+    topics: tuple[Topic, ...]
+
+    @property
+    def codes(self) -> frozenset[str]:
+        return frozenset(t.code for t in self.topics)
+
+    @property
+    def by_code(self) -> dict[str, Topic]:
+        return {t.code: t for t in self.topics}
+
+
+_PHYSICS_TOPICS: tuple[Topic, ...] = (
     Topic(
         code="s01",
         number=1,
@@ -264,5 +292,245 @@ TOPICS: tuple[Topic, ...] = (
     ),
 )
 
-BY_CODE: dict[str, Topic] = {t.code: t for t in TOPICS}
+# --- 9231 Paper 1: Further Pure Mathematics 1 (syllabus section 1) -------------
+
+_FURTHER_PURE_1_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="fp1",
+        number=1,
+        name="Roots of polynomial equations",
+        blurb=(
+            "Relations between the roots and coefficients of a polynomial equation of "
+            "degree 2, 3 or 4: sums and products of roots and symmetric functions of the "
+            "roots such as the sum of the squares or the sum of the reciprocals. Using "
+            "these relations to evaluate expressions in the roots or to find unknown "
+            "coefficients. Forming a new equation whose roots are a given function of the "
+            "original roots (reciprocals, squares, or a linear function of the old roots) "
+            "by means of a substitution."
+        ),
+        subsections=("1.1 Roots of polynomial equations",),
+    ),
+    Topic(
+        code="fp2",
+        number=2,
+        name="Rational functions and graphs",
+        blurb=(
+            "Sketching graphs of rational functions where the numerator and denominator "
+            "have degree at most 2, including finding vertical, horizontal and oblique "
+            "asymptotes, turning points and intersections with the axes, and determining "
+            "the set of values the function can take (e.g. using a discriminant). "
+            "Understanding and using the relationships between the graphs of y = f(x), "
+            "y^2 = f(x), y = 1/f(x), y = |f(x)| and y = f(|x|), including using such "
+            "sketches when solving equations or inequalities."
+        ),
+        subsections=("1.2 Rational functions and graphs",),
+    ),
+    Topic(
+        code="fp3",
+        number=3,
+        name="Summation of series",
+        blurb=(
+            "Using the standard results for the sums of r, r^2 and r^3 to find related "
+            "finite sums. The method of differences to sum a finite series, including "
+            "using partial fractions to write the general term in a telescoping form. "
+            "Recognising by direct consideration of a sum to n terms when a series is "
+            "convergent, and finding the sum to infinity in such cases."
+        ),
+        subsections=("1.3 Summation of series",),
+    ),
+    Topic(
+        code="fp4",
+        number=4,
+        name="Matrices",
+        blurb=(
+            "Addition, subtraction and multiplication of matrices with at most 3 rows and "
+            "columns (including non-square matrices); the zero and identity matrices. "
+            "Singular and non-singular square matrices; evaluating 2x2 and 3x3 "
+            "determinants and finding inverses of non-singular matrices; the result "
+            "(AB)^-1 = B^-1 A^-1. Using 2x2 matrices to represent geometric "
+            "transformations of the x-y plane (rotation, reflection, enlargement, stretch, "
+            "shear), the product AB as a composition of transformations, the relationship "
+            "between A and its inverse, and the determinant as the area scale factor. "
+            "Invariant points and invariant lines of a transformation represented by a "
+            "matrix."
+        ),
+        subsections=("1.4 Matrices",),
+    ),
+    Topic(
+        code="fp5",
+        number=5,
+        name="Polar coordinates",
+        blurb=(
+            "The relations between Cartesian and polar coordinates (with r >= 0) and "
+            "converting equations of curves between Cartesian and polar form. Sketching "
+            "simple polar curves for a suitable interval of theta, showing symmetry, "
+            "intersections with the initial line, the form of the curve at the pole and "
+            "least or greatest values of r. Recalling and using the formula (1/2) integral "
+            "of r^2 with respect to theta for the area of a sector."
+        ),
+        subsections=("1.5 Polar coordinates",),
+    ),
+    Topic(
+        code="fp6",
+        number=6,
+        name="Vectors",
+        blurb=(
+            "The equation of a plane in the forms ax + by + cz = d, r.n = p and "
+            "r = a + lambda b + mu c, and converting between them. The vector (cross) "
+            "product of two vectors, expressed as |a||b| sin(theta) n-hat or in component "
+            "form. Using lines and planes together with scalar and vector products to "
+            "solve problems about distances, angles and intersections: whether a line lies "
+            "in, is parallel to, or meets a plane and the point of intersection; the foot "
+            "of the perpendicular from a point to a plane; the angle between a line and a "
+            "plane and between two planes; the line of intersection of two planes; the "
+            "shortest distance between two skew lines and the common perpendicular to them."
+        ),
+        subsections=("1.6 Vectors",),
+    ),
+    Topic(
+        code="fp7",
+        number=7,
+        name="Proof by induction",
+        blurb=(
+            "Using the method of mathematical induction to establish a given result -- for "
+            "example a formula for a sum to n terms, a closed form for a recurrently "
+            "defined sequence, a formula for the nth power of a matrix, or a divisibility "
+            "result. Recognising situations where a conjecture based on a limited trial "
+            "followed by inductive proof is a useful strategy, and carrying this out in "
+            "simple cases such as finding an nth derivative or the value of a product."
+        ),
+        subsections=("1.7 Proof by induction",),
+    ),
+)
+
+# --- 9231 Paper 4: Further Probability & Statistics (syllabus section 4) -------
+
+_FURTHER_PROB_STATS_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="fs1",
+        number=1,
+        name="Continuous random variables",
+        blurb=(
+            "Probability density functions, which may be defined piecewise, and the "
+            "general result E(g(X)) = integral of g(x) f(x). The relationship between the "
+            "probability density function (PDF) and the cumulative distribution function "
+            "(CDF), using either to evaluate probabilities or percentiles. Using the CDF "
+            "of one variable to find the CDF, and hence PDF, of a related variable such as "
+            "Y = X^3."
+        ),
+        subsections=("4.1 Continuous random variables",),
+    ),
+    Topic(
+        code="fs2",
+        number=2,
+        name="Inference using normal and t-distributions",
+        blurb=(
+            "Formulating hypotheses and carrying out a t-test on a population mean from a "
+            "small sample of a normal population with unknown variance. Calculating a "
+            "pooled estimate of a population variance from two samples. Testing the "
+            "difference of two population means with a 2-sample t-test, a paired-sample "
+            "t-test, or a test using a normal distribution, and selecting the appropriate "
+            "test. Confidence intervals for a population mean, and for a difference of "
+            "means, using a t-distribution or a normal distribution as appropriate."
+        ),
+        subsections=("4.2 Inference using normal and t-distributions",),
+    ),
+    Topic(
+        code="fs3",
+        number=3,
+        name="Chi-squared tests",
+        blurb=(
+            "Fitting a theoretical distribution prescribed by a given hypothesis to data "
+            "and carrying out a chi-squared goodness-of-fit test with the appropriate "
+            "number of degrees of freedom, combining classes so that each expected "
+            "frequency is at least 5. Using a chi-squared test with the appropriate "
+            "degrees of freedom for independence in a contingency table (Yates' correction "
+            "not required), combining rows or columns so that each expected cell frequency "
+            "is at least 5."
+        ),
+        subsections=("4.3 Chi-squared tests",),
+    ),
+    Topic(
+        code="fs4",
+        number=4,
+        name="Non-parametric tests",
+        blurb=(
+            "The idea of a non-parametric test and situations in which one is useful, such "
+            "as sampling from a population that cannot be assumed normal. The basis of the "
+            "sign test, the Wilcoxon signed-rank test and the Wilcoxon rank-sum test (the "
+            "Wilcoxon tests being valid only for symmetrical distributions). Single-sample "
+            "sign and Wilcoxon signed-rank tests for a population median, and "
+            "paired-sample sign, Wilcoxon matched-pairs signed-rank and Wilcoxon rank-sum "
+            "tests for the identity of two populations, including normal approximations."
+        ),
+        subsections=("4.4 Non-parametric tests",),
+    ),
+    Topic(
+        code="fs5",
+        number=5,
+        name="Probability generating functions",
+        blurb=(
+            "The concept of a probability generating function (PGF); constructing and "
+            "using the PGF for the discrete uniform, binomial, geometric and Poisson "
+            "distributions. Using formulae for the mean and variance of a discrete random "
+            "variable in terms of its PGF. Using the result that the PGF of a sum of "
+            "independent random variables is the product of their PGFs."
+        ),
+        subsections=("4.5 Probability generating functions",),
+    ),
+)
+
+
+PHYSICS = Taxonomy(
+    key="9702",
+    subject_code="9702",
+    papers=(1, 2),
+    subject_name="Physics",
+    topics=_PHYSICS_TOPICS,
+)
+FURTHER_PURE_1 = Taxonomy(
+    key="9231p1",
+    subject_code="9231",
+    papers=(1,),
+    subject_name="Further Pure Mathematics",
+    topics=_FURTHER_PURE_1_TOPICS,
+)
+FURTHER_PROB_STATS = Taxonomy(
+    key="9231p4",
+    subject_code="9231",
+    papers=(4,),
+    subject_name="Further Probability & Statistics",
+    topics=_FURTHER_PROB_STATS_TOPICS,
+)
+
+TAXONOMIES: tuple[Taxonomy, ...] = (PHYSICS, FURTHER_PURE_1, FURTHER_PROB_STATS)
+
+# Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``
+# meaning the Physics list. Kept as an alias; new code should go through a Taxonomy.
+TOPICS: tuple[Topic, ...] = PHYSICS.topics
+
+ALL_TOPICS: tuple[Topic, ...] = tuple(t for tax in TAXONOMIES for t in tax.topics)
+BY_CODE: dict[str, Topic] = {t.code: t for t in ALL_TOPICS}
 CODES: frozenset[str] = frozenset(BY_CODE)
+
+
+def taxonomy_for(subject_code: str, paper: int | None) -> Taxonomy | None:
+    """The taxonomy for a paper, from its CIE subject code and paper number.
+
+    ``paper`` may be ``None`` (a paper-less filename such as grade thresholds); it
+    then matches on subject code alone and returns the first taxonomy for it.
+    """
+    for tax in TAXONOMIES:
+        if tax.subject_code != subject_code:
+            continue
+        if paper is None or paper in tax.papers:
+            return tax
+    return None
+
+
+def taxonomy_by_name(subject_name: str) -> Taxonomy | None:
+    """The taxonomy whose ``subject_name`` matches (i.e. the UI Subject value)."""
+    for tax in TAXONOMIES:
+        if tax.subject_name == subject_name:
+            return tax
+    return None
