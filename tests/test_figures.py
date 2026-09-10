@@ -7,6 +7,7 @@ from paper_finder.db import connect, init_db
 from paper_finder.figures import crop_path, render_all
 
 QP = "9702_s26_qp_11.pdf"
+MS = "9702_s26_ms_11.pdf"
 
 
 def _make_pdf(path, pages=2):
@@ -18,6 +19,15 @@ def _make_pdf(path, pages=2):
     doc.close()
 
 
+def _make_landscape_pdf(path, pages=1):
+    doc = pymupdf.open()
+    for i in range(pages):
+        page = doc.new_page(width=842, height=595)  # A4 landscape
+        page.insert_text((60, 90), f"Mark scheme table on page {i + 1}.")
+    doc.save(path)
+    doc.close()
+
+
 @pytest.fixture
 def corpus(tmp_path):
     db_path = tmp_path / "papers.db"
@@ -25,6 +35,7 @@ def corpus(tmp_path):
     crop_dir = tmp_path / "crops"
     raw_dir.mkdir()
     _make_pdf(raw_dir / QP)
+    _make_landscape_pdf(raw_dir / MS)
 
     init_db(db_path)
     with connect(db_path) as conn:
@@ -56,6 +67,13 @@ def corpus(tmp_path):
                 ),
             ],
         )
+        # a mark-scheme crop for Q3 -- rendered from 9702_s26_ms_11.pdf
+        conn.execute(
+            """INSERT INTO answers (question_id, answer_text, source,
+                   answer_crop_rects, answer_crop_count)
+               VALUES (3, '3(a) ...', 'mark_scheme', ?, 1)""",
+            (json.dumps([[1, 55.0, 60.0, 700.0, 300.0]]),),
+        )
         conn.commit()
     return db_path, raw_dir, crop_dir
 
@@ -64,10 +82,15 @@ def test_renders_one_file_per_rect(corpus):
     db_path, raw_dir, crop_dir = corpus
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
 
-    assert report.total_rendered == 4  # 1 + 1 + 2
-    assert report.rendered == {QP: 4}
-    stem = QP[:-4]
-    for qnum, ordinal in [(1, 1), (2, 1), (3, 1), (3, 2)]:
+    assert report.total_rendered == 5  # qp: 1 + 1 + 2, ms: 1
+    assert report.rendered == {MS: 1, QP: 4}
+    for stem, qnum, ordinal in [
+        (QP[:-4], 1, 1),
+        (QP[:-4], 2, 1),
+        (QP[:-4], 3, 1),
+        (QP[:-4], 3, 2),
+        (MS[:-4], 3, 1),
+    ]:
         path = crop_path(stem, qnum, ordinal, crop_dir)
         assert path.is_file()
         assert path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
@@ -79,7 +102,7 @@ def test_second_run_skips_existing(corpus):
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
 
     assert report.total_rendered == 0
-    assert report.skipped_existing == 4
+    assert report.skipped_existing == 5
 
 
 def test_force_rewrites(corpus):
@@ -87,7 +110,7 @@ def test_force_rewrites(corpus):
     render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir, force=True)
 
-    assert report.total_rendered == 4
+    assert report.total_rendered == 5
     assert report.skipped_existing == 0
 
 
@@ -95,7 +118,7 @@ def test_dry_run_writes_nothing(corpus):
     db_path, raw_dir, crop_dir = corpus
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir, dry_run=True)
 
-    assert report.total_rendered == 4
+    assert report.total_rendered == 5
     assert not crop_dir.exists()
 
 
@@ -126,7 +149,7 @@ def test_page_out_of_range_is_reported_not_fatal(corpus):
     report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
 
     assert any("page 9 out of range" in line for line in report.bad_rects)
-    assert report.total_rendered == 3  # the other two questions still rendered
+    assert report.total_rendered == 4  # Q2 (1) + Q3 (2) + the ms crop (1); Q1's rect is bad
 
 
 def test_rotated_page_still_renders(tmp_path):
@@ -166,6 +189,20 @@ def test_rotated_page_still_renders(tmp_path):
 
     assert report.total_rendered == 1
     assert crop_path(QP[:-4], 1, 1, crop_dir).read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_mark_scheme_crop_renders_from_the_ms_pdf(corpus):
+    db_path, raw_dir, crop_dir = corpus
+    report = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
+
+    ms_crop = crop_path(MS[:-4], 3, 1, crop_dir)
+    assert ms_crop.is_file()
+    assert ms_crop.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+    assert report.rendered[MS] == 1
+
+    # a second run skips it
+    again = render_all(db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir)
+    assert MS not in again.rendered
 
 
 def test_missing_pdf_is_reported(tmp_path):
