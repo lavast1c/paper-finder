@@ -23,6 +23,7 @@ const posEl = document.getElementById("pos");
 const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
+const revealBtn = document.getElementById("reveal");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
@@ -370,6 +371,9 @@ function renderCard() {
 
   cardTitleEl.textContent = r.title;
   cardFileEl.textContent = r.filename;
+  revealBtn.textContent = revealed ? "Hide answer" : "Reveal answer";
+  revealBtn.setAttribute("aria-expanded", revealed ? "true" : "false");
+  cardAnswerEl.hidden = !revealed;
   if (r.marks) {
     cardMarksEl.hidden = false;
     cardMarksEl.textContent = `${r.marks} mark${r.marks === 1 ? "" : "s"}`;
@@ -402,19 +406,15 @@ function renderCard() {
   // when the crop is shown the figure lives in it; the note only helps the text view
   cardFigureEl.hidden = !r.has_figure || hasCrops;
 
-  // --- answer: a "Reveal answer" button, then either the mark-scheme crop
-  // (theory questions with a crop) + a "Show text" toggle, or the text answer.
+  // --- answer: hidden until the #card-head "Reveal answer" toggle is pressed,
+  // then either the mark-scheme crop (theory questions with a crop) + a "Show
+  // text" toggle, or the text answer. The toggle also hides it again.
   answerBodyEl.replaceChildren();
   if (!revealed) {
     renderedAnswerKey = null;
     answerImagesEl.replaceChildren();
     answerImagesEl.hidden = true;
     answerShowTextBtn.hidden = true;
-    const btn = el("button", null, "Reveal answer");
-    btn.type = "button";
-    btn.id = "reveal";
-    btn.addEventListener("click", reveal);
-    answerBodyEl.append(btn);
     return;
   }
 
@@ -437,9 +437,9 @@ function renderCard() {
   }
 }
 
-function reveal() {
-  if (revealed || !deck[idx]) return;
-  revealed = true;
+function toggleAnswer() {
+  if (!deck[idx]) return;
+  revealed = !revealed;
   renderCard();
 }
 
@@ -684,6 +684,7 @@ clearAllBtn.addEventListener("click", () => {
 });
 prevBtn.addEventListener("click", () => go(-1));
 nextBtn.addEventListener("click", () => go(1));
+revealBtn.addEventListener("click", toggleAnswer);
 
 showTextBtn.addEventListener("click", () => {
   showText = !showText;
@@ -723,7 +724,7 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === " " || e.key === "Spacebar") {
     if (tag === "BUTTON") return; // the focused card button clicks itself
     e.preventDefault();
-    reveal();
+    toggleAnswer();
   } else if (e.key === "f" || e.key === "F") {
     e.preventDefault();
     toggleFullscreen();

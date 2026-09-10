@@ -256,7 +256,8 @@ main {
 /* ---- buttons (solid light-blue fill, specular edge) ---- */
 button[type="submit"],
 #send-code,
-#verify-code {
+#verify-code,
+.reveal-btn {
   min-height: 44px;
   padding: 0.7rem 1.25rem;
   font: inherit;
@@ -271,12 +272,14 @@ button[type="submit"],
 }
 button[type="submit"]:hover,
 #send-code:hover,
-#verify-code:hover {
+#verify-code:hover,
+.reveal-btn:hover {
   box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
 }
 button[type="submit"]:active,
 #send-code:active,
-#verify-code:active { transform: translateY(1px); }
+#verify-code:active,
+.reveal-btn:active { transform: translateY(1px); }
 button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 button[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
@@ -854,6 +857,20 @@ ol#results li {
 }
 .card-head .name { font-weight: 600; }
 .card-head code { font-family: var(--mono); font-size: 0.8em; color: var(--text-muted); }
+/* the reveal/hide toggle sits on the right of the header row */
+.card-head .reveal-btn {
+  margin-left: auto;
+  min-height: 0;
+  padding: 0.42rem 1rem;
+  font-size: 0.85rem;
+}
+/* revealed → the toggle reads as "on": quiet outline instead of the solid fill */
+.card-head .reveal-btn[aria-expanded="true"] {
+  color: var(--accent-ink);
+  background: var(--surface-strong);
+  border-color: var(--border);
+  box-shadow: var(--edge);
+}
 .card-head .marks {
   padding: 0.1rem 0.55rem;
   font-size: 0.72rem;
@@ -1017,6 +1034,7 @@ footer {
   button[type="submit"],
   #send-code,
   #verify-code,
+  .reveal-btn,
   .card-fs-btn,
   .card-arrow { transition: none; }
   button:active { transform: none; }

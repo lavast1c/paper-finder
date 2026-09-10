@@ -236,8 +236,11 @@ classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
 `topics.js`, shared code hoisted to `common.js`) is the **landing page, served at
 `/`** (route swap 2026-09-09: `/` → `topics.html`, `/search` → `index.html`,
 `/topics` → 308 redirect to `/`; nav lists "Browse by topic" first). It is a
-flashcard deck: one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden
-until revealed. A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
+flashcard deck: one card at a time, ◂ ▸ / ←→ to move, and a **`#reveal`
+toggle** on the right of the `.card-head` row (the site's solid-accent button
+when hidden, a quiet outline when shown) — or the space bar — reveals **and
+re-hides** the answer (`topics.js` `toggleAnswer`; `#card-answer` is `hidden`
+until revealed). A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
 press `f`) blows the current card up via the Fullscreen API on `#card`
 (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs` on
 `fullscreenchange`); once revealed it lays the question crop and the mark-scheme
@@ -268,10 +271,10 @@ mode mints batched signed Storage URLs. `PF.cloudRow` must carry
 `question_number` — `topics.js` builds the crop object path from it
 (`q{NN}_p{k}.png`); without it cloud paths were `qundefined_p1.png`.
 
-**Mark-scheme crop on reveal.** `#card-answer` holds `#answer-images` +
-`#answer-show-text` + an `#answer-body` slot (the only part `renderCard` wipes
-each pass — the images/toggle live outside it so they don't flicker on
-toggle/prefetch). `renderAnswerImages` / `answerCropUrls` / `renderedAnswerKey`
+**Mark-scheme crop on reveal.** `#card-answer` (itself `hidden` until the
+`#reveal` toggle is on) holds `#answer-images` + `#answer-show-text` + an
+`#answer-body` slot (the only part `renderCard` wipes each pass — the
+images/toggle live outside it so they don't flicker on toggle/prefetch). `renderAnswerImages` / `answerCropUrls` / `renderedAnswerKey`
 mirror the question side but off `ms_crop_base` (local) / a signed
 `question-crops` URL under the `_ms_` stem (cloud); `paper-finder.showanswertext`
 persists the toggle. An `<img>` load failure or no resolved URL falls back to
