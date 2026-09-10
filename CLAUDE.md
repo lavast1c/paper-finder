@@ -21,19 +21,24 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open. Corpus: 9702
-m24/s24/w24 + m25/s25/w25 + s26 + m26, Papers 1 & 2, variants 1-4 where they
-exist (s25/w25/s26 have a 4th variant `qp_14/24`; the "m" series is
-variant 2 only — `9702_m24/m25/m26_qp_12/22`) = 42 question
-papers, 978 questions, 973 answers linked, 300 flagged `has_figure`, all 978
+2020-2026 (`m20`..`m26` Feb/March, `s20`..`s26`, `w20`..`w25`), Papers 1 & 2,
+variants 1-4 where they exist (s25/w25/s26 have a 4th variant `qp_14/24`; the
+"m" series is variant 2 only — `9702_m2X_qp_12/22`) = 98 question
+papers, 2289 questions, 2284 answers linked, 640 flagged `has_figure`, all 2289
 tagged into the 11 CIE 9702 AS syllabus sections (`s01`..`s11`, multi-label,
-118 multi-section) — `labels/question_topics.tsv`, loaded by `paper-finder
-topics`. Every question also has a rendered **image crop** of itself
+155 multi-section) — `labels/question_topics.tsv`, loaded by `paper-finder
+topics`. The 2024-2026 papers were labelled by `paper-finder classify`; the
+2020-2023 ones (1311 questions) were labelled without an API key — Paper 1 MCQs
+by their position in the paper (9702 Paper 1 tracks the syllabus-section order
+closely, ~80-85% accurate), Paper 2 by reading each question — refine any `llm`
+row later with `paper-finder classify --relabel` once `ANTHROPIC_API_KEY` is set.
+Every question also has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set in `segment`) and, for structured
 questions, an **image crop of its mark scheme** cropped from the `ms` PDF
-(`answers.answer_crop_rects`/`answer_crop_count`, set in `marks`; 133 answers).
-`paper-finder figures` renders both — 1155 question PNGs into
-`data/crops/<qp_stem>/qNN_pK.png` plus 192 mark-scheme PNGs into
-`data/crops/<ms_stem>/qNN_pK.png`, ~40 MB — gitignored + vercelignored. The
+(`answers.answer_crop_rects`/`answer_crop_count`, set in `marks`; 324 answers).
+`paper-finder figures` renders both — 2715 question PNGs into
+`data/crops/<qp_stem>/qNN_pK.png` plus 547 mark-scheme PNGs into
+`data/crops/<ms_stem>/qNN_pK.png`, ~90 MB — gitignored + vercelignored. The
 browse-by-topic flashcard (served at `/`) shows the question crop instead of
 the extracted text, and on reveal shows the mark-scheme crop (with a "Show
 text" toggle) instead of the flattened mark-scheme text (Stage 2).
@@ -191,10 +196,10 @@ persists the toggle. An `<img>` load failure or no resolved URL falls back to
 `PF.answerBlock` for that one card. MCQ answers (`answer_crop_count = 0`) keep
 the single letter, no image, no toggle.
 
-**Cloud live:** 0005 + 0007 applied; `publish` run (cloud `crop_count` on all
-978, `answer_crop_count` > 0 on 133); `publish-figures` uploaded the 1155
-question PNGs + 192 `ms_` PNGs to the private `question-crops` bucket (62
-folders; anon `list` → `[]`, anon `sign` → 404 — genuinely private).
+**Cloud live:** 0005 + 0007 applied; `publish` run (98 papers, 2289 questions,
+cloud `crop_count` on all, `answer_crop_count` > 0 on 324); `publish-figures`
+uploaded the 2715 question PNGs + 547 `ms_` PNGs to the private `question-crops`
+bucket (anon `list` → `[]`, anon `sign` → 404 — genuinely private).
 `publish-figures` needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — both now
 in `.env` (`SUPABASE_URL` is the browser-safe project URL, not a secret).
 
