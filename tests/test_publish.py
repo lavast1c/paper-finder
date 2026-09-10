@@ -32,7 +32,9 @@ def local_db(tmp_path):
             ],
         )
         conn.execute(
-            "INSERT INTO answers (question_id, answer_text, source) VALUES (1, 'C', 'mark_scheme')"
+            """INSERT INTO answers
+                   (question_id, answer_text, source, answer_crop_rects, answer_crop_count)
+               VALUES (1, 'C', 'mark_scheme', '[[1,0,0,1,1],[1,0,0,1,1]]', 2)"""
         )
         conn.executemany(
             "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
@@ -100,6 +102,7 @@ def test_read_local_only_qp_with_questions(local_db):
     assert questions[0][7] == ["s02"]  # topic codes -> sorted list, [] when none
     assert questions[1][7] == ["s03", "s04"]
     assert (questions[0][8], questions[1][8]) == (1, 3)  # crop_count rides at index 8
+    assert (questions[0][9], questions[1][9]) == (2, 0)  # answer_crop_count; 0 when no answer row
 
 
 def test_dry_run_counts_and_sends_nothing(local_db):
