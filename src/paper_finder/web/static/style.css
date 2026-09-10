@@ -1013,8 +1013,14 @@ ol#results li {
   overflow: auto;
 }
 /* revealed: the 2-col grid comes from `.card.is-revealed .card-body`; fullscreen
-   just swaps the page scroll for a per-column one so the nav/head stay pinned */
+   just swaps the page scroll for a per-column one so the nav/head stay pinned.
+   The row is pinned to the container height (`minmax(0, 1fr)` + `stretch`, which
+   overrides the base `align-items: start`) so each column overflows *internally*
+   and its own scrollbar appears — without the row cap the tall crops just push
+   the grid past the clipped `.card-body` and nothing scrolls. */
 #card.card--fs.is-revealed .card-body {
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
   gap: clamp(0.8rem, 2.2vw, 1.7rem);
   overflow: hidden;
 }
