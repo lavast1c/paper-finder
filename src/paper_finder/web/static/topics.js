@@ -23,6 +23,7 @@ const posEl = document.getElementById("pos");
 const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
+const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
 const cardQuestionEl = document.getElementById("card-question");
@@ -364,6 +365,8 @@ function renderCard() {
   posEl.textContent = `${idx + 1} / ${total}`;
   prevBtn.disabled = idx === 0;
   nextBtn.disabled = idx >= total - 1;
+  // drives the fullscreen split: question left, mark scheme right once revealed
+  cardEl.classList.toggle("is-revealed", revealed);
 
   cardTitleEl.textContent = r.title;
   cardFileEl.textContent = r.filename;
@@ -564,6 +567,55 @@ async function refresh() {
   writeUrl();
 }
 
+// --- fullscreen ---------------------------------------------------
+// Blow the current card up to fill the screen. The whole #card subtree goes
+// fullscreen, so Prev / Next (buttons or ← →) and Reveal keep working; once
+// revealed, `.is-revealed` splits it into question (left) + mark scheme (right).
+
+function fsElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+function inFullscreen() {
+  return fsElement() === cardEl;
+}
+function enterFullscreen() {
+  const req = cardEl.requestFullscreen || cardEl.webkitRequestFullscreen;
+  if (!req) return;
+  try {
+    const p = req.call(cardEl);
+    if (p && p.catch) p.catch(() => {});
+  } catch {
+    /* rejected (no user gesture / blocked) */
+  }
+}
+function exitFullscreen() {
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!ex) return;
+  try {
+    const p = ex.call(document);
+    if (p && p.catch) p.catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+function toggleFullscreen() {
+  if (cardEl.hidden) return;
+  if (inFullscreen()) exitFullscreen();
+  else enterFullscreen();
+}
+function syncFullscreenUI() {
+  const on = inFullscreen();
+  cardEl.classList.toggle("card--fs", on);
+  if (fsToggleBtn) {
+    fsToggleBtn.setAttribute("aria-label", on ? "Exit fullscreen" : "Enter fullscreen");
+    fsToggleBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    fsToggleBtn.title = on ? "Exit fullscreen (f or Esc)" : "Fullscreen (press f)";
+  }
+}
+if (fsToggleBtn) fsToggleBtn.addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", syncFullscreenUI);
+document.addEventListener("webkitfullscreenchange", syncFullscreenUI);
+
 // --- wiring --------------------------------------------------------
 
 const SCOPE_GROUPS = [
@@ -655,8 +707,13 @@ answerShowTextBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
   const tag = (e.target && e.target.tagName) || "";
-  if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
+  if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;
   if (cardEl.hidden) return;
+  // A focused button normally swallows these (it runs its own click on
+  // Space/Enter). Let them through when the focus is on one of the card's own
+  // controls -- that is the usual state in fullscreen, where ← → must still
+  // page the deck after a Prev/Next click.
+  if (tag === "BUTTON" && !cardEl.contains(e.target)) return;
   if (e.key === "ArrowLeft") {
     e.preventDefault();
     go(-1);
@@ -664,8 +721,12 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     go(1);
   } else if (e.key === " " || e.key === "Spacebar") {
+    if (tag === "BUTTON") return; // the focused card button clicks itself
     e.preventDefault();
     reveal();
+  } else if (e.key === "f" || e.key === "F") {
+    e.preventDefault();
+    toggleFullscreen();
   }
 });
 

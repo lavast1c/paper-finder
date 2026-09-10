@@ -235,7 +235,14 @@ classify` is the LLM labeller (`[classify]` extra, network side effect, OUT of
 `/`** (route swap 2026-09-09: `/` → `topics.html`, `/search` → `index.html`,
 `/topics` → 308 redirect to `/`; nav lists "Browse by topic" first). It is a
 flashcard deck: one card at a time, ◂ ▸ / ←→ / space-to-reveal, answer hidden
-until revealed. **Topic is a single-select `#f-topic` dropdown** in the filter
+until revealed. A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
+press `f`) blows the current card up via the Fullscreen API on `#card`
+(`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs` on
+`fullscreenchange`); once revealed it lays the question crop and the mark-scheme
+crop out side by side (`.card--fs.is-revealed .card-body` = a two-column grid,
+each column scrolling on its own; stacks under 640px). Prev/Next (buttons or
+arrow keys) and Reveal keep working — the whole `#card` subtree is what goes
+fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
