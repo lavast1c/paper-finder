@@ -7,6 +7,8 @@ const { el } = PF;
 
 const form = document.getElementById("search");
 const input = document.getElementById("q");
+const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
+const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off Physics
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
@@ -110,9 +112,23 @@ function picked(groupEl) {
     ? [...groupEl.querySelectorAll('input[type="checkbox"]:checked')].map((b) => b.value)
     : [];
 }
+const DEFAULT_SUBJECT = "Physics";
+function currentSubject() {
+  return subjectEl ? subjectEl.value : DEFAULT_SUBJECT;
+}
+
+// The "Paper(s)" filter is the MCQ-vs-theory split, which is a Physics-only
+// concept (9231 P1 and P4 are both structured, and they are separate subjects).
+// Off Physics the field is hidden and `kind` is forced to "all".
+function syncPaperFieldVisibility() {
+  if (fbPaperEl) fbPaperEl.hidden = currentSubject() !== DEFAULT_SUBJECT;
+}
+
 function scope() {
+  const subject = currentSubject();
   return {
-    kind: PF.paperKind(picked(paperEl)),
+    subject,
+    kind: subject === DEFAULT_SUBJECT ? PF.paperKind(picked(paperEl)) : "all",
     years: picked(yearEl),
     sessions: picked(seasonEl),
   };
@@ -121,6 +137,7 @@ function scope() {
 async function localSearch(q) {
   const s = scope();
   const params = new URLSearchParams({ q, limit: "10" });
+  if (s.subject) params.set("subject", s.subject);
   if (s.kind !== "all") params.set("kind", s.kind);
   if (s.years.length) params.set("years", s.years.join(","));
   if (s.sessions.length) params.set("sessions", s.sessions.join(","));
@@ -137,6 +154,7 @@ async function cloudSearch(q) {
     kind: s.kind,
     years: s.years.map(Number),
     sessions: s.sessions,
+    subjects: s.subject ? [s.subject] : [],
   });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(PF.cloudRow) };
@@ -172,12 +190,22 @@ async function loadStats() {
 
 // --- run -------------------------------------------------------------
 
+// Keep ?q= and ?subject= in the address bar so a link is shareable. Subject is
+// only serialised when it isn't the default, to keep the common URL clean.
+function writeUrl(q) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (currentSubject() !== DEFAULT_SUBJECT) params.set("subject", currentSubject());
+  const qs = params.toString();
+  history.replaceState(null, "", qs ? "?" + qs : location.pathname);
+}
+
 function resetSearch() {
   if (controller) controller.abort();
   PF.setQueryTerms("");
   clearResults();
   setStatus("");
-  history.replaceState(null, "", location.pathname);
+  writeUrl("");
 }
 
 async function run() {
@@ -188,7 +216,7 @@ async function run() {
   }
   clearResults();
   PF.setQueryTerms(q);
-  history.replaceState(null, "", "?q=" + encodeURIComponent(q));
+  writeUrl(q);
 
   if (controller) controller.abort();
   controller = new AbortController();
@@ -246,6 +274,18 @@ for (const group of [paperEl, yearEl, seasonEl]) {
   });
 }
 
+if (subjectEl) {
+  subjectEl.addEventListener("change", () => {
+    syncPaperFieldVisibility();
+    // a Paper(s) pick from another subject would be stale — drop it
+    if (currentSubject() !== DEFAULT_SUBJECT && paperEl && paperEl._ms) {
+      paperEl._ms.setValues([]);
+    }
+    if (input.value.trim()) run();
+    else writeUrl("");
+  });
+}
+
 const clearAllBtn = document.getElementById("clear-all");
 if (clearAllBtn) {
   clearAllBtn.addEventListener("click", () => {
@@ -264,7 +304,13 @@ function onReady(email, client) {
   historyItems = loadHistory();
   if (!ranInitial) {
     ranInitial = true; // onAuthStateChange fires more than once
-    const initial = new URLSearchParams(location.search).get("q");
+    const params = new URLSearchParams(location.search);
+    const wantSubject = params.get("subject");
+    if (subjectEl && wantSubject && [...subjectEl.options].some((o) => o.value === wantSubject)) {
+      subjectEl.value = wantSubject;
+    }
+    syncPaperFieldVisibility();
+    const initial = params.get("q");
     if (initial) {
       input.value = initial;
       run();

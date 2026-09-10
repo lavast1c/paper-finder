@@ -693,11 +693,13 @@ ol#results li {
   color: var(--text-muted);
 }
 /* compact select for the context row — no full-width, tighter padding */
-.select-wrap--inline { display: inline-flex; }
+.select-wrap--inline { display: inline-flex; max-width: 100%; }
 .select-wrap--inline select {
   width: auto;
+  max-width: min(22rem, 60vw);   /* the Further Maths names are long — cap + ellipsis */
   padding: 0.4rem 2rem 0.4rem 0.6rem;
   font-weight: 600;
+  text-overflow: ellipsis;
 }
 .filterbar-fields {
   display: flex;
@@ -713,6 +715,7 @@ ol#results li {
 }
 .fb-field--ms { flex: 1 1 10rem; min-width: 8.5rem; }
 .fb-field--topic { flex: 1 1 11rem; }  /* the lone <select> — grow to fill the row */
+.fb-field--topic select:disabled { opacity: 0.55; cursor: not-allowed; }
 .fb-label {
   font-size: 0.72rem;
   font-weight: 700;
