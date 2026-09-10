@@ -10,7 +10,7 @@ import sqlite3
 from pathlib import Path
 
 from paper_finder import config
-from paper_finder.topics import TOPICS
+from paper_finder.topics import TAXONOMIES
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
@@ -60,10 +60,13 @@ CREATE VIRTUAL TABLE IF NOT EXISTS questions_fts USING fts5 (
 
 -- Syllabus taxonomy. Rows are seeded from paper_finder.topics on init_db();
 -- that module is the source of truth for names, this table exists for the join.
+-- One row per (subject, code): 's01'..'s11' for Physics, 'fp1'..'fp7' for
+-- Further Pure Mathematics, 'fs1'..'fs5' for Further Probability & Statistics.
 CREATE TABLE IF NOT EXISTS topics (
-    code   TEXT PRIMARY KEY,       -- 's01'..'s11'
-    number INTEGER NOT NULL,       -- syllabus section number, display order
-    name   TEXT NOT NULL
+    code    TEXT PRIMARY KEY,      -- 's01' / 'fp4' / 'fs3' -- namespaced per taxonomy
+    number  INTEGER NOT NULL,      -- syllabus section number within its taxonomy, display order
+    name    TEXT NOT NULL,
+    subject TEXT NOT NULL DEFAULT 'Physics'   -- matches papers.subject_name
 );
 
 -- Multi-label: a question may carry several topics. Rebuilt from
@@ -97,10 +100,20 @@ def init_db(db_path: Path | str | None = None) -> None:
     """Create the schema if it does not already exist. Safe to run repeatedly."""
     with connect(db_path) as conn:
         conn.executescript(SCHEMA)
+        # CREATE TABLE IF NOT EXISTS won't add `subject` to a topics table made
+        # by an older schema -- add it in place so labels can still load.
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(topics)")}
+        if "subject" not in cols:
+            conn.execute("ALTER TABLE topics ADD COLUMN subject TEXT NOT NULL DEFAULT 'Physics'")
         # The taxonomy is a code constant, not user data -- keep the FK target
         # for question_topics populated so a bare init-db can load labels.
         conn.executemany(
-            "INSERT INTO topics (code, number, name) VALUES (?, ?, ?) "
-            "ON CONFLICT(code) DO UPDATE SET number = excluded.number, name = excluded.name",
-            [(t.code, t.number, t.name) for t in TOPICS],
+            "INSERT INTO topics (code, number, name, subject) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(code) DO UPDATE SET number = excluded.number, "
+            "name = excluded.name, subject = excluded.subject",
+            [
+                (t.code, t.number, t.name, tax.subject_name)
+                for tax in TAXONOMIES
+                for t in tax.topics
+            ],
         )
