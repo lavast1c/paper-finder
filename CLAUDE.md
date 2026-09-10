@@ -11,7 +11,9 @@ question.
 
 The **UI is branded "Paper Analyser"** (the `<h1>`, `<title>`s and footer on both
 pages, as of 2026-09-09); the Python package (`paper_finder`), the CLI
-(`paper-finder`), the repo and this file keep the original name.
+(`paper-finder`), the repo and this file keep the original name. Browser-tab
+icon: `web/static/favicon.svg` (a lined sheet of paper in `--primary` blue),
+linked from both HTML `<head>`s as `rel="icon" type="image/svg+xml"`.
 
 Personal / extracurricular project. Exam board: **Cambridge International (CIE)**
 AS & A Level. Built one stage at a time — see `@PLAN.md` for the full roadmap,
