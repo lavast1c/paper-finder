@@ -95,8 +95,39 @@ def test_segment_structured_basic():
 def test_structured_start_needs_top_of_page():
     lines = _structured_lines()
     # a mid-page "2" in the left margin (e.g. a graph axis label) inside question 1
-    lines.insert(5, _line("2", x0=49.6, page=4, y_frac=0.55))
+    lines.insert(5, _line("2", x0=49.6, page=4, y_frac=0.75))
     assert [q.number for q in segment_structured(lines)] == [1, 2]
+
+
+def test_structured_start_survives_a_figure_between_number_and_prose():
+    # CIE 9231 often puts a graph or a displayed formula right after the question
+    # number, so the first prose/part line is several lines down.
+    lines = [
+        _line("1", x0=49.6, page=2, y_frac=0.07),
+        _line("The continuous random variable X has probability density function.", page=2),
+        _line("[Total: 8]", x0=498.0, page=3, y_frac=0.9),
+        _line("2", x0=49.6, page=4, y_frac=0.07),
+        _line("f(x)", x0=116.0, page=4, y_frac=0.09),  # a graph axis label
+        _line("0", x0=131.0, page=4, y_frac=0.21),
+        _line("6", x0=444.0, page=4, y_frac=0.21),
+        _line("As shown in the diagram, the random variable X has pdf f given by.", page=4),
+        _line("(a) Find the value of k.", page=4),
+        _line("[Total: 6]", x0=498.0, page=5, y_frac=0.8),
+    ]
+    assert [q.number for q in segment_structured(lines)] == [1, 2]
+
+
+def test_structured_start_rejected_when_only_a_bare_number_follows():
+    # a stray margin number followed by more numbers (a table column) is not a start
+    lines = [
+        _line("1", x0=49.6, page=2, y_frac=0.07),
+        _line("A first question about vectors and matrices.", page=2),
+        _line("[Total: 5]", x0=498.0, page=3, y_frac=0.9),
+        _line("2", x0=49.6, page=4, y_frac=0.07),
+        _line("3", x0=49.6, page=4, y_frac=0.10),
+        _line("4", x0=49.6, page=4, y_frac=0.13),
+    ]
+    assert [q.number for q in segment_structured(lines)] == [1]
 
 
 def test_split_stem_uses_last_valid_option_block():
