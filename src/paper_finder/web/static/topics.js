@@ -26,9 +26,13 @@ const showTextBtn = document.getElementById("show-text");
 const cardQuestionEl = document.getElementById("card-question");
 const cardFigureEl = document.getElementById("card-figure");
 const cardAnswerEl = document.getElementById("card-answer");
+const answerImagesEl = document.getElementById("answer-images");
+const answerShowTextBtn = document.getElementById("answer-show-text");
+const answerBodyEl = document.getElementById("answer-body");
 const corpusEl = document.getElementById("corpus");
 
 const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question text visible beside the image
+const SHOWANSWERTEXT_KEY = "paper-finder.showanswertext"; // same, for the revealed mark scheme
 const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
@@ -48,9 +52,12 @@ let total = 0;
 let idx = 0;
 let revealed = false;
 let renderedImagesKey = null; // `${filename}#${qnum}` currently shown in #card-images; guards the swap
+let renderedAnswerKey = null; // same, for #answer-images (separate slot -- the two must not share a guard)
 let showText = false;
+let showAnswerText = false;
 try {
   showText = localStorage.getItem(SHOWTEXT_KEY) === "1";
+  showAnswerText = localStorage.getItem(SHOWANSWERTEXT_KEY) === "1";
 } catch {
   /* private mode / storage blocked */
 }
@@ -285,6 +292,57 @@ async function renderCropImages(r) {
   });
 }
 
+// The mark-scheme crop URLs for a revealed card, in page order. They live under
+// the `ms` stem (same paper, `_qp_` -> `_ms_`); local builds them off
+// `ms_crop_base`, cloud mints signed Storage URLs from the same private bucket.
+function answerCropUrls(r) {
+  const msStem = r.filename.replace(/_qp_/i, "_ms_").replace(/\.pdf$/i, "");
+  const names = [];
+  for (let k = 1; k <= r.answer_crop_count; k++) {
+    names.push(`q${String(r.question_number).padStart(2, "0")}_p${k}.png`);
+  }
+  if (!sb) {
+    return Promise.resolve(names.map((n) => `${r.ms_crop_base}/${n}`));
+  }
+  return signedUrls(names.map((n) => `${msStem}/${n}`));
+}
+
+// A mark-scheme crop failed to load, or none resolved -> show the extracted text
+// for this one card. Not persisted; the next reveal tries its images again.
+function answerFallbackToText(r) {
+  renderedAnswerKey = null;
+  answerImagesEl.replaceChildren();
+  answerImagesEl.hidden = true;
+  answerShowTextBtn.hidden = true;
+  answerBodyEl.replaceChildren(PF.answerBlock(r.answer));
+}
+
+async function renderAnswerImages(r) {
+  const key = cardKey(r);
+  answerImagesEl.replaceChildren();
+  let urls;
+  try {
+    urls = await answerCropUrls(r);
+  } catch {
+    urls = [];
+  }
+  if (renderedAnswerKey !== key) return; // navigated away while awaiting
+  if (!urls.length) {
+    answerFallbackToText(r);
+    return;
+  }
+  urls.forEach((u, i) => {
+    const img = el("img", "card-image");
+    img.decoding = "async";
+    img.alt = `${r.title} — mark scheme ${i + 1} of ${urls.length}`;
+    img.addEventListener("error", () => {
+      if (renderedAnswerKey === key) answerFallbackToText(r);
+    });
+    img.src = u;
+    answerImagesEl.append(img);
+  });
+}
+
 function renderCard() {
   const r = deck[idx];
   if (!r) return;
@@ -326,15 +384,38 @@ function renderCard() {
   // when the crop is shown the figure lives in it; the note only helps the text view
   cardFigureEl.hidden = !r.has_figure || hasCrops;
 
-  cardAnswerEl.replaceChildren();
-  if (revealed) {
-    cardAnswerEl.append(PF.answerBlock(r.answer));
-  } else {
+  // --- answer: a "Reveal answer" button, then either the mark-scheme crop
+  // (theory questions with a crop) + a "Show text" toggle, or the text answer.
+  answerBodyEl.replaceChildren();
+  if (!revealed) {
+    renderedAnswerKey = null;
+    answerImagesEl.replaceChildren();
+    answerImagesEl.hidden = true;
+    answerShowTextBtn.hidden = true;
     const btn = el("button", null, "Reveal answer");
     btn.type = "button";
     btn.id = "reveal";
     btn.addEventListener("click", reveal);
-    cardAnswerEl.append(btn);
+    answerBodyEl.append(btn);
+    return;
+  }
+
+  if (r.answer_crop_count > 0) {
+    const akey = cardKey(r);
+    if (renderedAnswerKey !== akey) {
+      renderedAnswerKey = akey;
+      renderAnswerImages(r); // async; swaps in <img> nodes, or calls answerFallbackToText
+    }
+    answerImagesEl.hidden = false;
+    answerShowTextBtn.hidden = false;
+    answerShowTextBtn.textContent = showAnswerText ? "Hide text" : "Show text";
+    if (showAnswerText) answerBodyEl.append(PF.answerBlock(r.answer));
+  } else {
+    renderedAnswerKey = null;
+    answerImagesEl.replaceChildren();
+    answerImagesEl.hidden = true;
+    answerShowTextBtn.hidden = true;
+    answerBodyEl.append(PF.answerBlock(r.answer));
   }
 }
 
@@ -521,6 +602,16 @@ showTextBtn.addEventListener("click", () => {
   showText = !showText;
   try {
     localStorage.setItem(SHOWTEXT_KEY, showText ? "1" : "");
+  } catch {
+    /* private mode / storage blocked */
+  }
+  renderCard();
+});
+
+answerShowTextBtn.addEventListener("click", () => {
+  showAnswerText = !showAnswerText;
+  try {
+    localStorage.setItem(SHOWANSWERTEXT_KEY, showAnswerText ? "1" : "");
   } catch {
     /* private mode / storage blocked */
   }

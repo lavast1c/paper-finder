@@ -125,6 +125,8 @@ def test_browse_page_has_crop_container(client):
     r = client.get("/")
     assert 'id="card-images"' in r.text  # question-crop container
     assert 'id="show-text"' in r.text
+    assert 'id="answer-images"' in r.text  # mark-scheme crop container
+    assert 'id="answer-show-text"' in r.text
     assert 'id="f-topic"' in r.text  # topic dropdown replaced the chip row
 
 

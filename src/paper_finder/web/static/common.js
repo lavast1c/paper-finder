@@ -307,6 +307,7 @@ function cloudRow(d) {
     marks: d.marks,
     has_figure: d.has_figure,
     crop_count: d.crop_count || 0,
+    answer_crop_count: d.answer_crop_count || 0, // mark-scheme crops; topics.js mints their signed URLs
     // no pdf_url — the deployed site has no PDFs; crops come from signed
     // Storage URLs the topic page mints itself
   };
