@@ -85,6 +85,12 @@ def result_payload(hit: SearchHit, *, serve_pdfs: bool = True) -> dict:
     # 1..crop_count. Gated by the same flag as the PDFs -- a crop of a page is
     # the same copyright profile as the page.
     data["crop_base"] = f"/figure/{hit.filename}" if serve_pdfs and hit.crop_count else None
+    # The mark-scheme crops live under the `ms` stem (same paper, `_qp_` -> `_ms_`);
+    # the browser appends `/q{NN}_p{k}.png` for k in 1..answer_crop_count.
+    ms_filename = hit.filename.replace("_qp_", "_ms_")
+    data["ms_crop_base"] = (
+        f"/figure/{ms_filename}" if serve_pdfs and hit.answer_crop_count else None
+    )
     return data
 
 
@@ -112,14 +118,18 @@ def resolve_crop(filename: str, crop: str, *, crop_dir: Path, db_path: Path | No
     """The on-disk crop image for a request, or ``None`` if it must not be served.
 
     Same gauntlet as :func:`resolve_pdf`: the filename must parse and round-trip
-    exactly (kills ``../``, ``%2F``, odd suffixes), be a ``qp``, and have a
-    ``papers`` row; the crop segment must match ``_CROP_NAME`` exactly; the file
-    must exist under ``crop_dir/<stem>/``.
+    exactly (kills ``../``, ``%2F``, odd suffixes), be a ``qp`` (question crop) or
+    ``ms`` (mark-scheme crop), and have a ``papers`` row; the crop segment must
+    match ``_CROP_NAME`` exactly; the file must exist under ``crop_dir/<stem>/``.
     """
     if not _CROP_NAME.match(crop):
         return None
     parsed = parse_filename(filename)
-    if parsed is None or parsed.filename != filename.lower() or parsed.paper_type != "qp":
+    if (
+        parsed is None
+        or parsed.filename != filename.lower()
+        or parsed.paper_type not in {"qp", "ms"}
+    ):
         return None
 
     init_db(db_path)
