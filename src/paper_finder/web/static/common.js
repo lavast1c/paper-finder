@@ -108,6 +108,16 @@ function multiSelect(root) {
 }
 PF.multiSelect = multiSelect;
 
+// The "Paper(s)" filter is really the MCQ-vs-theory split: CIE Physics Paper 1
+// is multiple-choice, Paper 2 is structured/theory (there is no Paper 3 or 4).
+// Ticked box values are the paper number; collapse them to the `kind` the
+// search / browse endpoints take. Both (or neither) ticked = no restriction.
+PF.paperKind = function paperKind(values) {
+  const s = new Set(values || []);
+  if (s.size !== 1) return "all";
+  return s.has("1") ? "mcq" : "theory";
+};
+
 // --- query-term highlighting -----------------------------------------
 
 const STOPWORDS = new Set(
