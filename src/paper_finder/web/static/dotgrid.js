@@ -304,4 +304,6 @@
   };
   if (schemeQuery.addEventListener) schemeQuery.addEventListener("change", onScheme);
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", applyMotionMode);
+  // common.js fires this when the header toggle flips data-theme
+  window.addEventListener("themechange", onScheme);
 })();

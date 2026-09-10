@@ -84,6 +84,40 @@
   }
 }
 
+/* Explicit light mode — the header toggle sets data-theme="light". Solarized
+   Light ground (base3 #fdf6e3). The dot-grid activation colour (--primary) is
+   pinned to the same blue the dark theme uses, per request; only --dot-base
+   opacity is nudged so the resting dots read on the cream. The attribute
+   selector (0,2,0) outranks the dark @media :root rule, so this wins on a
+   dark-OS machine too. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #fdf6e3;
+  --text: #073642;
+  --text-muted: #586e75;           /* Solarized base01 — AA on the cream */
+  --surface: rgba(255, 253, 246, 0.58);
+  --surface-strong: rgba(255, 253, 246, 0.82);
+  --border: rgba(147, 161, 161, 0.45);
+  --hairline: rgba(88, 110, 117, 0.18);
+  --specular: rgba(255, 255, 255, 0.9);
+  --field-bg: #eee8d5;
+  /* the base backdrop pumps saturation 1.6x, which over-warms the cream strip */
+  --glass-backdrop: url(#glass-refraction) saturate(1.08) brightness(1.01) blur(2px);
+  --primary: #60a5fa;               /* pinned — dot activation stays put */
+  --primary-ink: #ffffff;
+  --btn: #1d4ed8;                   /* white text is AA (6.5:1) on the cream */
+  --accent-ink: #1d4ed8;
+  --focus-ring: rgba(96, 165, 250, 0.5);
+  --rule: rgba(96, 165, 250, 0.4);
+  --hl-bg: #ffe08a;
+  --hl-ink: #073642;
+  --dot-base: rgba(96, 165, 250, 0.32);
+  --shadow-sm: 0 2px 10px rgba(88, 110, 117, 0.16);
+  --shadow-md: 0 12px 40px rgba(88, 110, 117, 0.2);
+  --shadow-lg: 0 24px 70px rgba(88, 110, 117, 0.26);
+  --edge: inset 0 1px 0 var(--specular), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+}
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 .sr-only {
@@ -250,6 +284,39 @@ button[disabled] { opacity: 0.55; cursor: default; transform: none; }
   gap: 1rem;
   margin-top: 0.75rem;
 }
+
+/* ---- theme toggle (right edge of the header bar) ---- */
+.theme-toggle {
+  margin-left: auto;
+  align-self: center;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--edge);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+}
+.theme-toggle:hover { color: var(--text); }
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.theme-toggle svg { display: none; }         /* generic reset */
+.theme-toggle .ic-sun { display: block; }    /* dark / system -> offer light */
+:root[data-theme="light"] .theme-toggle .ic-sun { display: none; }
+:root[data-theme="light"] .theme-toggle .ic-moon { display: block; }
 .topnav a {
   font-size: 0.9rem;
   font-weight: 600;

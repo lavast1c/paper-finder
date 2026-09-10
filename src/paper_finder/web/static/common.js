@@ -57,6 +57,47 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
   sync();
 })();
 
+// --- theme toggle: OS default, header button forces light / dark ----------
+//
+// The saved choice is applied pre-paint by a tiny inline <script> in each HTML
+// <head> (avoids a flash); this only wires the button, keeps its label in sync,
+// and pokes dotgrid.js to re-read --primary / --dot-base.
+
+(function themeToggle() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  const KEY = "paper-finder.theme";
+  const root = document.documentElement;
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+  const effective = () => root.dataset.theme || (prefersDark.matches ? "dark" : "light");
+
+  function syncLabel() {
+    const light = effective() === "light";
+    btn.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
+    btn.setAttribute("aria-pressed", String(light));
+  }
+
+  btn.addEventListener("click", () => {
+    const next = effective() === "light" ? "dark" : "light";
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem(KEY, next);
+    } catch (e) {
+      /* private mode - the choice just won't persist */
+    }
+    syncLabel();
+    window.dispatchEvent(new Event("themechange"));
+  });
+
+  // no explicit choice yet -> keep tracking the OS switch
+  if (prefersDark.addEventListener) {
+    prefersDark.addEventListener("change", () => {
+      if (!root.dataset.theme) syncLabel();
+    });
+  }
+  syncLabel();
+})();
+
 // --- multi-select dropdown ----------------------------------------------
 //
 // Upgrades <div class="multiselect"> (a .ms-toggle button + a hidden .ms-panel
