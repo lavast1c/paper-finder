@@ -379,6 +379,9 @@ def test_api_topics_subject_param_swaps_the_taxonomy(client):
     assert body["total"] == 0
     assert all(t["count"] == 0 for t in body["topics"])
 
+    maths = client.get("/api/topics", params={"subject": "Pure Mathematics 1"}).json()
+    assert {t["code"] for t in maths["topics"]} == {f"pm{n}" for n in range(1, 9)}
+
 
 def test_api_search_subject_param_scopes_results(client):
     # every fixture paper is Physics, so scoping to another subject empties it
