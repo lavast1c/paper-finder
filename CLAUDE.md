@@ -24,14 +24,19 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 m24/s24/w24 + m25/s25/w25 + s26 + m26, Papers 1 & 2, variants 1-4 where they
 exist (s25/w25/s26 have a 4th variant `qp_14/24`; the "m" series is
 variant 2 only — `9702_m24/m25/m26_qp_12/22`) = 42 question
-papers, 978 questions, 953 answers linked, 300 flagged `has_figure`, all 978
+papers, 978 questions, 973 answers linked, 300 flagged `has_figure`, all 978
 tagged into the 11 CIE 9702 AS syllabus sections (`s01`..`s11`, multi-label,
 118 multi-section) — `labels/question_topics.tsv`, loaded by `paper-finder
 topics`. Every question also has a rendered **image crop** of itself
-(`questions.crop_rects`/`crop_count`, set in `segment`; `paper-finder figures`
-renders 1155 PNGs into `data/crops/<stem>/qNN_pK.png`, ~35 MB — gitignored +
-vercelignored). The browse-by-topic flashcard (served at `/`) shows the crop
-instead of the extracted text (Stage 2).
+(`questions.crop_rects`/`crop_count`, set in `segment`) and, for structured
+questions, an **image crop of its mark scheme** cropped from the `ms` PDF
+(`answers.answer_crop_rects`/`answer_crop_count`, set in `marks`; 133 answers).
+`paper-finder figures` renders both — 1155 question PNGs into
+`data/crops/<qp_stem>/qNN_pK.png` plus 192 mark-scheme PNGs into
+`data/crops/<ms_stem>/qNN_pK.png`, ~40 MB — gitignored + vercelignored. The
+browse-by-topic flashcard (served at `/`) shows the question crop instead of
+the extracted text, and on reveal shows the mark-scheme crop (with a "Show
+text" toggle) instead of the flattened mark-scheme text (Stage 2).
 `evaluate` = ~73% top-1 / 100% top-5 on `eval/validation.tsv` (top-1 keeps
 falling as near-duplicate questions across sessions appear — the validation
 phrases are too generic; a job for Stage 6 + better phrases).
@@ -46,10 +51,13 @@ _urllib_fetcher` maps "redirected off the .pdf" to not-found.
 Both MCQ and structured papers supported; `segment_paper` dispatches on
 `looks_like_mcq`.
 
-Known bug: some **landscape/rotated** Paper 2 mark-scheme pages (e.g.
-`9702_s24_ms_21/22/23`) extract with y-coords outside the page height, so
-`segment.load_lines`' body-band drops the `1(a)` labels and `marks.py` links 0
-answers. `extract.py` needs page-rotation handling. Question papers are fine.
+Fixed (2026-09-10): **landscape/rotated** Paper 2 mark-scheme pages (e.g.
+`9702_s24_ms_21/22/23`) used to extract with y-coords outside the page height,
+so `marks.py` linked 0 answers for them. `extract.py` now maps every line bbox
+through `page.rotation_matrix` (then `.normalize()`) into the rotated/display
+frame that `page.rect` and `page.get_pixmap(clip=)` already use, so both the
+segmenter and `figures.py` see coherent coords. `9702_s26_qp_21` still has 0
+answers — its mark scheme was never published to the mirror.
 
 **Stage 7b — deployed** to Vercel + Supabase (`~/.claude/plans/yes-can-you-...md`,
 `DEPLOY_PROGRESS.md`). The local build pipeline is 100% unchanged (still SQLite).
@@ -84,6 +92,11 @@ policy on `storage.objects`; `publish` carries `crop_count`, and
 / `browse_questions` / `topic_counts` with `years integer[]` / `sessions text[]` /
 `variants integer[]` params, each `is null or cardinality = 0` = no restriction on
 that axis).
++ `0007_answer_crops.sql` (adds `questions.answer_crop_count`, recreates
+`browse_questions` / `search_questions` with an `answer_crop_count` column; **no**
+bucket change — the `ms_` crop folders reuse the `question-crops` bucket and its
+0005 `authenticated`-read policy; `publish` carries `answer_crop_count`,
+`publish-figures` uploads the `ms_` PNGs with no code change).
 Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
 
 `/api/search` + `/api/browse` + `/api/topics` (local) and the
@@ -158,19 +171,34 @@ old `?topics=a,b` deep links clamp to the first. Local endpoints `/api/topics` +
 PNG crop of the real question (`crop_count > 0` → image; `= 0` → the old text +
 `◧` note). `web/app.py` `/figure/{filename}/{crop}` serves `data/crops/` behind
 the same `serve_pdfs` flag as `/pdf/` (`resolve_crop` = `resolve_pdf`'s
-round-trip check + a `^q\d{2}_p\d\.png$` whitelist); `result_payload` adds
-`crop_base`. `topics.js` `renderCropImages` swaps `<img>`s idempotently (guarded
-on `filename#qnum`), loads them **eagerly** (the card is below the fold on load —
-lazy images there never enter view), offers a **"Show text"** toggle
-(`localStorage` `paper-finder.showtext`), and in cloud mode mints batched signed
-Storage URLs. `PF.cloudRow` must carry `question_number` — `topics.js` builds the
-crop object path from it (`q{NN}_p{k}.png`); without it cloud paths were
-`qundefined_p1.png`. **Cloud live:** 0005 applied, `publish` run (cloud
-`crop_count` = 849/92/28/7/2), `publish-figures` uploaded all 1155 PNGs to the
-private `question-crops` bucket (42 folders; anon `list` → `[]`, anon `sign` →
-404 — genuinely private).
+round-trip check + a `^q\d{2}_p\d\.png$` whitelist; accepts `qp` **and** `ms`
+filenames); `result_payload` adds `crop_base` (qp) + `ms_crop_base` (qp filename
+with `_qp_`→`_ms_`, only when `answer_crop_count`). `topics.js` `renderCropImages`
+swaps `<img>`s idempotently (guarded on `filename#qnum`), loads them **eagerly**
+(the card is below the fold on load — lazy images there never enter view), offers
+a **"Show text"** toggle (`localStorage` `paper-finder.showtext`), and in cloud
+mode mints batched signed Storage URLs. `PF.cloudRow` must carry
+`question_number` — `topics.js` builds the crop object path from it
+(`q{NN}_p{k}.png`); without it cloud paths were `qundefined_p1.png`.
 
-Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md`.
+**Mark-scheme crop on reveal.** `#card-answer` holds `#answer-images` +
+`#answer-show-text` + an `#answer-body` slot (the only part `renderCard` wipes
+each pass — the images/toggle live outside it so they don't flicker on
+toggle/prefetch). `renderAnswerImages` / `answerCropUrls` / `renderedAnswerKey`
+mirror the question side but off `ms_crop_base` (local) / a signed
+`question-crops` URL under the `_ms_` stem (cloud); `paper-finder.showanswertext`
+persists the toggle. An `<img>` load failure or no resolved URL falls back to
+`PF.answerBlock` for that one card. MCQ answers (`answer_crop_count = 0`) keep
+the single letter, no image, no toggle.
+
+**Cloud live:** 0005 + 0007 applied; `publish` run (cloud `crop_count` on all
+978, `answer_crop_count` > 0 on 133); `publish-figures` uploaded the 1155
+question PNGs + 192 `ms_` PNGs to the private `question-crops` bucket (62
+folders; anon `list` → `[]`, anon `sign` → 404 — genuinely private).
+`publish-figures` needs `SUPABASE_URL` (not in `.env` — pass it inline:
+`SUPABASE_URL=https://gfigwnbkzkgwxcdoqxtz.supabase.co`) + `SUPABASE_SERVICE_ROLE_KEY`.
+
+Next: Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Setup
 
@@ -204,9 +232,10 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   [--port 8000] [--no-pdfs]`. `fastapi` is a core dep (Vercel needs it); only
   `uvicorn` is the optional `web` extra, lazily imported in `_cmd_serve` so every
   other command works without it.
-- Render the per-question image crops: `paper-finder figures [--only <substr>]
+- Render the image crops: `paper-finder figures [--only <substr>]
   [--limit N] [--force] [--dry-run]` — PyMuPDF renders `questions.crop_rects`
-  into `data/crops/<stem>/qNN_pK.png` (greyscale, 2x). Part of `build` (offline);
+  (from the `qp`) and `answers.answer_crop_rects` (from the `ms`) into
+  `data/crops/<stem>/qNN_pK.png` (greyscale, 2x). Part of `build` (offline);
   idempotent (skips existing).
 - Publish to the deployed Supabase index: `pip install -e ".[publish]"` then
   `paper-finder publish [--dry-run] [--db-url ...]` — reads `SUPABASE_DB_URL`
@@ -266,20 +295,26 @@ Next: fix rotated-page extraction, or Stage 6 (semantic search) — see `PLAN.md
   PDFs into `data/raw/`, CSV attempt log at `data/download_log.csv`; stdlib
   `urllib`, injected `fetcher` for tests; aborts on 403 / challenge / repeated
   network errors), `ingest` (filenames -> papers), `extract` (PDF -> text+bbox
-  JSON in `data/processed/`, via PyMuPDF), `segment` (paper -> questions; MCQ and
+  JSON in `data/processed/`, via PyMuPDF; maps each line bbox through
+  `page.rotation_matrix` so rotated pages land in the display frame), `segment`
+  (paper -> questions; MCQ and
   structured), `marks` (mark scheme -> answers; MCQ letter table or structured
-  per-question blocks), `topics` (load `labels/question_topics.tsv` -> the
+  per-question blocks; `_answer_crop_rects` records `answers.answer_crop_rects` /
+  `answer_crop_count` — a landscape-MS mirror of `segment._crop_rects`),
+  `topics` (load `labels/question_topics.tsv` -> the
   `question_topics` join table; keyed on `(filename, question_number)`, never
   `questions.id` — `segment` reassigns ids every run; orphan labels reported not
   fatal), `classify` (LLM multi-label -> the TSV; injectable `Labeller`, batched,
   lazy `anthropic`; network side effect, out of `build`),
-  `figures` (`questions.crop_rects` -> greyscale PNG crops in `data/crops/` via
-  PyMuPDF; part of `build`, idempotent, `crop_path` derives `qNN_pK.png` from
-  `(stem, qnum, ordinal)`; skips `page.rotation != 0`; never imported from
+  `figures` (`questions.crop_rects` (from the `qp`) + `answers.answer_crop_rects`
+  (from the `ms`, same stem `_qp_`→`_ms_`) -> greyscale PNG crops in `data/crops/`
+  via PyMuPDF; part of `build`, idempotent, `crop_path` derives `qNN_pK.png` from
+  `(stem, qnum, ordinal)`; rotated pages render fine now that `extract` maps
+  coords into the display frame; never imported from
   `web/app.py`), `search` (FTS5 + BM25;
   `kind=all|mcq|theory` filter + `_paper_scope()` year/session/variant filter;
   `browse_by_topic` + `topic_counts` for the browse page;
-  `SearchHit` carries `topic_codes` + `crop_count`),
+  `SearchHit` carries `topic_codes` + `crop_count` + `answer_crop_count`),
   `evaluate`,
   `web` (`create_app(db_path, raw_dir, crop_dir, serve_pdfs)` — FastAPI + a hand-written
   static page in `web/static/` (frosted-panel UI: token-driven `style.css`,
