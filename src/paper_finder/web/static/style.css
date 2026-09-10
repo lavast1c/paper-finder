@@ -9,12 +9,14 @@
 :root {
   color-scheme: light;
 
-  /* colour — light */
-  --bg: #eceef1;                  /* cool neutral grey */
+  /* colour — light. Warm parchment ground: a hint of Solarized so the "white"
+     reads as tinted paper, not a screen grey. (The explicit light theme goes
+     the whole way to base3 #fdf6e3.) */
+  --bg: #f0ede2;
   --text: #16191d;
-  --text-muted: #566070;
-  --surface: rgba(255, 255, 255, 0.52);
-  --surface-strong: rgba(255, 255, 255, 0.74);
+  --text-muted: #5c6270;
+  --surface: rgba(255, 253, 247, 0.54);
+  --surface-strong: rgba(255, 253, 247, 0.76);
   /* "liquid glass" — header + search/filter trays: no fill at all, just an SVG
      refraction that bends the dot grid behind them, a whisper of blur + a lens
      tint. --glass-backdrop drops to `none` when the OS asks for less transparency. */
@@ -23,7 +25,7 @@
   --border: rgba(255, 255, 255, 0.7);
   --hairline: rgba(20, 28, 40, 0.14);
   --specular: rgba(255, 255, 255, 0.95);
-  --field-bg: #f1f4f8;            /* solid control fill (select + its option list) */
+  --field-bg: #f4f1e8;            /* solid control fill (select + its option list) */
   --primary: #2563eb;             /* decorative accents / focus only */
   --primary-ink: #ffffff;
   --btn: #1d4ed8;                 /* button fill — white text is AA (6.3:1) */
@@ -902,9 +904,9 @@ footer {
    (--glass has no blur to hide behind, so it must fall back to a real fill) */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
-    --surface: rgba(255, 255, 255, 0.93);
-    --surface-strong: #ffffff;
-    --glass: rgba(255, 255, 255, 0.86);
+    --surface: rgba(255, 253, 247, 0.93);
+    --surface-strong: #fffdf7;
+    --glass: rgba(255, 253, 247, 0.86);
   }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -916,9 +918,9 @@ footer {
 /* honour the OS "reduce transparency" switch */
 @media (prefers-reduced-transparency: reduce) {
   :root {
-    --surface: rgba(255, 255, 255, 0.95);
-    --surface-strong: #ffffff;
-    --glass: rgba(255, 255, 255, 0.9);
+    --surface: rgba(255, 253, 247, 0.95);
+    --surface-strong: #fffdf7;
+    --glass: rgba(255, 253, 247, 0.9);
     --glass-backdrop: none;
     --blur: 0px;
     --blur-thick: 0px;
