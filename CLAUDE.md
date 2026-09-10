@@ -22,14 +22,14 @@ tech stack, data reference, and database schema.
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open.
 
-**The corpus is now two subjects / three topic taxonomies** (added 2026-09-10),
-distinguished by `papers.subject_name`:
+**The corpus is now three subjects / five topic taxonomies** (9709 added
+2026-09-10), distinguished by `papers.subject_name`:
 
 - **Physics** — 9702 2020-2026 (`m20`..`m26` Feb/March, `s20`..`s26`,
   `w20`..`w25`), Papers 1 & 2, variants 1-4 where they exist (s25/w25/s26 have a
   4th variant `qp_14/24`; the "m" series is variant 2 only — `9702_m2X_qp_12/22`)
-  = 98 question papers, 2289 questions, 2284 answers linked, 640 flagged
-  `has_figure`, all 2289 tagged into the 11 CIE 9702 AS syllabus sections
+  = 98 question papers, 2290 questions, 2285 answers linked, ~640 flagged
+  `has_figure`, all 2290 tagged into the 11 CIE 9702 AS syllabus sections
   (`s01`..`s11`, multi-label, 155 multi-section).
 - **Further Pure Mathematics** — 9231 Paper 1, variants 1-3, `s20`..`s26` +
   `w20`..`w25` (no `m` series, no `w26`) = 39 question papers, 273 questions,
@@ -37,32 +37,45 @@ distinguished by `papers.subject_name`:
 - **Further Probability & Statistics** — 9231 Paper 4, same sessions/variants =
   39 question papers, 237 questions, 237 answers linked, tagged into the 5
   syllabus §4 sections (`fs1`..`fs5`).
+- **Pure Mathematics 1** — 9709 Paper 1, variants 1-3, `s20`..`s26` +
+  `w20`..`w25` + `m20`..`m26` (Feb/March variant 2 only) = 46 question papers,
+  502 questions, 501 answers linked, tagged into the 8 syllabus §1 sections
+  (`pm1`..`pm8`: Quadratics / Functions / Coordinate geometry / Circular
+  measure / Trigonometry / Series / Differentiation / Integration).
+- **Probability & Statistics 1** — 9709 Paper 5, same sessions/variants = 46
+  question papers, 307 questions, 307 answers linked, tagged into the 5
+  syllabus §5 sections (`ps1`..`ps5`: Representation of data / Permutations and
+  combinations / Probability / Discrete random variables / The normal
+  distribution).
 
 9231 total: **78 QP papers, 510 questions, 510/510 answers linked** across 13
-sessions (`s20`-`s26`, `w20`-`w25`). Both 9231 papers are structured/theory
-(neither is MCQ). Taxonomies live in `src/paper_finder/topics.py` as three
-`Taxonomy` instances (`TAXONOMIES`); `taxonomy_for(subject_code, paper)` /
+sessions (`s20`-`s26`, `w20`-`w25`). 9709 total: **92 QP papers, 809 questions,
+808/809 answers linked**, sessions `m20`-`m26` + `s20`-`s26` + `w20`-`w25` (no
+`w26`; `9709_s26_qp_12` is a 4-page preview PDF on the mirror — 9 questions
+short). Both 9231 papers and both 9709 papers are structured/theory (none is
+MCQ). Taxonomies live in `src/paper_finder/topics.py` as five `Taxonomy`
+instances (`TAXONOMIES`); `taxonomy_for(subject_code, paper)` /
 `taxonomy_by_name(subject_name)` resolve one. Labels: `labels/question_topics.tsv`,
-loaded by `paper-finder topics` (now prints a per-subject block).
+loaded by `paper-finder topics` (prints a per-subject block).
 
 The 9702 2024-2026 papers were labelled by `paper-finder classify`; the 9702
-2020-2023 ones (1311 questions) and **every 9231 question** (510) were labelled
-without an API key — 9702 Paper 1 MCQs by their position in the paper (Paper 1
-tracks the syllabus-section order closely, ~80-85% accurate), 9702 Paper 2 and
-all 9231 by reading each question — refine any `llm` row later with
-`paper-finder classify --relabel` once `ANTHROPIC_API_KEY` is set (`classify.py`
-is not yet taxonomy-aware — Commit 9, deferred).
+2020-2023 ones (1311 questions), **every 9231 question** (510) and **every 9709
+question** (809) were labelled without an API key — 9702 Paper 1 MCQs by their
+position in the paper (Paper 1 tracks the syllabus-section order closely,
+~80-85% accurate), 9702 Paper 2 / all 9231 / all 9709 by reading each question
+— refine any `llm` row later with `paper-finder classify --relabel` once
+`ANTHROPIC_API_KEY` is set (`classify.py` is not yet taxonomy-aware — Commit 9,
+deferred).
 Every question also has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set in `segment`) and, for structured
 questions, an **image crop of its mark scheme** cropped from the `ms` PDF
 (`answers.answer_crop_rects`/`answer_crop_count`, set in `marks`; 324 Physics +
-510 9231 answers). 9231 mark schemes are **landscape** like Physics (h=595 w=842),
-so `marks.py` crop geometry is unchanged; `_bare_label_number` handles 9231's
-part-less questions (a bare number in the Question column).
-`paper-finder figures` renders both — 3652 question PNGs
-(2602 Physics — down from 2715 as `segment` furniture filtering improved — plus
-1050 9231) into `data/crops/<qp_stem>/qNN_pK.png`, plus 1585 mark-scheme PNGs
-(547 Physics + 1038 9231) into `data/crops/<ms_stem>/qNN_pK.png` — ~120 MB,
+510 9231 + 807 9709 answers). 9231 **and** 9709 mark schemes are **landscape**
+like Physics (h=595 w=842), so `marks.py` crop geometry is unchanged;
+`_bare_label_number` handles the part-less questions (a bare number in the
+Question column). `paper-finder figures` renders both — question PNGs into
+`data/crops/<qp_stem>/qNN_pK.png` plus mark-scheme PNGs into
+`data/crops/<ms_stem>/qNN_pK.png` (9709 alone = ~1330 qp + ~1620 ms) — ~150 MB,
 gitignored + vercelignored. The
 browse-by-topic flashcard (served at `/`) shows the question crop instead of
 the extracted text, and on reveal shows the mark-scheme crop (with a "Show
@@ -141,7 +154,13 @@ column it was compared against, so in the `language sql` body `t.subject =
 subject` bound to the column and the topic-list filter was a no-op (every
 subject showed all 23 topics in the dropdown). `topics.js` `fetchCounts` now
 passes `topic_subject`).
-Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1).
++ `0010_maths_9709.sql` (adds Mathematics 9709 Papers 1 & 5 as the subjects
+`Pure Mathematics 1` (`pm1`..`pm8`) and `Probability & Statistics 1`
+(`ps1`..`ps5`); the only DDL is widening the `questions_topic_codes_valid` CHECK
+to the union of all five taxonomies — `is_mcq`, `topics.subject` and the RPC
+`subjects`/`topic_subject` params already existed from 0008/0009, and `publish`
+reseeds `public.topics` from `topics.py`).
+Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1). Migrations 0001-0010 applied.
 
 `/api/search` + `/api/browse` + `/api/topics` (local) and the
 `search_questions` / `browse_questions` / `topic_counts` RPCs (cloud) take a
@@ -195,9 +214,10 @@ diagram/graph/table (`questions.has_figure`, set in `segment` by the
 show a `◧ Has a diagram, graph or table — check the PDF` note (`.figure-note`).
 
 **Topics + flashcard page (Stage 1 done).** Every question is tagged with all
-fitting syllabus sections for its subject (`src/paper_finder/topics.py` = three
+fitting syllabus sections for its subject (`src/paper_finder/topics.py` = five
 `Taxonomy` instances — 11 `s01`..`s11` for Physics, 7 `fp1`..`fp7`, 5
-`fs1`..`fs5`; `TAXONOMIES`, `ALL_TOPICS`, `taxonomy_for`, `taxonomy_by_name`;
+`fs1`..`fs5`, 8 `pm1`..`pm8`, 5 `ps1`..`ps5` (36 topics total); `TAXONOMIES`,
+`ALL_TOPICS`, `taxonomy_for`, `taxonomy_by_name`;
 `labels.parse_labels` validates each row against its own subject's taxonomy, not
 the union; `labels/question_topics.tsv` = hand-committable, no CIE text — just
 `filename<TAB>qnum<TAB>codes<TAB>source`). `paper-finder topics` loads the TSV
@@ -266,9 +286,10 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
 - Fetch more papers: `paper-finder download [--dry-run] [--limit N]
-  [--subject 9702,9231] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
+  [--subject 9702,9231,9709] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
   [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`, which is now
-  **per-subject** (`{"subjects": {"9702": {papers, variants}, "9231": {...}}}`);
+  **per-subject** (`{"subjects": {"9702": {papers, variants}, "9231": {...},
+  "9709": {papers: [1, 5], variants: [1, 2, 3]}}}`);
   `--papers`/`--variants` apply to every selected subject, `--subject` picks
   which. NOT part of `build` (network side effect). Idempotent (skips files
   already in `data/raw/`).
@@ -355,9 +376,15 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   JSON in `data/processed/`, via PyMuPDF; maps each line bbox through
   `page.rotation_matrix` so rotated pages land in the display frame), `segment`
   (paper -> questions; MCQ and
-  structured — `_STRUCTURED_START_MAX_Y = 0.45` (was 0.18) so a 9231 question
-  can start mid-page, plus a body-lookahead scan past a figure/formula, and
-  `_is_stray_page_number` drops a bare margin number that is really a footer),
+  structured — `_STRUCTURED_START_MAX_Y = 0.88` (was 0.18, then 0.45) so a Maths
+  question can start well down a shared page (9709 Stats ~0.51), a
+  `_STRUCTURED_START_TOP_OF_PAGE` fast-accept for a sequence-continuing margin
+  number at the top of a fresh page (9709 Pure Maths opens questions with a
+  full-page graph the body-lookahead can't see past), `_QSTART` matching
+  "10 The equation..." so a two-digit number sharing its line with the opening
+  words (2024+ 9709 papers) is still a start, plus a body-lookahead scan past a
+  figure/formula, and `_is_stray_page_number` drops a bare margin number that is
+  really a footer),
   `marks` (mark scheme -> answers; MCQ letter table or structured
   per-question blocks; `_bare_label_number` + `_answer_table_first_page` pick up
   9231's part-less questions (a bare number in the Question column, gated on the
