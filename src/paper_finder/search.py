@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from paper_finder.db import connect, init_db
-from paper_finder.topics import CODES
+from paper_finder.topics import CODES, taxonomy_by_name
 
 _TOKEN = re.compile(r"[0-9a-z]+")
 
@@ -21,6 +21,7 @@ _TOKEN = re.compile(r"[0-9a-z]+")
 @dataclass
 class SearchHit:
     filename: str
+    subject_code: str
     subject_name: str | None
     year: int
     session: str
@@ -79,7 +80,7 @@ _ANSWER_CROP_COUNT_SUBQUERY = (
 
 _SEARCH_SELECT = f"""
 SELECT
-    p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
+    p.filename, p.subject_code, p.subject_name, p.year, p.session, p.paper, p.variant,
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
@@ -106,18 +107,19 @@ def search(
     years: Sequence[int] | None = None,
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
+    subjects: Sequence[str] | None = None,
 ) -> list[SearchHit]:
     """Keyword search. ``kind`` filters by question type: ``all`` (default),
     ``mcq`` (multiple-choice questions only) or ``theory`` (structured only).
-    ``years`` / ``sessions`` / ``variants`` narrow to matching papers; an empty
-    or missing axis places no restriction on it."""
+    ``subjects`` / ``years`` / ``sessions`` / ``variants`` narrow to matching
+    papers; an empty or missing axis places no restriction on it."""
     fts_query = build_fts_query(query)
     if not fts_query:
         return []
     if kind not in KINDS:
         kind = "all"
 
-    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
     sql = _SEARCH_SELECT
     if scope_where:
         sql += "  AND " + "\n  AND ".join(scope_where) + "\n"
@@ -131,6 +133,7 @@ def search(
     return [
         SearchHit(
             filename=row["filename"],
+            subject_code=row["subject_code"],
             subject_name=row["subject_name"],
             year=row["year"],
             session=row["session"],
@@ -152,7 +155,7 @@ def search(
 
 
 _BROWSE_COLUMNS = f"""
-    p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
+    p.filename, p.subject_code, p.subject_name, p.year, p.session, p.paper, p.variant,
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
@@ -172,11 +175,17 @@ def _paper_scope(
     years: Sequence[int] | None,
     sessions: Sequence[str] | None,
     variants: Sequence[int] | None,
+    subjects: Sequence[str] | None = None,
 ) -> tuple[list[str], dict]:
-    """WHERE clauses + bind params restricting ``p`` (papers) by year / session /
-    variant. An empty or missing axis places no restriction on it."""
+    """WHERE clauses + bind params restricting ``p`` (papers) by subject_name /
+    year / session / variant. An empty or missing axis places no restriction on
+    it. ``subjects`` matches ``papers.subject_name`` (the UI's Subject value)."""
     where: list[str] = []
     params: dict = {}
+    if subjects:
+        sql, p = _in_clause("subj", list(subjects))
+        where.append(f"p.subject_name IN {sql}")
+        params.update(p)
     if years:
         sql, p = _in_clause("y", [int(y) for y in years])
         where.append(f"p.year IN {sql}")
@@ -198,6 +207,7 @@ def _browse_filters(
     years: Sequence[int] | None,
     sessions: Sequence[str] | None,
     variants: Sequence[int] | None,
+    subjects: Sequence[str] | None = None,
 ) -> tuple[str, dict]:
     """Shared WHERE fragment + params for ``browse_by_topic`` and its COUNT."""
     codes_sql, params = _in_clause("t", topic_codes)
@@ -207,7 +217,7 @@ def _browse_filters(
         _KIND_FILTER,
     ]
     params["kind"] = kind
-    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
     where.extend(scope_where)
     params.update(scope_params)
     return " AND ".join(where), params
@@ -220,6 +230,7 @@ def browse_by_topic(
     years: Sequence[int] | None = None,
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
+    subjects: Sequence[str] | None = None,
     limit: int = 20,
     offset: int = 0,
     db_path: Path | None = None,
@@ -234,7 +245,7 @@ def browse_by_topic(
     if kind not in KINDS:
         kind = "all"
 
-    where, params = _browse_filters(codes, kind, years, sessions, variants)
+    where, params = _browse_filters(codes, kind, years, sessions, variants, subjects)
     init_db(db_path)
     with connect(db_path) as conn:
         total = conn.execute(
@@ -250,6 +261,7 @@ def browse_by_topic(
     page = [
         SearchHit(
             filename=row["filename"],
+            subject_code=row["subject_code"],
             subject_name=row["subject_name"],
             year=row["year"],
             session=row["session"],
@@ -277,10 +289,16 @@ def topic_counts(
     years: Sequence[int] | None = None,
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
+    subject: str | None = None,
     db_path: Path | None = None,
 ) -> dict:
     """Per-topic question count under the current filters, every topic present
     even at zero, plus corpus ``total`` and ``unlabelled`` counts.
+
+    ``subject`` (a ``papers.subject_name``) restricts both the topic list --
+    only that taxonomy's sections -- and every count/total to that subject's
+    questions. Without it the topic list is Physics (the default taxonomy) and
+    counts span the whole corpus.
 
     Shape::
 
@@ -292,9 +310,13 @@ def topic_counts(
     if kind not in KINDS:
         kind = "all"
 
+    tax = taxonomy_by_name(subject) if subject else None
+    topic_list = tax.topics if tax is not None else TOPICS
+    subjects = [subject] if subject else None
+
     where = [_KIND_FILTER]
     params: dict = {"kind": kind}
-    scope_where, scope_params = _paper_scope(years, sessions, variants)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
     where.extend(scope_where)
     params.update(scope_params)
     filt = " AND ".join(where)
@@ -336,7 +358,7 @@ def topic_counts(
                 "subsections": list(t.subsections),
                 "count": counts.get(t.code, 0),
             }
-            for t in TOPICS
+            for t in topic_list
         ],
         "total": total,
         "unlabelled": total - labelled,

@@ -226,6 +226,7 @@ def create_app(
         years: str = "",
         sessions: str = "",
         variants: str = "",
+        subject: str = "",
     ) -> dict:
         if _supabase_env():  # cloud mode: the browser queries Supabase directly
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
@@ -238,6 +239,7 @@ def create_app(
             years=_int_csv(years) or None,
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
+            subjects=[subject] if subject else None,
         )
         return {
             "query": q,
@@ -253,9 +255,15 @@ def create_app(
 
     @app.get("/api/topics")
     def api_topics(
-        kind: str = "all", years: str = "", sessions: str = "", variants: str = ""
+        kind: str = "all",
+        years: str = "",
+        sessions: str = "",
+        variants: str = "",
+        subject: str = "",
     ) -> dict:
-        """Per-topic counts under the current filters -- feeds the topic chips."""
+        """Per-topic counts under the current filters -- feeds the topic chips.
+        ``subject`` restricts the topic list to that taxonomy and the counts to
+        that subject's questions."""
         if _supabase_env():
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         return topic_counts(
@@ -263,6 +271,7 @@ def create_app(
             years=_int_csv(years) or None,
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
+            subject=subject or None,
             db_path=db_path,
         )
 
@@ -273,6 +282,7 @@ def create_app(
         years: str = "",
         sessions: str = "",
         variants: str = "",
+        subject: str = "",
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> dict:
@@ -289,6 +299,7 @@ def create_app(
             years=_int_csv(years) or None,
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
+            subjects=[subject] if subject else None,
             limit=limit,
             offset=offset,
             db_path=db_path,
