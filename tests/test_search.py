@@ -38,6 +38,12 @@ def populated_db(tmp_path):
         conn.execute(
             "INSERT INTO answers (question_id, answer_text, source) VALUES (1, 'C', 'mark_scheme')"
         )
+        conn.execute(
+            """INSERT INTO answers
+                   (question_id, answer_text, source, answer_crop_rects, answer_crop_count)
+               VALUES (3, '3(a) ...', 'mark_scheme', '[[2, 55.0, 60.0, 700.0, 300.0]]', 1)"""
+        )
+        conn.execute("INSERT INTO question_topics (question_id, topic_code) VALUES (3, 's03')")
         conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
         conn.commit()
     return db_path
@@ -51,6 +57,20 @@ def test_search_finds_expected_question_first(populated_db):
     assert hits[0].page_start == 4
     assert hits[0].has_figure is False
     assert hits[0].label == "Physics 2026 s paper 11 Q1"
+
+
+def test_search_carries_answer_crop_count(populated_db):
+    hits = search("book rests table weight", db_path=populated_db)
+    assert hits[0].question_number == 3
+    assert hits[0].answer_crop_count == 1
+    other = search("ball thrown horizontally speed", db_path=populated_db)
+    assert other[0].answer_crop_count == 0
+
+
+def test_browse_by_topic_carries_answer_crop_count(populated_db):
+    page, _total = browse_by_topic(["s03"], db_path=populated_db)
+    assert page[0].question_number == 3
+    assert page[0].answer_crop_count == 1
 
 
 def test_search_stemming_matches_word_variants(populated_db):

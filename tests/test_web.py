@@ -6,9 +6,13 @@ from paper_finder.web.app import create_app, resolve_crop, resolve_pdf
 
 QP = "9702_s26_qp_11.pdf"
 STEM = QP[:-4]
+MS = "9702_s26_ms_11.pdf"
+MS_STEM = MS[:-4]
 
 # The three crop files the fixture writes: q1 has one page, q3 has two, q2 none.
 CROP_FILES = ["q01_p1.png", "q03_p1.png", "q03_p2.png"]
+# Mark-scheme crops, under the ms stem: q3 has one page.
+MS_CROP_FILES = ["q03_p1.png"]
 _PNG = b"\x89PNG\r\n\x1a\n" + b"fake png body"
 
 
@@ -19,9 +23,13 @@ def corpus(tmp_path):
     crop_dir = tmp_path / "crops"
     raw_dir.mkdir()
     (raw_dir / QP).write_bytes(b"%PDF-1.4\n%fake pdf\n")
+    (raw_dir / MS).write_bytes(b"%PDF-1.4\n%fake ms pdf\n")
     (crop_dir / STEM).mkdir(parents=True)
     for name in CROP_FILES:
         (crop_dir / STEM / name).write_bytes(_PNG)
+    (crop_dir / MS_STEM).mkdir(parents=True)
+    for name in MS_CROP_FILES:
+        (crop_dir / MS_STEM / name).write_bytes(_PNG)
 
     init_db(db_path)
     with connect(db_path) as conn:
@@ -30,6 +38,12 @@ def corpus(tmp_path):
                    paper, variant, paper_type, filename)
                VALUES (1, '9702', 'Physics', 2026, 's', 1, 1, 'qp', ?)""",
             (QP,),
+        )
+        conn.execute(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (2, '9702', 'Physics', 2026, 's', 1, 1, 'ms', ?)""",
+            (MS,),
         )
         conn.executemany(
             """INSERT INTO questions
@@ -43,10 +57,18 @@ def corpus(tmp_path):
             ],
         )
         conn.executemany(
-            "INSERT INTO answers (question_id, answer_text, source) VALUES (?, ?, ?)",
+            """INSERT INTO answers
+                   (question_id, answer_text, source, answer_crop_rects, answer_crop_count)
+               VALUES (?, ?, ?, ?, ?)""",
             [
-                (1, "C", "mark_scheme"),
-                (3, "3(a) resultant force is zero\nB1\n3(b) ...long mark scheme...", "mark_scheme"),
+                (1, "C", "mark_scheme", None, 0),
+                (
+                    3,
+                    "3(a) resultant force is zero\nB1\n3(b) ...long mark scheme...",
+                    "mark_scheme",
+                    "[[1, 55.0, 60.0, 700.0, 300.0]]",
+                    1,
+                ),
             ],
         )
         conn.executemany(
@@ -145,7 +167,7 @@ def test_limit_is_floored_and_capped(client):
 def test_stats_counts(client):
     s = client.get("/api/stats").json()
     assert s == {
-        "papers": 1,
+        "papers": 2,  # the qp and its ms
         "question_papers": 1,
         "questions": 3,
         "answers": 2,
@@ -187,6 +209,9 @@ def test_pdfs_disabled(corpus):
     assert top["pdf_url"] is None
     assert top["crop_base"] is None
     assert client.get(f"/figure/{QP}/q01_p1.png").status_code == 404
+    theory = client.get("/api/browse", params={"topics": "s03"}).json()["results"][0]
+    assert theory["ms_crop_base"] is None
+    assert client.get(f"/figure/{MS}/q03_p1.png").status_code == 404
 
 
 # ------------------------------------------------------------------ question crops
@@ -218,6 +243,36 @@ def test_no_crop_base_when_question_has_no_crops(client):
     assert top["question_number"] == 2
     assert top["crop_count"] == 0
     assert top["crop_base"] is None
+
+
+# ------------------------------------------------------------------ mark-scheme crops
+
+
+def test_mark_scheme_figure_served(client):
+    r = client.get(f"/figure/{MS}/q03_p1.png")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert r.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_browse_payload_carries_ms_crop_base(client):
+    top = client.get("/api/browse", params={"topics": "s03,s04"}).json()["results"][0]
+    assert top["question_number"] == 3
+    assert top["answer_crop_count"] == 1
+    assert top["ms_crop_base"] == f"/figure/{MS}"
+
+
+def test_no_ms_crop_base_when_answer_has_no_crops(client):
+    top = client.get("/api/search", params={"q": "ball thrown horizontally"}).json()["results"][0]
+    assert top["question_number"] == 1
+    assert top["answer_crop_count"] == 0
+    assert top["ms_crop_base"] is None
+
+
+def test_resolve_crop_accepts_ms_filenames(corpus):
+    db_path, _raw_dir, crop_dir = corpus
+    path = resolve_crop(MS, "q03_p1.png", crop_dir=crop_dir, db_path=db_path)
+    assert path is not None and path.is_file()
 
 
 def test_figure_404_for_valid_name_not_in_db(client):

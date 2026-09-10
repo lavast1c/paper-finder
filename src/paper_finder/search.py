@@ -35,6 +35,7 @@ class SearchHit:
     score: float
     topic_codes: tuple[str, ...] = field(default_factory=tuple)
     crop_count: int = 0  # number of question-image crops; 0 = show text only
+    answer_crop_count: int = 0  # number of mark-scheme crops; 0 = show answer text only
 
     @property
     def paper_variant(self) -> str:
@@ -72,11 +73,16 @@ _TOPIC_CODES_SUBQUERY = (
     "(SELECT group_concat(qt.topic_code) FROM question_topics qt WHERE qt.question_id = q.id)"
 )
 
+_ANSWER_CROP_COUNT_SUBQUERY = (
+    "(SELECT a.answer_crop_count FROM answers a WHERE a.question_id = q.id LIMIT 1)"
+)
+
 _SEARCH_SELECT = f"""
 SELECT
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
+    {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
     {_TOPIC_CODES_SUBQUERY} AS topic_codes,
     bm25(questions_fts) AS score
 FROM questions_fts
@@ -139,6 +145,7 @@ def search(
             score=row["score"],
             topic_codes=_split_codes(row["topic_codes"]),
             crop_count=row["crop_count"],
+            answer_crop_count=row["answer_crop_count"] or 0,
         )
         for row in rows
     ]
@@ -148,6 +155,7 @@ _BROWSE_COLUMNS = f"""
     p.filename, p.subject_name, p.year, p.session, p.paper, p.variant,
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
+    {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
     {_TOPIC_CODES_SUBQUERY} AS topic_codes
 """
 
@@ -256,6 +264,7 @@ def browse_by_topic(
             score=0.0,
             topic_codes=_split_codes(row["topic_codes"]),
             crop_count=row["crop_count"],
+            answer_crop_count=row["answer_crop_count"] or 0,
         )
         for row in rows
     ]
