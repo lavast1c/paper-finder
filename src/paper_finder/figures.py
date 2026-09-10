@@ -1,9 +1,11 @@
-"""Render a page-region image for every question, cropped from the source PDF.
+"""Render page-region images cropped from the source PDFs: the question itself
+(from the ``qp``) and, for structured papers, its mark scheme (from the ``ms``).
 
-``paper-finder figures`` reads the crop rectangles ``segment`` recorded on each
-``questions`` row (:data:`paper_finder.segment._crop_rects`) and renders one PNG
-per rectangle into ``data/crops/<stem>/``. Offline, idempotent and deterministic,
-so it joins ``paper-finder build`` after ``segment``.
+``paper-finder figures`` reads the crop rectangles recorded by ``segment`` on each
+``questions`` row (:data:`paper_finder.segment._crop_rects`) and by ``answers`` on
+each mark-scheme row (:data:`paper_finder.marks._answer_crop_rects`), and renders
+one PNG per rectangle into ``data/crops/<stem>/``. Offline, idempotent and
+deterministic, so it joins ``paper-finder build`` after ``segment`` / ``answers``.
 
 PyMuPDF is a core dependency, but this module is never imported from
 ``web/app.py`` -- the deployed import chain stays pymupdf-free.
@@ -54,12 +56,22 @@ def crop_path(stem: str, question_number: int, ordinal: int, crop_dir: Path) -> 
     return crop_dir / stem / f"q{question_number:02d}_p{ordinal}.png"
 
 
+# Two sources, same shape: the question crop comes off the questions row and
+# renders from the qp PDF; the mark-scheme crop comes off the answers row and
+# renders from the ms PDF (same stem with _qp_ -> _ms_, so the rest of the
+# pipeline -- grouping, crop_path, the raw_dir lookup -- needs no branch).
 _SELECT = """
-SELECT p.filename, q.question_number, q.crop_rects
+SELECT p.filename AS filename, q.question_number AS question_number, q.crop_rects AS crop_rects
 FROM questions q
 JOIN papers p ON p.id = q.paper_id
 WHERE p.paper_type = 'qp' AND q.crop_count > 0
-ORDER BY p.filename, q.question_number
+UNION ALL
+SELECT REPLACE(p.filename, '_qp_', '_ms_'), q.question_number, a.answer_crop_rects
+FROM answers a
+JOIN questions q ON q.id = a.question_id
+JOIN papers p ON p.id = q.paper_id
+WHERE a.answer_crop_count > 0
+ORDER BY filename, question_number
 """
 
 
