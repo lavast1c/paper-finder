@@ -24,8 +24,8 @@ const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
 const revealBtn = document.getElementById("reveal");
-const qZoombarEl = document.getElementById("q-zoombar");
-const aZoombarEl = document.getElementById("a-zoombar");
+const qCropHintEl = document.getElementById("q-crop-hint");
+const aCropHintEl = document.getElementById("a-crop-hint");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
@@ -41,9 +41,9 @@ const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question 
 const SHOWANSWERTEXT_KEY = "paper-finder.showanswertext"; // same, for the revealed mark scheme
 const QZOOM_KEY = "paper-finder.qzoom"; // per-browser question-crop zoom level
 const AZOOM_KEY = "paper-finder.azoom"; // per-browser mark-scheme-crop zoom level
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 3;
-const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 6;
+const ZOOM_STEP = 1.15; // multiplicative — one wheel notch / key press
 const CROP_BUCKET = "question-crops";
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
@@ -414,7 +414,7 @@ function renderCard() {
     cardImagesEl.hidden = true;
     showTextBtn.hidden = true;
   }
-  qZoombarEl.hidden = !hasCrops; // the zoom control only makes sense with a crop
+  qCropHintEl.hidden = !hasCrops; // the pan/zoom hint only applies to a crop
 
   const textVisible = !hasCrops || showText;
   cardQuestionEl.hidden = !textVisible;
@@ -433,11 +433,11 @@ function renderCard() {
     answerImagesEl.replaceChildren();
     answerImagesEl.hidden = true;
     answerShowTextBtn.hidden = true;
-    aZoombarEl.hidden = true;
+    aCropHintEl.hidden = true;
     return;
   }
 
-  aZoombarEl.hidden = r.answer_crop_count === 0;
+  aCropHintEl.hidden = r.answer_crop_count === 0;
   if (r.answer_crop_count > 0) {
     const akey = cardKey(r);
     if (renderedAnswerKey !== akey) {
@@ -463,43 +463,115 @@ function toggleAnswer() {
   renderCard();
 }
 
-// --- zoom: one control per crop column. Each scales its own `.card-images`
-// via an `--img-zoom` custom property; the crop <img>s (rebuilt on every card)
-// inherit it, and the inline style survives a `replaceChildren()`, so it only
-// runs on a change. `#q-zoombar` drives the question, `#a-zoombar` the scheme.
-function makeZoom({ barEl, imagesEl, storeKey }) {
+// --- crop viewer: each `.card-images` is a pan/zoom surface. Drag to pan
+// (grab cursor, native scroll under the hood), wheel to zoom toward the
+// pointer, double-click to reset. The `--img-zoom` custom property scales the
+// crop <img>s (`width: calc(100% * var(--img-zoom))`); it lives on the
+// container inline style, which survives the `replaceChildren()` on each card,
+// so a new card keeps the chosen magnification. Question and mark scheme are
+// independent (their own container, their own localStorage key).
+function makeCropViewer(imagesEl, storeKey) {
   let z = readZoom(storeKey);
-  const outBtn = barEl.querySelector('[id$="-zoom-out"]');
-  const inBtn = barEl.querySelector('[id$="-zoom-in"]');
-  const levelEl = barEl.querySelector('[id$="-zoom-level"]');
+
+  // the element that actually scrolls: `.card-images` itself in normal mode
+  // (`overflow: auto`), or its scrolling ancestor (the column / `.card-body`)
+  // in fullscreen, where `.card-images` is `overflow: visible`.
+  function scroller() {
+    let el = imagesEl;
+    while (el && el !== document.documentElement) {
+      const s = getComputedStyle(el);
+      if (/(auto|scroll)/.test(s.overflowY) || /(auto|scroll)/.test(s.overflowX)) return el;
+      el = el.parentElement;
+    }
+    return imagesEl;
+  }
+
   function apply() {
-    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 20) / 20));
+    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
     imagesEl.style.setProperty("--img-zoom", String(z));
-    levelEl.textContent = Math.round(z * 100) + "%";
-    outBtn.disabled = z <= ZOOM_MIN;
-    inBtn.disabled = z >= ZOOM_MAX;
     try {
       localStorage.setItem(storeKey, String(z));
     } catch {
       /* private mode / storage blocked */
     }
   }
-  function bump(delta) {
-    z += delta;
+  // zoom by `factor`, keeping the content point under (clientX, clientY) fixed;
+  // with no point given (keyboard) it zooms about the visible centre
+  function zoomBy(factor, clientX, clientY) {
+    const sc = scroller();
+    const rect = sc.getBoundingClientRect();
+    const px = clientX == null ? rect.width / 2 : clientX - rect.left;
+    const py = clientY == null ? rect.height / 2 : clientY - rect.top;
+    const before = z;
+    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * factor));
+    const ratio = z / before;
+    const cx = sc.scrollLeft + px;
+    const cy = sc.scrollTop + py;
     apply();
+    sc.scrollLeft = cx * ratio - px;
+    sc.scrollTop = cy * ratio - py;
   }
   function reset() {
     z = 1;
     apply();
+    scroller().scrollTo(0, 0);
   }
-  outBtn.addEventListener("click", () => bump(-ZOOM_STEP));
-  inBtn.addEventListener("click", () => bump(ZOOM_STEP));
-  levelEl.addEventListener("click", reset);
+
+  imagesEl.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, e.clientX, e.clientY);
+    },
+    { passive: false },
+  );
+  imagesEl.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    reset();
+  });
+
+  // drag to pan
+  let dragging = false;
+  let sc = null;
+  let sx = 0;
+  let sy = 0;
+  let sl = 0;
+  let st = 0;
+  imagesEl.addEventListener("pointerdown", (e) => {
+    // mouse only — touch keeps native scroll-to-pan (see `touch-action`)
+    if (e.button !== 0 || e.pointerType !== "mouse") return;
+    dragging = true;
+    sc = scroller();
+    sx = e.clientX;
+    sy = e.clientY;
+    sl = sc.scrollLeft;
+    st = sc.scrollTop;
+    imagesEl.setPointerCapture(e.pointerId);
+    imagesEl.classList.add("is-grabbing");
+  });
+  imagesEl.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    sc.scrollLeft = sl - (e.clientX - sx);
+    sc.scrollTop = st - (e.clientY - sy);
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    imagesEl.classList.remove("is-grabbing");
+    try {
+      imagesEl.releasePointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+  }
+  imagesEl.addEventListener("pointerup", endDrag);
+  imagesEl.addEventListener("pointercancel", endDrag);
+
   apply();
-  return { bump, reset };
+  return { zoomBy, reset };
 }
-const qZoom = makeZoom({ barEl: qZoombarEl, imagesEl: cardImagesEl, storeKey: QZOOM_KEY });
-const aZoom = makeZoom({ barEl: aZoombarEl, imagesEl: answerImagesEl, storeKey: AZOOM_KEY });
+const qCrop = makeCropViewer(cardImagesEl, QZOOM_KEY);
+const aCrop = makeCropViewer(answerImagesEl, AZOOM_KEY);
 
 // Walk forward one page at a time until the deck covers `target` -- used when a
 // deep-link ?i= lands past the first page.
@@ -788,13 +860,13 @@ document.addEventListener("keydown", (e) => {
     toggleFullscreen();
   } else if (e.key === "+" || e.key === "=") {
     e.preventDefault();
-    qZoom.bump(ZOOM_STEP); // the keys drive the question; the mark scheme has its own buttons
+    qCrop.zoomBy(ZOOM_STEP); // the keys zoom the question; both crops also do drag-pan + wheel-zoom
   } else if (e.key === "-" || e.key === "_") {
     e.preventDefault();
-    qZoom.bump(-ZOOM_STEP);
+    qCrop.zoomBy(1 / ZOOM_STEP);
   } else if (e.key === "0") {
     e.preventDefault();
-    qZoom.reset();
+    qCrop.reset();
   }
 });
 

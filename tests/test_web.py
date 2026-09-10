@@ -130,7 +130,7 @@ def test_browse_page_has_crop_container(client):
     assert 'id="answer-show-text"' in r.text
     assert 'id="fullscreen-toggle"' in r.text  # flashcard fullscreen control
     assert 'id="reveal"' in r.text and 'class="reveal-btn"' in r.text  # answer toggle
-    assert 'id="q-zoombar"' in r.text and 'id="a-zoombar"' in r.text  # per-column zoom controls
+    assert 'id="q-crop-hint"' in r.text and 'id="a-crop-hint"' in r.text  # pan/zoom crop viewers
     assert "/static/favicon.svg" in r.text  # browser-tab icon
     assert 'id="f-topic"' in r.text  # topic dropdown replaced the chip row
 
