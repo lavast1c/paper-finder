@@ -80,6 +80,15 @@ def test_9231_paper_splits_into_two_subjects():
     assert parse_filename("9231_s24_qp_21.pdf").subject_name == "Further Mathematics"
 
 
+def test_9709_paper_splits_into_two_subjects():
+    # Mathematics 9709: Paper 1 (Pure Math 1) and Paper 5 (Prob & Stats 1) are
+    # separate subjects with their own syllabus content.
+    assert parse_filename("9709_s24_qp_11.pdf").subject_name == "Pure Mathematics 1"
+    assert parse_filename("9709_w23_ms_53.pdf").subject_name == "Probability & Statistics 1"
+    # a paper without an override falls back to the plain subject name
+    assert parse_filename("9709_s24_qp_21.pdf").subject_name == "Mathematics"
+
+
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"

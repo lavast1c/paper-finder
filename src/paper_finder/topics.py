@@ -4,13 +4,15 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Three taxonomies today:
+Five taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
 * ``FURTHER_PURE_1`` -- 9231 Paper 1 (Further Pure Mathematics 1), ``fp1``..``fp7``.
 * ``FURTHER_PROB_STATS`` -- 9231 Paper 4 (Further Probability & Statistics),
   ``fs1``..``fs5``.
+* ``PURE_MATH_1`` -- 9709 Paper 1 (Pure Mathematics 1), ``pm1``..``pm8``.
+* ``PROB_STATS_1`` -- 9709 Paper 5 (Probability & Statistics 1), ``ps1``..``ps5``.
 
 Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
 ``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
@@ -481,6 +483,228 @@ _FURTHER_PROB_STATS_TOPICS: tuple[Topic, ...] = (
 )
 
 
+# --- 9709 Paper 1: Pure Mathematics 1 (syllabus section 1) --------------------
+
+_PURE_MATH_1_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="pm1",
+        number=1,
+        name="Quadratics",
+        blurb=(
+            "Completing the square for a quadratic polynomial ax^2 + bx + c and using "
+            "the completed-square form, e.g. to locate the vertex or sketch the graph. "
+            "Finding and using the discriminant to determine the number of real roots of "
+            "ax^2 + bx + c = 0 (including repeated roots). Solving quadratic equations "
+            "and quadratic inequalities in one unknown by factorising, completing the "
+            "square or the formula. Solving by substitution a pair of simultaneous "
+            "equations of which one is linear and one is quadratic. Recognising and "
+            "solving equations that are quadratic in some function of x, e.g. "
+            "x^4 - 5x^2 + 4 = 0 or equations quadratic in sqrt(x) or in tan x."
+        ),
+        subsections=("1.1 Quadratics",),
+    ),
+    Topic(
+        code="pm2",
+        number=2,
+        name="Functions",
+        blurb=(
+            "The terms function, domain, range, one-one function, inverse function and "
+            "composition of functions. Finding the range of a given function and the "
+            "composition of two functions, including that a composite function gf can "
+            "only be formed when the range of f lies within the domain of g. Deciding "
+            "whether a function is one-one and finding the inverse of a one-one function "
+            "in simple cases. The graphical relationship between a one-one function and "
+            "its inverse, with the mirror line y = x. The transformations of the graph "
+            "of y = f(x) given by y = f(x) + a, y = f(x + a), y = af(x), y = f(ax) and "
+            "simple combinations of these, using the terms translation, reflection and "
+            "stretch."
+        ),
+        subsections=("1.2 Functions",),
+    ),
+    Topic(
+        code="pm3",
+        number=3,
+        name="Coordinate geometry",
+        blurb=(
+            "The equation of a straight line given sufficient information (two points, "
+            "or a point and the gradient); the forms y = mx + c, y - y1 = m(x - x1) and "
+            "ax + by + c = 0, with distances, gradients, midpoints, points of "
+            "intersection, and the gradient relationship between parallel and "
+            "perpendicular lines. The circle (x - a)^2 + (y - b)^2 = r^2 with centre "
+            "(a, b) and radius r, and the expanded form x^2 + y^2 + 2gx + 2fy + c = 0. "
+            "Algebraic methods for problems involving lines and circles, including "
+            "elementary circle properties (tangent perpendicular to radius, angle in a "
+            "semicircle, symmetry). Using the relationship between points of "
+            "intersection of graphs and solutions of equations, e.g. the set of values "
+            "of k for which a line meets, touches or misses a curve."
+        ),
+        subsections=("1.3 Coordinate geometry",),
+    ),
+    Topic(
+        code="pm4",
+        number=4,
+        name="Circular measure",
+        blurb=(
+            "The definition of a radian and the relationship between radians and "
+            "degrees. Using the formulae s = r*theta for arc length and A = (1/2)*r^2*theta "
+            "for sector area in solving problems, including the calculation of lengths "
+            "and angles in triangles and the areas of triangles."
+        ),
+        subsections=("1.4 Circular measure",),
+    ),
+    Topic(
+        code="pm5",
+        number=5,
+        name="Trigonometry",
+        blurb=(
+            "Sketching and using the graphs of sine, cosine and tangent for angles of "
+            "any size, in degrees or radians, e.g. y = 3 sin x, y = 1 - cos 2x, "
+            "y = tan(x + pi/4). The exact values of the sine, cosine and tangent of "
+            "30, 45, 60 degrees and related angles. The notations sin^-1, cos^-1, "
+            "tan^-1 for principal values. Using the identities tan(theta) = "
+            "sin(theta)/cos(theta) and sin^2(theta) + cos^2(theta) = 1 to prove "
+            "identities, simplify expressions and solve equations. Finding all "
+            "solutions of a simple trigonometric equation lying in a specified interval."
+        ),
+        subsections=("1.5 Trigonometry",),
+    ),
+    Topic(
+        code="pm6",
+        number=6,
+        name="Series",
+        blurb=(
+            "The expansion of (a + b)^n where n is a positive integer, with the "
+            "notations nCr and n!. Recognising arithmetic and geometric progressions "
+            "and using the formulae for the nth term and the sum of the first n terms "
+            "(a, b, c are in arithmetic progression if 2b = a + c and in geometric "
+            "progression if b^2 = ac). The condition for convergence of a geometric "
+            "progression and the formula for the sum to infinity of a convergent "
+            "geometric progression."
+        ),
+        subsections=("1.6 Series",),
+    ),
+    Topic(
+        code="pm7",
+        number=7,
+        name="Differentiation",
+        blurb=(
+            "The gradient of a curve at a point as the limit of the gradients of a "
+            "sequence of chords; the notations f'(x), f''(x), dy/dx and d^2y/dx^2. The "
+            "derivative of x^n for any rational n, with constant multiples, sums and "
+            "differences, and the chain rule for composite functions. Applying "
+            "differentiation to gradients, tangents and normals, increasing and "
+            "decreasing functions, and connected rates of change. Locating stationary "
+            "points and determining their nature (including using the second "
+            "derivative), and using information about stationary points when sketching "
+            "graphs."
+        ),
+        subsections=("1.7 Differentiation",),
+    ),
+    Topic(
+        code="pm8",
+        number=8,
+        name="Integration",
+        blurb=(
+            "Integration as the reverse of differentiation; integrating (ax + b)^n for "
+            "any rational n except -1, with constant multiples, sums and differences. "
+            "Finding a constant of integration, e.g. the equation of a curve through a "
+            "given point. Evaluating definite integrals, including simple improper "
+            "integrals. Using definite integration to find the area of a region bounded "
+            "by a curve and lines parallel to the axes, between a curve and a line or "
+            "between two curves, and to find a volume of revolution about the x- or "
+            "y-axis."
+        ),
+        subsections=("1.8 Integration",),
+    ),
+)
+
+# --- 9709 Paper 5: Probability & Statistics 1 (syllabus section 5) ------------
+
+_PROB_STATS_1_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="ps1",
+        number=1,
+        name="Representation of data",
+        blurb=(
+            "Selecting a suitable way to present raw statistical data and discussing "
+            "the advantages or disadvantages of particular representations. Drawing and "
+            "interpreting stem-and-leaf diagrams (including back-to-back), "
+            "box-and-whisker plots, histograms and cumulative frequency graphs. "
+            "Measures of central tendency (mean, median, mode) and variation (range, "
+            "interquartile range, standard deviation), used to compare and contrast "
+            "data sets. Using a cumulative frequency graph to estimate medians, "
+            "quartiles, percentiles and the proportion of a distribution above or below "
+            "a value. Calculating the mean and standard deviation of a set of data "
+            "(including grouped data) from the data itself or from totals such as "
+            "sum x and sum x^2, or coded totals sum (x - a) and sum (x - a)^2, for up "
+            "to two data sets."
+        ),
+        subsections=("5.1 Representation of data",),
+    ),
+    Topic(
+        code="ps2",
+        number=2,
+        name="Permutations and combinations",
+        blurb=(
+            "The terms permutation and combination and simple problems involving "
+            "selections. Solving problems about arrangements of objects in a line, "
+            "including those involving repetition (e.g. the number of ways of arranging "
+            "the letters of a word with repeated letters) and restriction (e.g. "
+            "arrangements in which two particular people must, or must not, be next to "
+            "each other), and cases such as people sitting in two or more rows. "
+            "Arrangements of objects in a circle are not included."
+        ),
+        subsections=("5.2 Permutations and combinations",),
+    ),
+    Topic(
+        code="ps3",
+        number=3,
+        name="Probability",
+        blurb=(
+            "Evaluating probabilities by enumerating equiprobable elementary events or "
+            "by calculation using permutations and combinations. Addition and "
+            "multiplication of probabilities in simple cases. The meaning of exclusive "
+            "and independent events, including deciding whether A and B are independent "
+            "by comparing P(A and B) with P(A) * P(B). Calculating and using "
+            "conditional probabilities in simple cases, e.g. with a sample space of "
+            "equiprobable events or a tree diagram, using "
+            "P(A and B) = P(A | B) * P(B)."
+        ),
+        subsections=("5.3 Probability",),
+    ),
+    Topic(
+        code="ps4",
+        number=4,
+        name="Discrete random variables",
+        blurb=(
+            "Drawing up a probability distribution table for a discrete random variable "
+            "X and calculating E(X) and Var(X). The binomial distribution B(n, p) and "
+            "the geometric distribution Geo(p), recognising practical situations where "
+            "each is a suitable model, and the formulae for their probabilities. The "
+            "formulae for the expectation and variance of the binomial distribution and "
+            "for the expectation of the geometric distribution."
+        ),
+        subsections=("5.4 Discrete random variables",),
+    ),
+    Topic(
+        code="ps5",
+        number=5,
+        name="The normal distribution",
+        blurb=(
+            "Using a normal distribution to model a continuous random variable and "
+            "using normal distribution tables, including sketches of normal curves. For "
+            "X ~ N(mu, sigma^2): finding P(X > x1) or a related probability given x1, "
+            "mu and sigma, or finding a relationship between x1, mu and sigma given "
+            "such a probability, showing full standardisation working "
+            "Z = (X - mu) / sigma. The conditions under which the normal distribution "
+            "is a suitable approximation to the binomial distribution (np > 5 and "
+            "nq > 5), and using this approximation with a continuity correction."
+        ),
+        subsections=("5.5 The normal distribution",),
+    ),
+)
+
+
 PHYSICS = Taxonomy(
     key="9702",
     subject_code="9702",
@@ -502,8 +726,28 @@ FURTHER_PROB_STATS = Taxonomy(
     subject_name="Further Probability & Statistics",
     topics=_FURTHER_PROB_STATS_TOPICS,
 )
+PURE_MATH_1 = Taxonomy(
+    key="9709p1",
+    subject_code="9709",
+    papers=(1,),
+    subject_name="Pure Mathematics 1",
+    topics=_PURE_MATH_1_TOPICS,
+)
+PROB_STATS_1 = Taxonomy(
+    key="9709p5",
+    subject_code="9709",
+    papers=(5,),
+    subject_name="Probability & Statistics 1",
+    topics=_PROB_STATS_1_TOPICS,
+)
 
-TAXONOMIES: tuple[Taxonomy, ...] = (PHYSICS, FURTHER_PURE_1, FURTHER_PROB_STATS)
+TAXONOMIES: tuple[Taxonomy, ...] = (
+    PHYSICS,
+    FURTHER_PURE_1,
+    FURTHER_PROB_STATS,
+    PURE_MATH_1,
+    PROB_STATS_1,
+)
 
 # Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``
 # meaning the Physics list. Kept as an alias; new code should go through a Taxonomy.

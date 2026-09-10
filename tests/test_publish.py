@@ -134,11 +134,15 @@ def test_publish_statement_order_and_commit(local_db):
         *(f"s{n:02d}" for n in range(1, 12)),
         *(f"fp{n}" for n in range(1, 8)),
         *(f"fs{n}" for n in range(1, 6)),
+        *(f"pm{n}" for n in range(1, 9)),
+        *(f"ps{n}" for n in range(1, 6)),
     }
     by_code = {r[0]: r for r in topic_rows}
     assert by_code["s01"][4] == "Physics"
     assert by_code["fp1"][4] == "Further Pure Mathematics"
     assert by_code["fs1"][4] == "Further Probability & Statistics"
+    assert by_code["pm1"][4] == "Pure Mathematics 1"
+    assert by_code["ps1"][4] == "Probability & Statistics 1"
 
     # every question row carries the is_mcq bool as its last value
     question_rows = log[3][2]
