@@ -163,6 +163,26 @@ def test_structured_start_deep_into_a_shared_page_with_prose():
     assert [q.number for q in segment_structured(lines)] == [1, 2, 3]
 
 
+def test_structured_start_number_shares_its_line_with_the_opening_words():
+    # 2024+ 9709 papers sometimes set a two-digit question number on the same
+    # line as the first words ("10 The equation of a circle is ..."). The bare
+    # question 3 that follows opens with a graph, so it is only found if 2 was.
+    lines = [
+        _line("1", x0=49.6, page=2, y_frac=0.07),
+        _line("A first question about vectors.", page=2),
+        _line("[Total: 5]", x0=498.0, page=3, y_frac=0.9),
+        _line("2 The equation of a circle is x^2 + y^2 = 4.", x0=49.6, page=4, y_frac=0.07),
+        _line("Find the centre and radius.", page=4),
+        _line("[Total: 3]", x0=498.0, page=5, y_frac=0.9),
+        _line("3", x0=49.6, page=6, y_frac=0.06),
+        _line("y", x0=296.9, page=6, y_frac=0.10),  # opens with a graph
+        _line("The diagram shows the curve y = f(x).", page=6, y_frac=0.5),
+    ]
+    qs = segment_structured(lines)
+    assert [q.number for q in qs] == [1, 2, 3]
+    assert "equation of a circle" in qs[1].text
+
+
 def test_structured_start_rejected_when_only_a_bare_number_follows():
     # a stray margin number followed by more numbers (a table column) is not a start
     lines = [

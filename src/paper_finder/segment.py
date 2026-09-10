@@ -371,7 +371,12 @@ def _looks_like_question_body(text: str) -> bool:
 
 def _format_structured_question(block: list[dict]) -> str:
     parts: list[str] = []
-    for line in block[1:]:  # skip the bare number line
+    # The number line is usually bare, but can carry the opening words of the
+    # question ("10 The equation..."); keep that text, drop the leading number.
+    first = _QSTART.match(block[0]["text"].strip())
+    if first and first.group(2):
+        parts.append(first.group(2).strip())
+    for line in block[1:]:
         text = line["text"].strip()
         if _TOTAL.match(text):
             continue
@@ -385,7 +390,10 @@ def _format_structured_question(block: list[dict]) -> str:
 
 def _is_structured_question_start(content: list[dict], i: int, expected: int) -> bool:
     line = content[i]
-    match = _BARE_NUMBER.match(line["text"].strip())
+    # Usually the number is alone on its line, but 2024+ papers sometimes set a
+    # two-digit number on the same line as the first words of the question, so
+    # match "10 The equation..." as well as a bare "10".
+    match = _QSTART.match(line["text"].strip())
     if not (
         match
         and int(match.group(1)) == expected
@@ -393,6 +401,11 @@ def _is_structured_question_start(content: list[dict], i: int, expected: int) ->
         and line["y_frac"] < _STRUCTURED_START_MAX_Y
     ):
         return False
+    # When the number shares its line with the opening words, that trailing text
+    # is the body confirmation.
+    inline = (match.group(2) or "").strip()
+    if _looks_like_question_body(inline):
+        return True
     # The first prose/part line usually follows immediately, but a figure or a
     # displayed formula (e.g. an "f(x)" axis label) can sit in between -- scan a
     # few lines ahead, stopping if another bare margin number appears first (a
