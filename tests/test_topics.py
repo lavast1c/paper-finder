@@ -140,12 +140,20 @@ def test_topic_is_frozen():
 # --------------------------------------------------------------- schema seeding
 
 
-def test_init_db_seeds_topics(tmp_path):
+def test_init_db_seeds_every_taxonomy_with_its_subject(tmp_path):
     db_path = tmp_path / "papers.db"
     init_db(db_path)
     with connect(db_path) as conn:
-        rows = conn.execute("SELECT code, number, name FROM topics ORDER BY number").fetchall()
-    assert [r["code"] for r in rows] == [t.code for t in TOPICS]
+        rows = conn.execute("SELECT code, number, name, subject FROM topics").fetchall()
+    assert {r["code"] for r in rows} == set(CODES)
+    by_code = {r["code"]: r for r in rows}
+    for tax in TAXONOMIES:
+        for t in tax.topics:
+            assert by_code[t.code]["subject"] == tax.subject_name
+            assert by_code[t.code]["number"] == t.number
+    # Physics still seeds all eleven, in order
+    physics = sorted((r for r in rows if r["subject"] == "Physics"), key=lambda r: r["number"])
+    assert [r["code"] for r in physics] == [t.code for t in TOPICS]
 
 
 def test_init_db_reseeds_after_a_name_change(tmp_path):

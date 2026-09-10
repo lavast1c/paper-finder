@@ -27,6 +27,25 @@ SUBJECTS: dict[str, str] = {
     "9231": "Further Mathematics",
 }
 
+# Some CIE codes split into papers that are effectively separate subjects with
+# their own syllabus content and topic taxonomy. A (code, paper) here overrides
+# SUBJECTS for papers.subject_name -- this is the value the UI's Subject filter
+# offers and paper_finder.topics.taxonomy_by_name() keys on.
+SUBJECT_PAPER_NAMES: dict[tuple[str, int], str] = {
+    ("9231", 1): "Further Pure Mathematics",  # 9231 Paper 1
+    ("9231", 4): "Further Probability & Statistics",  # 9231 Paper 4
+}
+
+
+def subject_name_for(subject_code: str, paper: int | None) -> str | None:
+    """papers.subject_name for a paper: the (code, paper) override, else SUBJECTS."""
+    if paper is not None:
+        override = SUBJECT_PAPER_NAMES.get((subject_code, paper))
+        if override is not None:
+            return override
+    return SUBJECTS.get(subject_code)
+
+
 # Exam session letter -> human name.
 SESSIONS: dict[str, str] = {
     "s": "May/June",

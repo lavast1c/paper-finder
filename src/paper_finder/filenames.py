@@ -24,7 +24,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from paper_finder.config import SESSIONS, SUBJECTS
+from paper_finder.config import SESSIONS, subject_name_for
 
 _PATTERN = re.compile(
     r"""
@@ -119,14 +119,16 @@ def parse_filename(name: str) -> PaperName | None:
     variant = match.group("variant")
     session = match.group("session")
 
+    paper_num = int(paper) if paper is not None else None
+
     return PaperName(
         filename=f"{stem}.pdf",
         subject_code=code,
-        subject_name=SUBJECTS.get(code),
+        subject_name=subject_name_for(code, paper_num),
         year=_yy_to_year(int(match.group("yy"))),
         session=session,
         session_name=SESSIONS[session],
         paper_type=match.group("type"),
-        paper=int(paper) if paper is not None else None,
+        paper=paper_num,
         variant=int(variant) if variant is not None else None,
     )
