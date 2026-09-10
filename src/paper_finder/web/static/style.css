@@ -802,6 +802,7 @@ ol#results li {
 #show-text { margin: 0 0 0.7rem; }
 
 .card-answer { margin-top: 1rem; }
+#answer-show-text { margin: 0.25rem 0 0.5rem; }
 
 footer {
   max-width: 64rem;
