@@ -48,6 +48,17 @@ def subject_name_for(subject_code: str, paper: int | None) -> str | None:
     return SUBJECTS.get(subject_code)
 
 
+# Papers to keep out of the corpus even if their PDF is in data/raw/ or on the
+# mirror. `download` will not fetch them and `ingest` will not record them (and
+# prunes any row already present). Use for a question paper whose mark scheme
+# was never published -- every question would show with no answer.
+EXCLUDE_FILENAMES: frozenset[str] = frozenset(
+    {
+        "9702_s26_qp_21.pdf",  # May/June 2026 P2 v1 -- no ms_21 on the mirror, 0 answers
+    }
+)
+
+
 # Exam session letter -> human name.
 SESSIONS: dict[str, str] = {
     "s": "May/June",

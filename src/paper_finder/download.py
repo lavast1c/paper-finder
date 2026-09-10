@@ -88,6 +88,8 @@ def iter_candidates(scope: dict | None = None) -> Iterator[Candidate]:
                             filename = build_filename(
                                 subject_code, session, year, paper_type, paper, variant
                             )
+                            if filename in config.EXCLUDE_FILENAMES:
+                                continue
                             yield Candidate(
                                 filename=filename,
                                 url=mirror_url(filename),
