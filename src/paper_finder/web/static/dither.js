@@ -24,21 +24,23 @@
 
   // --- tunables --------------------------------------------------------
   // Matches the react-bits <Dither /> usage example; wave speed started at
-  // 0.03, then slowed further twice per request (0.015, then 0.01), and
-  // colour depth was raised from the component's default of 4 to 6, per request.
+  // 0.03, then slowed further twice per request (0.015, then 0.01). Colour
+  // depth started at the component's default of 4, was raised to 6, then to
+  // 8 (more dither levels = a smoother gradient, less visible Bayer-pattern
+  // banding/"pixelation"). Resolution and dither-block size stay the same on
+  // every device -- an earlier pass rendered touch devices at a lower
+  // resolution + coarser pixel size for GPU headroom, but that made the
+  // banding much more visible there, which read as "pixelated" and mattered
+  // more than the saved cost; the mouse-ripple uniform below is still the
+  // one thing actually disabled on touch (no pointer to react to anyway),
+  // and the bigger touch-device win is skipping the liquid-glass
+  // backdrop-filter entirely (style.css, `@media (pointer: coarse)`).
   const WAVE_SPEED = 0.01;
   const WAVE_FREQUENCY = 3;
   const WAVE_AMPLITUDE = 0.3;
   const MOUSE_RADIUS = 0.3;
-  const COLOR_NUM = 6;
+  const COLOR_NUM = 8;
   const PIXEL_SIZE = 2;
-  // Touch devices (phones, most tablets) skew toward weaker GPUs and have no
-  // real "pointer" to react to -- `pointer: coarse` disables the mouse-ripple
-  // uniform below and, for the same performance reason, chunks the dither
-  // grid coarser and renders at a fraction of the CSS resolution (upscaled by
-  // the browser), since the noise loop runs per rendered pixel every frame.
-  const PIXEL_SIZE_COARSE = 3;
-  const RESOLUTION_SCALE_COARSE = 0.65;
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const coarsePointer = window.matchMedia("(pointer: coarse)");
@@ -258,6 +260,7 @@
   gl.uniform1f(u.uWaveAmplitude, WAVE_AMPLITUDE);
   gl.uniform1f(u.uMouseRadius, MOUSE_RADIUS);
   gl.uniform1f(u.uColorNum, COLOR_NUM);
+  gl.uniform1f(u.uPixelSize, PIXEL_SIZE);
 
   // --- sizing --------------------------------------------------------
   // Fixed at 1x regardless of devicePixelRatio, same as upstream's `dpr={1}`
@@ -267,18 +270,14 @@
   let width = 0;
   let height = 0;
   function resize() {
-    const scale = coarsePointer.matches ? RESOLUTION_SCALE_COARSE : 1;
-    const cssWidth = window.innerWidth;
-    const cssHeight = window.innerHeight;
-    width = Math.max(1, Math.round(cssWidth * scale));
-    height = Math.max(1, Math.round(cssHeight * scale));
+    width = window.innerWidth;
+    height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
-    canvas.style.width = cssWidth + "px";
-    canvas.style.height = cssHeight + "px";
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
     gl.viewport(0, 0, width, height);
     gl.uniform2f(u.uResolution, width, height);
-    gl.uniform1f(u.uPixelSize, coarsePointer.matches ? PIXEL_SIZE_COARSE : PIXEL_SIZE);
   }
 
   // --- pointer ---------------------------------------------------------
@@ -360,12 +359,7 @@
   };
   if (schemeQuery.addEventListener) schemeQuery.addEventListener("change", onScheme);
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", applyMotionMode);
-  if (coarsePointer.addEventListener) {
-    coarsePointer.addEventListener("change", () => {
-      resize();
-      applyMotionMode();
-    });
-  }
+  if (coarsePointer.addEventListener) coarsePointer.addEventListener("change", applyMotionMode);
   // common.js fires this when the header toggle flips data-theme
   window.addEventListener("themechange", onScheme);
 })();
