@@ -23,9 +23,10 @@
   if (!gl) return;
 
   // --- tunables --------------------------------------------------------
-  // Matches the react-bits <Dither /> usage example; wave speed kept at 0.03
-  // and colour depth raised from the component's default of 4 to 6, per request.
-  const WAVE_SPEED = 0.03;
+  // Matches the react-bits <Dither /> usage example; wave speed started at
+  // 0.03, then slowed further per request, and colour depth was raised from
+  // the component's default of 4 to 6, per request.
+  const WAVE_SPEED = 0.015;
   const WAVE_FREQUENCY = 3;
   const WAVE_AMPLITUDE = 0.3;
   const MOUSE_RADIUS = 0.3;
@@ -35,10 +36,11 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   // --- colour ------------------------------------------------------------
-  // Read --dither-wave / --dither-bg off :root so the field tracks the theme.
-  // --dither-wave is intentionally the same value in light and dark -- only
-  // the background swaps, between a Solarized cream and a navy blue.
-  let waveRgb = [0.576, 0.773, 0.992]; // #93c5fd fallback
+  // Read --dither-wave / --dither-bg off :root so the field tracks the theme --
+  // both the wave (darker/more saturated in light mode for contrast against
+  // the cream ground, lighter in dark mode against the navy) and the
+  // background swap per theme.
+  let waveRgb = [0.114, 0.306, 0.847]; // #1d4ed8 fallback (light-mode default)
   let bgRgb = [0.957, 0.929, 0.812]; // #f4edcf fallback
 
   function parseColor01(str, fallback) {
