@@ -45,7 +45,9 @@ const QZOOM_KEY = "paper-finder.qzoom"; // per-browser question-crop zoom level
 const AZOOM_KEY = "paper-finder.azoom"; // per-browser mark-scheme-crop zoom level
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 6;
-const ZOOM_STEP = 1.15; // multiplicative — one wheel notch / key press
+const ZOOM_STEP = 1.15; // multiplicative — one classic mouse-wheel notch / key press
+const WHEEL_ZOOM_UNIT = 100; // |deltaY| of one mouse-wheel notch — wheel zoom scales with this
+const PAN_SPEED = 1.6; // multiplier on mouse drag-to-pan movement (faster than 1:1 tracking)
 const CROP_BUCKET = "question-crops";
 const QHEIGHT_KEY = "paper-finder.qheight"; // per-browser question-crop box height (px)
 const AHEIGHT_KEY = "paper-finder.aheight"; // per-browser mark-scheme-crop box height (px)
@@ -530,7 +532,15 @@ function makeCropViewer(imagesEl, storeKey) {
     "wheel",
     (e) => {
       e.preventDefault();
-      zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, e.clientX, e.clientY);
+      // A mouse wheel fires one big-delta event per physical "click"; a touchpad
+      // fires many small-delta events across the same swipe. Applying a flat
+      // ZOOM_STEP per event (regardless of size) made touchpad zoom explode --
+      // scaling the exponent by how many wheel-notches' worth of delta this
+      // event actually carries keeps a mouse click feeling the same while
+      // making touchpad zoom track how far you actually moved your fingers.
+      // Clamped to 2 notches so one large fling/pinch burst can't jump too far.
+      const notches = Math.min(Math.abs(e.deltaY), WHEEL_ZOOM_UNIT * 2) / WHEEL_ZOOM_UNIT;
+      zoomBy(Math.pow(ZOOM_STEP, e.deltaY < 0 ? notches : -notches), e.clientX, e.clientY);
     },
     { passive: false },
   );
@@ -560,8 +570,8 @@ function makeCropViewer(imagesEl, storeKey) {
   });
   imagesEl.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    sc.scrollLeft = sl - (e.clientX - sx);
-    sc.scrollTop = st - (e.clientY - sy);
+    sc.scrollLeft = sl - (e.clientX - sx) * PAN_SPEED;
+    sc.scrollTop = st - (e.clientY - sy) * PAN_SPEED;
   });
   function endDrag(e) {
     if (!dragging) return;

@@ -245,9 +245,16 @@ left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
 .card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
 640px inside fullscreen). **The question and mark-scheme crops are pan/zoom
 surfaces** (`topics.js` `makeCropViewer(imagesEl, storeKey)`, one per
-`.card-images`): drag to pan (mouse `pointer` events → scroll; touch keeps
-native scroll via `touch-action`), wheel to zoom toward the pointer,
-double-click to reset, `+` `-` `0` keys zoom the question. Zoom scales the
+`.card-images`): drag to pan (mouse `pointer` events → scroll, at `PAN_SPEED`
+= 1.6× the raw pointer movement so a short drag covers more ground; touch
+keeps native scroll via `touch-action`), wheel to zoom toward the pointer,
+double-click to reset, `+` `-` `0` keys zoom the question. The wheel handler
+scales the zoom exponent by `min(|deltaY|, 2×WHEEL_ZOOM_UNIT) / WHEEL_ZOOM_UNIT`
+instead of applying a flat `ZOOM_STEP` per event — a mouse notch (`deltaY` ≈
+100) still zooms a full `ZOOM_STEP`, but a touchpad's many small-`deltaY`
+events (two-finger scroll) now zoom proportionally to how far the fingers
+actually moved instead of each firing a full step, which used to make
+touchpad zoom feel wildly oversensitive. Zoom scales the
 crop `<img>`s via an `--img-zoom` custom property on the container
 (`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.3×–6×, persisted
 per column (`localStorage` `paper-finder.qzoom` / `.azoom`); the box starts at
