@@ -307,14 +307,17 @@ fullscreen `height: auto` rule applies) and restores it on exit — otherwise a
 resized box's inline height would beat the fullscreen CSS rule and break the
 per-column scroll. Prev/Next (buttons or arrow keys), Reveal and zoom keep
 working — the whole `#card` subtree is what goes fullscreen. Both `.crop-resize`
-(now with its own `.crop-resize-label` span reading "Resize" next to the grip
-— was grip-only, tooltip the only text) and `.card-fs-btn` use the opaque
-`--field-bg` token rather than the translucent `--surface-strong`/`--glass`
+and `.card-fs-btn` use the solid accent `--btn` fill (the same fill as the
+reveal/submit buttons) rather than the translucent `--surface-strong`/`--glass`
 used elsewhere on the card, so these controls stay legible/solid against the
 animated dither backdrop showing through the liquid-glass `.card` panel behind
-them; hover/active state is a `box-shadow` escalation (matching the other
-glass controls) rather than a background swap, since the background no longer
-changes. **Topic is a single-select `#f-topic` dropdown** in the filter
+them, and read as the site's other solid-accent controls; hover/active state
+is a `box-shadow` escalation rather than a background swap, since the
+background no longer changes. The "Resize" label lives **inside** the
+`.crop-resize-grip` pill itself (a translucent-white `rgb(255 255 255 / 22%)`
+fill over the accent bar, brightening on hover — `--primary-ink` is white in
+every theme so the text always reads) rather than as a separate label span
+beside it. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is

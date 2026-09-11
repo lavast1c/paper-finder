@@ -932,20 +932,20 @@ ol#results li {
   color: var(--text-muted);
 }
 /* a full-width drag-to-resize bar under the crop, in place of the native
-   resize handle's tiny corner triangle — a wide hit area with a label and an
-   obvious pill grip that brightens to the accent on hover/drag. A solid
-   `--field-bg` fill (not the glass `--surface-strong`/`--glass` used
-   elsewhere) keeps it legible against the animated dither backdrop showing
-   through the liquid-glass card behind it. */
+   resize handle's tiny corner triangle — a solid accent (`--btn`, same fill
+   as the reveal button) fill, not the glass `--surface-strong`/`--glass` used
+   elsewhere, keeps it legible against the animated dither backdrop showing
+   through the liquid-glass card behind it, and matches the site's other
+   solid-accent controls. The "Resize" label lives inside the pill itself
+   (`.crop-resize-grip`) rather than beside it. */
 .crop-resize {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  height: 1.6rem;
+  height: 1.7rem;
   margin: 0.1rem 0 0.7rem;
-  background: var(--field-bg);
-  border: 1px solid var(--border);
+  background: var(--btn);
+  border: 1px solid var(--btn);
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: ns-resize;
@@ -956,31 +956,19 @@ ol#results li {
 .crop-resize.is-active {
   box-shadow: var(--shadow-sm), var(--edge), 0 0 0 3px var(--focus-ring);
 }
-.crop-resize-label {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  user-select: none;
-  transition: color 0.15s var(--ease-out);
-}
-.crop-resize:hover .crop-resize-label,
-.crop-resize.is-active .crop-resize-label {
-  color: var(--text);
-}
 .crop-resize-grip {
-  width: 4.5rem;
-  height: 8px;
+  padding: 0.2rem 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary-ink);
+  background: rgb(255 255 255 / 22%); /* --primary-ink is white in every theme */
   border-radius: 999px;
-  background: var(--rule); /* accent-tinted at rest, not just a faint border colour */
-  box-shadow: var(--edge);
-  transition:
-    background 0.15s var(--ease-out),
-    width 0.15s var(--ease-out);
+  user-select: none;
+  transition: background 0.15s var(--ease-out);
 }
 .crop-resize:hover .crop-resize-grip,
 .crop-resize.is-active .crop-resize-grip {
-  background: var(--primary);
-  width: 5.5rem;
+  background: rgb(255 255 255 / 34%);
 }
 /* fullscreen: the column scrolls as a whole (see below) — no independent
    crop height to drag */
@@ -1039,9 +1027,10 @@ ol#results li {
   gap: 0.5rem;
 }
 
-/* solid `--field-bg` fill, not the glass `--surface-strong` used elsewhere on
-   the card -- this control needs to stay legible against the animated dither
-   backdrop showing through the liquid-glass card behind it */
+/* solid accent (`--btn`, same fill as the reveal button) fill, not the glass
+   `--surface-strong` used elsewhere on the card -- keeps it legible against
+   the animated dither backdrop showing through the liquid-glass card behind
+   it, and matches the site's other solid-accent controls */
 .card-fs-btn {
   display: inline-flex;
   align-items: center;
@@ -1050,20 +1039,20 @@ ol#results li {
   padding: 0.4rem 0.75rem;
   font: inherit;
   font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: var(--field-bg);
-  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--primary-ink);
+  background: var(--btn);
+  border: 1px solid var(--btn);
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
-  transition: box-shadow 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: box-shadow 0.15s var(--ease-out);
 }
 .card-fs-btn svg { display: block; flex-shrink: 0; }
 .card-fs-btn:hover {
-  color: var(--text);
-  box-shadow: var(--shadow-sm), var(--edge), 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
 }
+.card-fs-btn:active { transform: translateY(1px); }
 
 /* ---------- flashcard fullscreen ---------- */
 /* #card is the fullscreen element; browsers paint a black backdrop behind it, so
@@ -1195,7 +1184,6 @@ footer {
   .reveal-btn,
   .card-fs-btn,
   .crop-resize,
-  .crop-resize-label,
   .crop-resize-grip,
   .card-arrow { transition: none; }
   button:active { transform: none; }
