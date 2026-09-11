@@ -118,6 +118,22 @@ _BARCODE_FONT = re.compile(r"[Ā-ɏ]")
 _JUNK_SYMBOLS = frozenset("¬¦¤¥§")
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b-\x1f]")
 
+# CIE Chemistry embeds a "Important values, constants and standards" data sheet
+# plus a full Periodic Table of Elements after the last question of every QP
+# (Physics's equivalent constants sheet is a separate insert handed out in the
+# exam, not part of the QP PDF). Once this *standalone heading* is seen,
+# everything after it -- including several hundred loose element-symbol/name/
+# mass lines that would otherwise slip past `is_noise` -- is dropped, so the
+# last question's block (which has no next-question boundary to stop it)
+# doesn't swallow the appendix into its text and crop rects. Anchored to the
+# full line (not just a prefix) because the front cover's INFORMATION block
+# has a sentence that starts the same way ("Important values, constants and
+# standards are printed in the question paper.").
+_DATA_SHEET_START = re.compile(
+    r"^(important\ values,\ constants\ and\ standards|the\ periodic\ table\ of\ elements)\s*\.?$",
+    re.IGNORECASE | re.VERBOSE,
+)
+
 # The question leans on something the text extraction can't carry: a labelled
 # figure, a diagram/graph, or a table. Used to flag "check the original PDF" in
 # the UI. Tuned against the 9702 corpus (CIE is rigid about "Fig. 1.1" labels
@@ -179,12 +195,20 @@ def _is_stray_page_number(line: dict) -> bool:
 
 
 def content_lines(lines: list[dict]) -> list[dict]:
-    """Body lines that carry real question content (drops page furniture)."""
-    return [
+    """Body lines that carry real question content (drops page furniture).
+
+    Also truncates at a trailing data-sheet/periodic-table appendix, if any --
+    see ``_DATA_SHEET_START``.
+    """
+    body = [
         line
         for line in lines
         if line["in_body"] and not is_noise(line["text"]) and not _is_stray_page_number(line)
     ]
+    for i, line in enumerate(body):
+        if _DATA_SHEET_START.match(line["text"].strip()):
+            return body[:i]
+    return body
 
 
 def is_noise(text: str) -> bool:
