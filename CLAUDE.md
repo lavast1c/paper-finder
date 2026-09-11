@@ -312,13 +312,14 @@ buttons) rather than the translucent `--surface-strong`/`--glass` used
 elsewhere on the card, so it stays legible/solid against the animated dither
 backdrop showing through the liquid-glass `.card` panel behind it; hover is a
 `box-shadow` escalation, active adds `translateY(1px)` like the other solid
-buttons. `.crop-resize` is invisible at rest — just a floating `--btn`-filled
+buttons. `.crop-resize` is invisible at rest — just a floating solid-accent
 `.crop-resize-grip` pill (with the "Resize" label inside it) centred in the
-full-width drag hit area; the accent bar itself only fades in while actively
-dragging (`.crop-resize.is-active`, toggled by `topics.js`
-`makeResizeHandle` on pointerdown/up), at which point the pill switches to a
-translucent-white overlay so it still contrasts against the now-accent-filled
-bar behind it. **Topic is a single-select `#f-topic` dropdown** in the filter
+full-width drag hit area; while actively dragging (`.crop-resize.is-active`,
+toggled by `topics.js` `makeResizeHandle` on pointerdown/up) the hit area
+itself becomes visible as the same liquid glass as the rest of the card
+(`--glass`/`--glass-backdrop`) rather than a solid fill, so it reads as part
+of the glass panel; the pill stays solid-accent throughout so it's always
+legible against whatever is behind it. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
@@ -503,13 +504,26 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   theme-aware, full-bleed, IBM Plex type, a light-blue accent
   (`--primary` `#2563eb` light / `#60a5fa` dark, `--btn` / `--accent-ink`
   siblings; `--hl-bg` stays amber — highlighter, not chrome); opaque +
-  reduced-transparency fallbacks). No page taglines — just the `<h1>` + the
-  `#corpus` count line. The **header, search tray, filter bar and flashcard**
+  reduced-transparency fallbacks). **Default theme is light**, not the OS
+  preference — the pre-paint inline `<script>` in each HTML `<head>` sets
+  `data-theme="light"` unless `localStorage["paper-finder.theme"]` was
+  explicitly saved as `"dark"` by the header toggle; `common.js`'s
+  `themeToggle` no longer tracks `prefers-color-scheme` at all, since
+  `root.dataset.theme` is now always already set by the time it runs. No page
+  taglines — just the `<h1>` + the `#corpus` count line. The **header, search
+  tray, filter bar and flashcard**
   are true "liquid glass": `--glass: transparent` (zero fill), and
   `--glass-backdrop` = `url(#glass-refraction) saturate(1.6) brightness(1.05)
   blur(2px)` — an inline SVG `feTurbulence` + `feDisplacementMap` filter
   (`#glass-refraction`, duplicated into both HTML `<body>`s inside `svg.glass-defs`)
-  that *bends* the dot grid behind the pane. `.card` (the topic-browse
+  that *bends* the dot grid behind the pane. The **header** (`position:
+  sticky`, fades via `.is-hidden` on scroll, `common.js`
+  `revealHeaderOnlyAtTop`) hides with an **opacity-only** fade — it used to
+  also slide via `transform: translateY(-100%)`, but animating `transform` on
+  an element whose `backdrop-filter` runs that same SVG `feDisplacementMap`
+  made Chromium briefly flash the raw, unfiltered dither wave (dark "waves")
+  at the top edge while the filter's sample region caught up with the moving
+  box each frame; fading in place removes the moving box entirely. `.card` (the topic-browse
   flashcard) moved onto this same `--glass`/`--glass-backdrop` pair (was a
   frosted-opaque `--surface-strong` + `blur(var(--blur-thick))` panel); its
   fullscreen state (`#card.card--fs`) keeps its own opaque `var(--bg)` ground,
@@ -550,7 +564,12 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   reactivity, no rAF loop; pauses while the tab is hidden; re-reads the CSS
   colours on a theme change (same lifecycle shape `dotgrid.js` used). It
   replaced the old static `--blob-*`
-  radial-gradient mesh (`body::before`, removed). The styled-select
+  radial-gradient mesh (`body::before`, removed). `#card.card--fs` (the
+  fullscreened flashcard) and `#card::backdrop` use `--dither-bg`, not `--bg`,
+  as their ground — the two are identical in both light themes, but in dark
+  mode `--bg` is a flatter near-black (`#0b0e13`) while `--dither-bg` is the
+  wave field's own navy (`#0a1a33`), so fullscreen now matches the animated
+  backdrop instead of reading as a separate, darker surface. The styled-select
   rule is `.select-wrap select` (`appearance:none` + one CSS chevron on every
   filter select). Local mode: JSON over
   `search()`, `/pdf/` gated on

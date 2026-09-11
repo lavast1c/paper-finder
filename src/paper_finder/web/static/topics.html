@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Paper Analyser — Browse by topic</title>
   <script>
-    // Apply a saved theme choice before first paint (no flash). Absent = follow OS.
+    // Apply a saved theme choice before first paint (no flash). Absent = light (not OS).
     try {
       var t = localStorage.getItem("paper-finder.theme");
-      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-    } catch (e) {}
+      document.documentElement.dataset.theme = t === "dark" ? "dark" : "light";
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
   </script>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
