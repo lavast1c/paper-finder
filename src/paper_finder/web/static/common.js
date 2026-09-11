@@ -57,19 +57,20 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
   sync();
 })();
 
-// --- theme toggle: OS default, header button forces light / dark ----------
+// --- theme toggle: defaults to light, header button forces light / dark ---
 //
-// The saved choice is applied pre-paint by a tiny inline <script> in each HTML
-// <head> (avoids a flash); this only wires the button, keeps its label in sync,
-// and pokes dither.js to re-read --dither-wave / --dither-bg.
+// The saved choice (or the light default) is applied pre-paint by a tiny
+// inline <script> in each HTML <head> (avoids a flash) -- `root.dataset.theme`
+// is therefore always already "light" or "dark" by the time this runs. This
+// only wires the button, keeps its label in sync, and pokes dither.js to
+// re-read --dither-wave / --dither-bg.
 
 (function themeToggle() {
   const btn = document.getElementById("theme-toggle");
   if (!btn) return;
   const KEY = "paper-finder.theme";
   const root = document.documentElement;
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-  const effective = () => root.dataset.theme || (prefersDark.matches ? "dark" : "light");
+  const effective = () => root.dataset.theme || "light";
 
   function syncLabel() {
     const light = effective() === "light";
@@ -89,12 +90,6 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
     window.dispatchEvent(new Event("themechange"));
   });
 
-  // no explicit choice yet -> keep tracking the OS switch
-  if (prefersDark.addEventListener) {
-    prefersDark.addEventListener("change", () => {
-      if (!root.dataset.theme) syncLabel();
-    });
-  }
   syncLabel();
 })();
 
