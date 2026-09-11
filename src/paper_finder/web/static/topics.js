@@ -47,6 +47,7 @@ const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 6;
 const ZOOM_STEP = 1.15; // multiplicative — one classic mouse-wheel notch / key press
 const WHEEL_ZOOM_UNIT = 100; // |deltaY| of one mouse-wheel notch — wheel zoom scales with this
+const WHEEL_ZOOM_CURVE = 0.6; // <1 biases sensitivity up for touchpad's smaller per-event deltas
 const PAN_SPEED = 1.6; // multiplier on mouse drag-to-pan movement (faster than 1:1 tracking)
 const CROP_BUCKET = "question-crops";
 const QHEIGHT_KEY = "paper-finder.qheight"; // per-browser question-crop box height (px)
@@ -539,7 +540,12 @@ function makeCropViewer(imagesEl, storeKey) {
       // event actually carries keeps a mouse click feeling the same while
       // making touchpad zoom track how far you actually moved your fingers.
       // Clamped to 2 notches so one large fling/pinch burst can't jump too far.
-      const notches = Math.min(Math.abs(e.deltaY), WHEEL_ZOOM_UNIT * 2) / WHEEL_ZOOM_UNIT;
+      // The ratio is raised to WHEEL_ZOOM_CURVE (<1) rather than used linearly:
+      // that leaves a full mouse notch (ratio 1) exactly at one ZOOM_STEP but
+      // gives touchpad's smaller deltas a bit more zoom per event than a
+      // strictly linear scale-down would (plain proportional felt too flat).
+      const ratio = Math.min(Math.abs(e.deltaY), WHEEL_ZOOM_UNIT * 2) / WHEEL_ZOOM_UNIT;
+      const notches = Math.pow(ratio, WHEEL_ZOOM_CURVE);
       zoomBy(Math.pow(ZOOM_STEP, e.deltaY < 0 ? notches : -notches), e.clientX, e.clientY);
     },
     { passive: false },

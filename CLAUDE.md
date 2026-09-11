@@ -249,12 +249,16 @@ surfaces** (`topics.js` `makeCropViewer(imagesEl, storeKey)`, one per
 = 1.6× the raw pointer movement so a short drag covers more ground; touch
 keeps native scroll via `touch-action`), wheel to zoom toward the pointer,
 double-click to reset, `+` `-` `0` keys zoom the question. The wheel handler
-scales the zoom exponent by `min(|deltaY|, 2×WHEEL_ZOOM_UNIT) / WHEEL_ZOOM_UNIT`
-instead of applying a flat `ZOOM_STEP` per event — a mouse notch (`deltaY` ≈
-100) still zooms a full `ZOOM_STEP`, but a touchpad's many small-`deltaY`
-events (two-finger scroll) now zoom proportionally to how far the fingers
-actually moved instead of each firing a full step, which used to make
-touchpad zoom feel wildly oversensitive. Zoom scales the
+scales the zoom exponent by `(min(|deltaY|, 2×WHEEL_ZOOM_UNIT) /
+WHEEL_ZOOM_UNIT) ** WHEEL_ZOOM_CURVE` instead of applying a flat `ZOOM_STEP`
+per event — a mouse notch (`deltaY` ≈ 100, ratio 1) still zooms exactly one
+full `ZOOM_STEP` regardless of the curve, but a touchpad's many small-`deltaY`
+events (two-finger scroll) zoom by that fraction of a step raised to
+`WHEEL_ZOOM_CURVE` (0.6, so < 1 biases small deltas up) rather than linearly,
+which was the fix for touchpad zoom feeling wildly oversensitive (flat
+per-event step) and then, after that first pass, too flat (strictly linear
+scale-down); 0.6 was tuned to feel "a bit more sensitive" than linear while
+leaving the mouse-notch anchor untouched. Zoom scales the
 crop `<img>`s via an `--img-zoom` custom property on the container
 (`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.3×–6×, persisted
 per column (`localStorage` `paper-finder.qzoom` / `.azoom`); the box starts at
