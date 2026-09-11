@@ -5,10 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Paper Analyser — Browse by topic</title>
   <script>
-    // Apply a saved theme choice before first paint (no flash). Absent = light (not OS).
+    // Apply a saved theme choice before first paint (no flash). Absent =
+    // time-of-day default: light 06:00-18:59, dark otherwise (not OS).
     try {
       var t = localStorage.getItem("paper-finder.theme");
-      document.documentElement.dataset.theme = t === "dark" ? "dark" : "light";
+      if (t === "dark" || t === "light") {
+        document.documentElement.dataset.theme = t;
+      } else {
+        var h = new Date().getHours();
+        document.documentElement.dataset.theme = h >= 6 && h < 19 ? "light" : "dark";
+      }
     } catch (e) {
       document.documentElement.dataset.theme = "light";
     }
@@ -106,13 +112,13 @@
             <span class="fb-ctx-label">Subject</span>
             <span class="select-wrap select-wrap--inline">
               <select id="subject" aria-label="Subject">
-                <option value="Physics">Physics (9702)</option>
-                <option value="Further Pure Mathematics">Further Pure Mathematics (9231 P1)</option>
-                <option value="Further Probability &amp; Statistics">Further Probability &amp; Statistics (9231 P4)</option>
-                <option value="Pure Mathematics 1">Pure Mathematics 1 (9709 P1)</option>
-                <option value="Probability &amp; Statistics 1">Probability &amp; Statistics 1 (9709 P5)</option>
-                <option value="Chemistry">Chemistry (9701)</option>
                 <option value="Biology">Biology (9700)</option>
+                <option value="Chemistry">Chemistry (9701)</option>
+                <option value="Further Probability &amp; Statistics">Further Probability &amp; Statistics (9231 P4)</option>
+                <option value="Further Pure Mathematics">Further Pure Mathematics (9231 P1)</option>
+                <option value="Physics" selected>Physics (9702)</option>
+                <option value="Probability &amp; Statistics 1">Probability &amp; Statistics 1 (9709 P5)</option>
+                <option value="Pure Mathematics 1">Pure Mathematics 1 (9709 P1)</option>
               </select>
             </span>
           </span>

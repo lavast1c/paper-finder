@@ -152,9 +152,12 @@ every subject except Physics/Chemistry/Biology (`PF.MCQ_SUBJECTS` in
 `common.js`) since only those have a real MCQ paper. The flashcard reveals a
 question/mark-scheme crop pair side-by-side (stacked to one column on MCQs,
 which have no mark-scheme crop, and on narrow screens), each crop pan/zoomable
-and independently resizable, with a fullscreen mode. Default theme is light
-regardless of OS preference; dark mode is an explicit user toggle persisted in
-`localStorage`. Background is an interactive WebGL2 dithered wave-field
+and independently resizable, with a fullscreen mode. Default theme follows
+local clock time (light 06:00-18:59, dark otherwise — not OS preference)
+unless the user has explicitly toggled it, in which case that choice is
+persisted in `localStorage` and wins from then on; the time-based default
+re-checks every 5 minutes so an open tab still flips at the boundary.
+Background is an interactive WebGL2 dithered wave-field
 canvas (`dither.js`) behind a liquid-glass (`backdrop-filter`) header/filter
 bar/flashcard, with opaque fallbacks when `backdrop-filter` is unsupported or
 `prefers-reduced-transparency` is set. See the files directly for exact
