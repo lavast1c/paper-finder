@@ -29,6 +29,7 @@ const aCropHintEl = document.getElementById("a-crop-hint");
 const qResizeEl = document.getElementById("q-resize");
 const aResizeEl = document.getElementById("a-resize");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
+const fsToggleLabelEl = document.getElementById("fullscreen-toggle-label");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
 const cardQuestionEl = document.getElementById("card-question");
@@ -853,6 +854,7 @@ function syncFullscreenUI() {
     fsToggleBtn.setAttribute("aria-pressed", on ? "true" : "false");
     fsToggleBtn.title = on ? "Exit fullscreen (f or Esc)" : "Fullscreen (press f)";
   }
+  if (fsToggleLabelEl) fsToggleLabelEl.textContent = on ? "Exit fullscreen" : "Fullscreen";
 }
 if (fsToggleBtn) fsToggleBtn.addEventListener("click", toggleFullscreen);
 document.addEventListener("fullscreenchange", syncFullscreenUI);
