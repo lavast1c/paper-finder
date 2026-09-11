@@ -306,7 +306,15 @@ reveal but swaps the page scroll for a per-column one so the nav/head stay pinne
 fullscreen `height: auto` rule applies) and restores it on exit — otherwise a
 resized box's inline height would beat the fullscreen CSS rule and break the
 per-column scroll. Prev/Next (buttons or arrow keys), Reveal and zoom keep
-working — the whole `#card` subtree is what goes fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
+working — the whole `#card` subtree is what goes fullscreen. Both `.crop-resize`
+(now with its own `.crop-resize-label` span reading "Resize" next to the grip
+— was grip-only, tooltip the only text) and `.card-fs-btn` use the opaque
+`--field-bg` token rather than the translucent `--surface-strong`/`--glass`
+used elsewhere on the card, so these controls stay legible/solid against the
+animated dither backdrop showing through the liquid-glass `.card` panel behind
+them; hover/active state is a `box-shadow` escalation (matching the other
+glass controls) rather than a background swap, since the background no longer
+changes. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
