@@ -8,7 +8,7 @@ const { el } = PF;
 const form = document.getElementById("search");
 const input = document.getElementById("q");
 const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
-const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off Physics
+const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off non-MCQ subjects
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
@@ -117,18 +117,19 @@ function currentSubject() {
   return subjectEl ? subjectEl.value : DEFAULT_SUBJECT;
 }
 
-// The "Paper(s)" filter is the MCQ-vs-theory split, which is a Physics-only
-// concept (9231 P1 and P4 are both structured, and they are separate subjects).
-// Off Physics the field is hidden and `kind` is forced to "all".
+// The "Paper(s)" filter is the MCQ-vs-theory split, which only applies to
+// subjects with a real MCQ paper (PF.MCQ_SUBJECTS in common.js -- 9231 and
+// 9709 each split into two subjects that are both structured). Off those
+// subjects the field is hidden and `kind` is forced to "all".
 function syncPaperFieldVisibility() {
-  if (fbPaperEl) fbPaperEl.hidden = currentSubject() !== DEFAULT_SUBJECT;
+  if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(currentSubject());
 }
 
 function scope() {
   const subject = currentSubject();
   return {
     subject,
-    kind: subject === DEFAULT_SUBJECT ? PF.paperKind(picked(paperEl)) : "all",
+    kind: PF.hasMcqPapers(subject) ? PF.paperKind(picked(paperEl)) : "all",
     years: picked(yearEl),
     sessions: picked(seasonEl),
   };
@@ -277,8 +278,9 @@ for (const group of [paperEl, yearEl, seasonEl]) {
 if (subjectEl) {
   subjectEl.addEventListener("change", () => {
     syncPaperFieldVisibility();
-    // a Paper(s) pick from another subject would be stale — drop it
-    if (currentSubject() !== DEFAULT_SUBJECT && paperEl && paperEl._ms) {
+    // a Paper(s) pick left over from switching off an MCQ subject would be
+    // stale (the field is now hidden and `kind` forced to "all") — drop it
+    if (!PF.hasMcqPapers(currentSubject()) && paperEl && paperEl._ms) {
       paperEl._ms.setValues([]);
     }
     if (input.value.trim()) run();
