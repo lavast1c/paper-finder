@@ -95,6 +95,7 @@ def test_each_taxonomy_numbers_its_topics_from_one():
         "9709p1": "pm",
         "9709p5": "ps",
         "9701": "ch",
+        "9700": "bi",
     }
     for tax in TAXONOMIES:
         assert all(t.code.startswith(codes[tax.key]) for t in tax.topics), tax.key
@@ -118,6 +119,7 @@ def test_lookup_tables_are_the_union_of_every_taxonomy():
     assert BY_CODE["fp4"].name == "Matrices"
     assert BY_CODE["fs3"].name == "Chi-squared tests"
     assert BY_CODE["ch07"].name == "Equilibria"
+    assert BY_CODE["bi06"].name == "Nucleic acids and protein synthesis"
     assert all(BY_CODE[t.code] is t for t in ALL_TOPICS)
 
 
@@ -132,6 +134,8 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9709", 2) is None
     assert taxonomy_for("9701", 1).subject_name == "Chemistry"
     assert taxonomy_for("9701", 2).subject_name == "Chemistry"
+    assert taxonomy_for("9700", 1).subject_name == "Biology"
+    assert taxonomy_for("9700", 2).subject_name == "Biology"
     assert taxonomy_for("0000", 1) is None
     # paper unknown -> first taxonomy for that subject code
     assert taxonomy_for("9231", None).subject_code == "9231"
@@ -140,7 +144,7 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
 def test_taxonomy_by_name_round_trips():
     for tax in TAXONOMIES:
         assert taxonomy_by_name(tax.subject_name) is tax
-    assert taxonomy_by_name("Biology") is None
+    assert taxonomy_by_name("Economics") is None
 
 
 def test_topic_is_frozen():

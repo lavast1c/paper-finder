@@ -383,6 +383,41 @@ def test_9701_paper_1_question_is_mcq(tmp_path):
     assert search("Le Chatelier reversible", db_path=db_path, kind="mcq") == []
 
 
+def test_9700_paper_1_question_is_mcq(tmp_path):
+    # Biology is the third subject (after Physics and Chemistry) with a real
+    # Paper 1 MCQ / Paper 2 structured split -- kind must key on is_mcq for it
+    # too, not on subject identity.
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, '9700', 'Biology', 2024, 's', ?, 1, 'qp', ?)""",
+            [
+                (1, 1, "9700_s24_qp_11.pdf"),
+                (2, 2, "9700_s24_qp_21.pdf"),
+            ],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, ?, 1, ?)""",
+            [
+                (1, 1, "Which structure is found in a prokaryotic cell?", 1),
+                (2, 2, "Describe the process of semi-conservative DNA replication.", 0),
+            ],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    mcq_hits = search("prokaryotic cell structure", db_path=db_path, kind="mcq")
+    assert [h.question_number for h in mcq_hits] == [1]
+    assert search("prokaryotic cell structure", db_path=db_path, kind="theory") == []
+    theory_hits = search("semi-conservative DNA replication", db_path=db_path, kind="theory")
+    assert [h.question_number for h in theory_hits] == [1]
+    assert search("semi-conservative DNA replication", db_path=db_path, kind="mcq") == []
+
+
 def test_search_subject_scope(multi_subject_db):
     q = "wave roots chi-squared string polynomial hypothesis"
     all_hits = {h.subject_name for h in search(q, db_path=multi_subject_db, limit=20)}
