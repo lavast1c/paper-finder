@@ -9,7 +9,7 @@
 const { el } = PF;
 
 const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
-const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off Physics
+const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off non-MCQ subjects
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
@@ -137,8 +137,9 @@ function sessionsParam() {
   return filters.seasons.slice();
 }
 function kindParam() {
-  // the MCQ-vs-theory split is Physics-only; off Physics the field is hidden
-  return subject === DEFAULT_SUBJECT ? PF.paperKind(filters.papers) : "all";
+  // the MCQ-vs-theory split only applies to subjects with a real MCQ paper
+  // (PF.MCQ_SUBJECTS in common.js); off those the field is hidden.
+  return PF.hasMcqPapers(subject) ? PF.paperKind(filters.papers) : "all";
 }
 // local /api/* query string for the current scope filters
 function scopeQuery(extra) {
@@ -899,7 +900,7 @@ function wireScopeGroup(groupEl, key) {
 for (const [group, key] of SCOPE_GROUPS) wireScopeGroup(group, key);
 
 function syncPaperFieldVisibility() {
-  if (fbPaperEl) fbPaperEl.hidden = subject !== DEFAULT_SUBJECT;
+  if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(subject);
 }
 
 if (subjectEl) {
@@ -909,7 +910,7 @@ if (subjectEl) {
     // the picked topics and any Paper(s) pick belong to the old subject
     selected.clear();
     if (topicEl._ms) topicEl._ms.setValues([]);
-    if (subject !== DEFAULT_SUBJECT) {
+    if (!PF.hasMcqPapers(subject)) {
       filters.papers = [];
       if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
     }
