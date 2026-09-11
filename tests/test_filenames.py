@@ -89,6 +89,14 @@ def test_9709_paper_splits_into_two_subjects():
     assert parse_filename("9709_s24_qp_21.pdf").subject_name == "Mathematics"
 
 
+def test_9701_papers_share_one_chemistry_subject():
+    # Chemistry 9701: unlike 9231/9709, Paper 1 (MCQ) and Paper 2 (structured)
+    # both examine the same AS syllabus content -- no SUBJECT_PAPER_NAMES
+    # override needed, so both resolve via the plain SUBJECTS entry.
+    assert parse_filename("9701_s23_qp_12.pdf").subject_name == "Chemistry"
+    assert parse_filename("9701_w23_ms_21.pdf").subject_name == "Chemistry"
+
+
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"

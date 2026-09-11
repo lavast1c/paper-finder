@@ -102,16 +102,18 @@ CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cache
 
 # Default scope for `paper-finder download`; override per-run with CLI flags.
 # `subjects` is per-code: each subject carries its own papers + variants, since
-# 9702 (P1 MCQ / P2 structured), 9231 (P1 Further Pure / P4 Further Stats) and
-# 9709 (P1 Pure Math 1 / P5 Prob & Stats 1) have nothing in common. years /
-# sessions / types are shared. The candidate cross-product over-generates
-# (e.g. 9702 "m" is variant 2 only); 404s are expected and harmless -- download
-# treats "not on mirror" as a non-event.
+# 9702 (P1 MCQ / P2 structured), 9231 (P1 Further Pure / P4 Further Stats),
+# 9709 (P1 Pure Math 1 / P5 Prob & Stats 1) and 9701 (P1 MCQ / P2 structured,
+# same split as 9702) have nothing in common. years / sessions / types are
+# shared. The candidate cross-product over-generates (e.g. 9702 "m" is variant
+# 2 only); 404s are expected and harmless -- download treats "not on mirror"
+# as a non-event.
 DOWNLOAD_SCOPE: dict = {
     "subjects": {
         "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
         "9231": {"papers": [1, 4], "variants": [1, 2, 3]},  # Further Maths: Pure 1 + Prob & Stats
         "9709": {"papers": [1, 5], "variants": [1, 2, 3]},  # Maths: Pure 1 + Prob & Stats 1
+        "9701": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Chemistry: P1 MCQ / P2 structured
     },
     "years": [2020, 2021, 2022, 2023, 2024, 2025, 2026],
     "sessions": ["s", "w", "m"],  # May/June, Oct/Nov, Feb/March

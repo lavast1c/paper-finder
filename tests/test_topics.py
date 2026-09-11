@@ -88,7 +88,14 @@ def test_physics_taxonomy_is_the_eleven_syllabus_sections():
 def test_each_taxonomy_numbers_its_topics_from_one():
     for tax in TAXONOMIES:
         assert [t.number for t in tax.topics] == list(range(1, len(tax.topics) + 1)), tax.key
-    codes = {"9702": "s", "9231p1": "fp", "9231p4": "fs", "9709p1": "pm", "9709p5": "ps"}
+    codes = {
+        "9702": "s",
+        "9231p1": "fp",
+        "9231p4": "fs",
+        "9709p1": "pm",
+        "9709p5": "ps",
+        "9701": "ch",
+    }
     for tax in TAXONOMIES:
         assert all(t.code.startswith(codes[tax.key]) for t in tax.topics), tax.key
 
@@ -110,6 +117,7 @@ def test_lookup_tables_are_the_union_of_every_taxonomy():
     assert BY_CODE["s07"].name == "Waves"
     assert BY_CODE["fp4"].name == "Matrices"
     assert BY_CODE["fs3"].name == "Chi-squared tests"
+    assert BY_CODE["ch07"].name == "Equilibria"
     assert all(BY_CODE[t.code] is t for t in ALL_TOPICS)
 
 
@@ -122,6 +130,8 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9709", 1).subject_name == "Pure Mathematics 1"
     assert taxonomy_for("9709", 5).subject_name == "Probability & Statistics 1"
     assert taxonomy_for("9709", 2) is None
+    assert taxonomy_for("9701", 1).subject_name == "Chemistry"
+    assert taxonomy_for("9701", 2).subject_name == "Chemistry"
     assert taxonomy_for("0000", 1) is None
     # paper unknown -> first taxonomy for that subject code
     assert taxonomy_for("9231", None).subject_code == "9231"
@@ -130,7 +140,7 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
 def test_taxonomy_by_name_round_trips():
     for tax in TAXONOMIES:
         assert taxonomy_by_name(tax.subject_name) is tax
-    assert taxonomy_by_name("Chemistry") is None
+    assert taxonomy_by_name("Biology") is None
 
 
 def test_topic_is_frozen():
@@ -234,6 +244,10 @@ def test_parse_labels_rejects_code_from_the_wrong_taxonomy(tmp_path):
     # 9231 Paper 1 tagged with a Paper 4 (stats) code
     path = _write_labels(tmp_path, "9231_s24_qp_11.pdf\t1\tfs1\thand\n")
     with pytest.raises(ValueError, match="Further Pure Mathematics"):
+        parse_labels(path)
+    # a Physics code on a 9701 Chemistry row
+    path = _write_labels(tmp_path, "9701_s24_qp_11.pdf\t1\ts02\thand\n")
+    with pytest.raises(ValueError, match="Chemistry"):
         parse_labels(path)
 
 
