@@ -58,6 +58,29 @@ def test_looks_like_mcq():
     assert looks_like_mcq(_structured_lines()) is False
 
 
+def test_looks_like_mcq_falls_back_to_option_letter_count():
+    # A handful of CIE Chemistry 9701 PDFs use a font with a broken ToUnicode
+    # CMap on the cover page only -- "Paper 1 Multiple Choice" extracts as
+    # garbage there, though the question body (a different font) is fine. The
+    # cover-text check alone would misroute these to segment_structured, which
+    # badly mangles MCQ content (option letters read as sub-part starts).
+    garbled_cover = _line("3DSHU0XOWLSOH&KRLFH", x0=100, page=1)  # "Paper1MultipleChoice"+29
+    lines = [garbled_cover]
+    for q in range(1, 21):  # 20 questions is enough to clear the fallback threshold
+        lines.append(_line(str(q), x0=49.6))
+        lines.append(_line(f"Stem for question {q}?"))
+        for opt in ("A", "B", "C", "D"):
+            lines.append(_line(opt))
+            lines.append(_line(f"option {opt.lower()} {q}"))
+    assert "multiple choice" not in " ".join(ln["text"] for ln in lines[:40]).lower()
+    assert looks_like_mcq(lines) is True
+
+    # a structured paper's occasional bare letter (e.g. a table column header)
+    # must not trip the fallback
+    few_letters = _structured_lines() + [_line("A", page=8), _line("B", page=8)]
+    assert looks_like_mcq(few_letters) is False
+
+
 def test_segment_mcq_basic():
     questions = segment_mcq(_mcq_lines(n=3))
     assert [q.number for q in questions] == [1, 2, 3]

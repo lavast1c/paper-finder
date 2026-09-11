@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -224,31 +225,83 @@ def is_noise(text: str) -> bool:
     return not stripped.strip(", \t\r\n")  # stray comma / whitespace / newline lines
 
 
+# Same-row tolerance for _reading_order: comfortably above the sub-pixel y0
+# offset between a table cell's different-font columns (~0.1-0.3pt observed
+# on a mark scheme's Question/Answer/Marks table), comfortably below any real
+# row-to-row gap (12pt+ even in a dense table).
+_ROW_Y_TOLERANCE = 2.0
+
+
+def _reading_order(page_lines: list[dict]) -> list[dict]:
+    """Sort one page's lines into top-to-bottom, left-to-right reading order.
+
+    PyMuPDF's own line order usually already is that, but a differently-
+    encoded font run (e.g. a margin question number, or one column of a
+    landscape mark-scheme table) can be emitted as a separate text block out
+    of visual order. Rows are found by clustering on y0 gaps rather than a
+    fixed rounding bucket: a naive ``round(y0)`` boundary is not robust --
+    two cells of the same row can land in adjacent integer buckets purely
+    from a fraction-of-a-point baseline difference between their fonts,
+    which silently drops one of the two apart from its row rather than
+    fixing anything.
+    """
+    ordered = sorted(page_lines, key=lambda ln: ln["y0"])
+    rows: list[list[dict]] = []
+    for ln in ordered:
+        if rows and ln["y0"] - rows[-1][-1]["y0"] <= _ROW_Y_TOLERANCE:
+            rows[-1].append(ln)
+        else:
+            rows.append([ln])
+    return [ln for row in rows for ln in sorted(row, key=lambda ln: ln["x0"])]
+
+
 def load_lines(json_path: Path) -> list[dict]:
     data = json.loads(json_path.read_text(encoding="utf-8"))
     lines: list[dict] = []
     for page in data["pages"]:
         height = page["height"] or 842.0
         top, bottom = _BODY_TOP * height, _BODY_BOTTOM * height
-        for line in page["lines"]:
-            lines.append(
-                {
-                    "page": page["page"],
-                    "text": line["text"],
-                    "x0": line["x0"],
-                    "y0": line["y0"],
-                    "y1": line["y1"],
-                    "height": height,
-                    "y_frac": line["y0"] / height,
-                    "in_body": top <= line["y0"] <= bottom,
-                }
-            )
+        page_lines = [
+            {
+                "page": page["page"],
+                "text": line["text"],
+                "x0": line["x0"],
+                "y0": line["y0"],
+                "y1": line["y1"],
+                "height": height,
+                "y_frac": line["y0"] / height,
+                "in_body": top <= line["y0"] <= bottom,
+            }
+            for line in page["lines"]
+        ]
+        # PyMuPDF's own line order is usually top-to-bottom already, but a
+        # margin question number set in a differently-encoded font run can be
+        # emitted as a separate text block out of visual order -- e.g. a
+        # handful of CIE Chemistry 9701 papers where a two-line MCQ stem's
+        # opening line and the margin "1" beside it share the same y0, yet
+        # "1" was emitted a line *after* the line below it. Re-sort into
+        # reading order: no-op for a page that was already ordered, since
+        # Python's sort is stable.
+        lines.extend(_reading_order(page_lines))
     return lines
+
+
+_MIN_OPTION_LETTER_COUNT = 20  # each of A/B/C/D must appear this many times as its own line
 
 
 def looks_like_mcq(lines: list[dict]) -> bool:
     head = " ".join(line["text"] for line in lines[:40]).lower()
-    return "multiple choice" in head
+    if "multiple choice" in head:
+        return True
+    # Fallback for a PDF whose cover page uses a font with a broken/shifted
+    # ToUnicode CMap -- the front matter (including "Paper 1 Multiple Choice")
+    # extracts as garbage while the question body, in a different font, reads
+    # fine. Hit by a handful of CIE Chemistry 9701 papers. Dozens of bare
+    # "A"/"B"/"C"/"D" lines (the option letters) is an MCQ signature no
+    # structured paper produces -- its sub-parts are "(a)", "(b)(i)", never a
+    # bare capital letter on its own line.
+    counts = Counter(ln["text"].strip() for ln in lines if ln.get("in_body"))
+    return min(counts[letter] for letter in _OPTION_LETTERS) >= _MIN_OPTION_LETTER_COUNT
 
 
 def _collapse(parts: list[str]) -> str:
