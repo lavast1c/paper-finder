@@ -1,6 +1,7 @@
 from paper_finder.segment import (
     _crop_rects,
     _split_stem_and_options,
+    content_lines,
     is_noise,
     looks_like_mcq,
     mentions_figure,
@@ -286,6 +287,49 @@ def test_segment_mcq_records_crop_rects():
     assert all(rect[0] == 3 for q in questions for rect in q.crop_rects)
     # q1's crop ends where q2 begins
     assert questions[0].crop_rects[0][4] == round(0.5 * 842.0 - 4.0, 1)
+
+
+def test_content_lines_drops_trailing_data_sheet():
+    # CIE Chemistry appends a constants data sheet + periodic table after the
+    # last question, inside the same qp PDF. A front-cover sentence that starts
+    # the same way must NOT trip the cutoff -- only the standalone heading does.
+    lines = [
+        _line(
+            "Important values, constants and standards are printed in the question paper.",
+            page=1,
+            y_frac=0.4,
+        ),
+        _line("40 What is the identity of X?", x0=49.6, page=15, y_frac=0.1),
+        _line("A. one", page=15, y_frac=0.2),
+        _line("Important values, constants and standards", page=19, y_frac=0.1),
+        _line("molar gas constant", page=19, y_frac=0.2),
+        _line("The Periodic Table of Elements", page=20, y_frac=0.05),
+        _line("H hydrogen 1.0", page=20, y_frac=0.1),
+    ]
+    kept = [line["text"] for line in content_lines(lines)]
+    assert kept == [
+        "Important values, constants and standards are printed in the question paper.",
+        "40 What is the identity of X?",
+        "A. one",
+    ]
+
+
+def test_segment_mcq_stops_at_trailing_data_sheet():
+    lines = [_line("Paper 1 Multiple Choice", x0=100, page=1)]
+    lines.append(_line("1", x0=49.6, page=2))
+    lines.append(_line("Stem for question 1 about chemistry?", page=2))
+    for opt in ("A", "B", "C", "D"):
+        lines.append(_line(opt, page=2))
+        lines.append(_line(f"option {opt.lower()} 1", page=2))
+    lines.append(_line("Important values, constants and standards", page=3))
+    lines.append(_line("molar gas constant", page=3))
+    lines.append(_line("The Periodic Table of Elements", page=4))
+    lines.append(_line("H hydrogen 1.0", page=4))
+
+    questions = segment_mcq(lines)
+    assert len(questions) == 1
+    assert "molar gas constant" not in questions[0].text
+    assert questions[0].crop_rects[-1][0] == 2  # crop stops on the question's own page
 
 
 def test_noise_matches_furniture_but_not_questions():
