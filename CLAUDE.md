@@ -24,7 +24,7 @@ tech stack, data reference, and database schema.
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
 2026-09-06). Stage 6 (semantic search) still open.
 
-**The corpus is now four subjects / six topic taxonomies** (9701 added
+**The corpus is now five subjects / seven topic taxonomies** (9700 added
 2026-09-11), distinguished by `papers.subject_name`:
 
 - **Physics** — 9702 2020-2026 (`m20`..`m26` Feb/March, `s20`..`s26`,
@@ -64,6 +64,15 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done + Stage 4 downloader (as of
   `9702_s26_qp_21` exclusion, this is a single missing answer in an otherwise
   complete paper, so the paper stays in the corpus rather than being added to
   `config.EXCLUDE_FILENAMES`.
+- **Biology** — 9700 Papers 1 & 2, variants 1-4 where they exist, `s20`..`s26`
+  + `w20`..`w25` + `m20`..`m26` (Feb/March variant 2 only) — one taxonomy spans
+  both papers (like Physics and Chemistry), since both examine the full AS
+  syllabus = 96 question papers (48 Paper 1 MCQ + 48 Paper 2 structured), 2208
+  questions (1920 MCQ + 288 theory), **2208/2208 answers linked** (100% — no
+  gaps like Chemistry's), tagged into the 11 syllabus sections
+  (`bi01`..`bi11`, built from the syllabus PDF pages 16-32). Building this
+  subject surfaced one genuine mark-scheme parsing bug, not Biology-specific
+  (see the `marks.py` fix below).
 
 9231 total: **78 QP papers, 510 questions, 510/510 answers linked** across 13
 sessions (`s20`-`s26`, `w20`-`w25`). 9709 total: **92 QP papers, 809 questions,
@@ -73,30 +82,39 @@ short). Both 9231 papers and both 9709 papers are structured/theory (none is
 MCQ). 9701 total: **98 QP papers, 2186 questions, 2185/2186 answers linked**
 across 21 sessions (`m20`-`m26`, `s20`-`s26`, `w20`-`w25`); unlike 9231/9709,
 9701 Paper 1 is MCQ and Paper 2 is structured/theory (the second subject,
-after Physics, where `is_mcq` varies within a subject). Taxonomies live in
-`src/paper_finder/topics.py` as six `Taxonomy`
+after Physics, where `is_mcq` varies within a subject). 9700 total: **96 QP
+papers, 2208 questions, 2208/2208 answers linked** across 21 sessions
+(`m20`-`m26`, `s20`-`s26`, `w20`-`w25`); like 9701, 9700 Paper 1 is MCQ and
+Paper 2 is structured/theory (the third subject where `is_mcq` varies within
+a subject). Taxonomies live in
+`src/paper_finder/topics.py` as seven `Taxonomy`
 instances (`TAXONOMIES`); `taxonomy_for(subject_code, paper)` /
 `taxonomy_by_name(subject_name)` resolve one. Labels: `labels/question_topics.tsv`,
 loaded by `paper-finder topics` (prints a per-subject block).
 
 The 9702 2024-2026 papers were labelled by `paper-finder classify`; the 9702
 2020-2023 ones (1311 questions), **every 9231 question** (510), **every 9709
-question** (809) and **every 9701 question** (2186) were labelled without an
+question** (809), **every 9701 question** (2186) and **every 9700 question**
+(2208) were labelled without an
 API key — 9702 Paper 1 MCQs by their position in the paper (Paper 1 tracks the
-syllabus-section order closely, ~80-85% accurate); 9701 Paper 1's 1960 MCQs by
-a fixed position-in-paper block (all 49 papers have exactly 40 questions, so
-this maps question-number ranges to `ch01`..`ch22` by a heuristic weighting of
-each section's typical share of the paper, applied identically to every P1
+syllabus-section order closely, ~80-85% accurate); 9701 Paper 1's 1960 MCQs and
+9700 Paper 1's 1920 MCQs the same way, by
+a fixed position-in-paper block (every P1 paper in a subject has the same
+question count, so this maps question-number ranges to the subject's topic
+codes by a heuristic weighting of each section's typical share of the paper,
+applied identically to every P1
 file — not a per-paper read, so treat it with the same ~80-85%-ish confidence
 as the 9702 P1 heuristic); 9702 Paper 2 / all 9231 / all 9709 / 9701 Paper 2's
-226 structured questions by reading each question — refine any `llm` row later
+226 structured questions / **9700 Paper 2's 288 structured questions** by
+reading each question — refine any `llm` row later
 with `paper-finder classify --relabel` once `ANTHROPIC_API_KEY` is set
 (`classify.py` is not yet taxonomy-aware — Commit 9, deferred).
 Every question also has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set in `segment`) and, for structured
 questions, an **image crop of its mark scheme** cropped from the `ms` PDF
 (`answers.answer_crop_rects`/`answer_crop_count`, set in `marks`; 324 Physics +
-510 9231 + 807 9709 + 225 Chemistry answers). 9231, 9709 **and** 9701 mark
+510 9231 + 807 9709 + 225 Chemistry + 667 Biology answers). 9231, 9709, 9701
+**and** 9700 mark
 schemes are **landscape** like Physics (h=595 w=842), so `marks.py` crop
 geometry is unchanged;
 `_bare_label_number` handles the part-less questions (a bare number in the
@@ -153,6 +171,23 @@ landscape Marks column sits ~0.13pt off its row's Question/Answer columns, a
 sub-pixel offset that straddled the integer-rounding boundary inconsistently
 row to row. All three fixes are general pipeline correctness fixes, not
 Chemistry-specific patches.
+
+Fixed (2026-09-11), while adding Biology: `marks.py`'s
+`parse_mcq_answers()` dropped the rest of an MCQ paper's answer table (48
+questions total across 2 real papers) whenever CIE voided one item after
+publication — a flawed question with no single correct answer, whose
+Answer-column cell in the mark scheme reads "Question Discounted" /
+"Question discounted" instead of a letter, with the following Marks-column
+digit present on some papers and absent on others. The old parser assumed
+every row was a fixed `(number, letter, marks)` triple, so the first
+discounted row broke the sequence match and every later question in that
+paper came back unanswered. A new `_DISCOUNTED` regex + `elif` branch
+records `"Question discounted"` as the answer and resyncs onto the next row
+by checking whether the token after it is already the *following*
+question's own number, rather than assuming a fixed row width. General
+pipeline fix, not Biology-specific — verified with a full rebuild (2208/2208
+Biology questions answered, both real discounted-question papers' full
+40-question sequences confirmed correct) plus the existing full test suite.
 
 **Stage 7b — deployed** to Vercel + Supabase (`~/.claude/plans/yes-can-you-...md`,
 `DEPLOY_PROGRESS.md`). The local build pipeline is 100% unchanged (still SQLite).
@@ -218,14 +253,20 @@ the only DDL is widening the `questions_topic_codes_valid` CHECK to the union
 of all six taxonomies — `is_mcq`, `topics.subject` and the RPC
 `subjects`/`topic_subject` params already existed, and `publish` reseeds
 `public.topics` from `topics.py`).
-Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1). Migrations 0001-0011 applied.
++ `0012_biology_9700.sql` (adds Biology 9700 Papers 1 & 2 as the subject
+`Biology` (`bi01`..`bi11`, one taxonomy spanning both papers, like Physics and
+Chemistry); the only DDL is widening the `questions_topic_codes_valid` CHECK
+to the union of all seven taxonomies — `is_mcq`, `topics.subject` and the RPC
+`subjects`/`topic_subject` params already existed, and `publish` reseeds
+`public.topics` from `topics.py`).
+Project ref `gfigwnbkzkgwxcdoqxtz` (ap-south-1). Migrations 0001-0012 applied.
 
 `/api/search` + `/api/browse` + `/api/topics` (local) and the
 `search_questions` / `browse_questions` / `topic_counts` RPCs (cloud) take a
 `kind` filter (`all` / `mcq` / `theory` — **both** local and cloud now on
 `questions.is_mcq`, since 0008); the **Paper(s)** filter drives it, and it is
-hidden off every subject except Physics and Chemistry — the only two with a
-real MCQ paper (`common.js` `PF.MCQ_SUBJECTS` / `PF.hasMcqPapers()`, which
+hidden off every subject except Physics, Chemistry and Biology — the only
+three with a real MCQ paper (`common.js` `PF.MCQ_SUBJECTS` / `PF.hasMcqPapers()`, which
 `app.js`/`topics.js` use in place of the old `=== DEFAULT_SUBJECT` check).
 They also take a
 `subject` / `subjects` param (`papers.subject_name`) — **search works one
@@ -233,9 +274,9 @@ subject at a time** (no cross-subject search).
 The **filter bar** (`.filterbar`, on both
 `index.html` and `topics.html`, styled from the `Ref Photos/` mock):
 a context row of **Curriculum** / **Subject** dropdowns — `#curriculum` still
-one option, but **`#subject` is now live** with six real options (Physics /
+one option, but **`#subject` is now live** with seven real options (Physics /
 Further Pure Mathematics / Further Probability & Statistics / Pure Mathematics
-1 / Probability & Statistics 1 / Chemistry, default Physics;
+1 / Probability & Statistics 1 / Chemistry / Biology, default Physics;
 `app.js` / `topics.js` `DEFAULT_SUBJECT`, `?subject=` URL token only when
 non-default, changing it re-scopes search / clears the topic pick) — above
 three real scope filters — **Paper(s)** (`#f-paper`, in `#fb-paper` wrapper so
@@ -276,10 +317,11 @@ diagram/graph/table (`questions.has_figure`, set in `segment` by the
 show a `◧ Has a diagram, graph or table — check the PDF` note (`.figure-note`).
 
 **Topics + flashcard page (Stage 1 done).** Every question is tagged with all
-fitting syllabus sections for its subject (`src/paper_finder/topics.py` = six
+fitting syllabus sections for its subject (`src/paper_finder/topics.py` = seven
 `Taxonomy` instances — 11 `s01`..`s11` for Physics, 7 `fp1`..`fp7`, 5
-`fs1`..`fs5`, 8 `pm1`..`pm8`, 5 `ps1`..`ps5`, 22 `ch01`..`ch22` for Chemistry
-(58 topics total); `TAXONOMIES`,
+`fs1`..`fs5`, 8 `pm1`..`pm8`, 5 `ps1`..`ps5`, 22 `ch01`..`ch22` for Chemistry,
+11 `bi01`..`bi11` for Biology
+(69 topics total); `TAXONOMIES`,
 `ALL_TOPICS`, `taxonomy_for`, `taxonomy_by_name`;
 `labels.parse_labels` validates each row against its own subject's taxonomy, not
 the union; `labels/question_topics.tsv` = hand-committable, no CIE text — just
@@ -423,11 +465,12 @@ persists the toggle. An `<img>` load failure or no resolved URL falls back to
 `PF.answerBlock` for that one card. MCQ answers (`answer_crop_count = 0`) keep
 the single letter, no image, no toggle.
 
-**Cloud live:** 0005 + 0007 + 0011 applied; `publish` run (all four subjects /
-six taxonomies — 365 qp papers, 5790 questions, 5788 with an answer, cloud
+**Cloud live:** 0005 + 0007 + 0012 applied; `publish` run (all five subjects /
+seven taxonomies — 461 qp papers, 7998 questions, 7996 with an answer, cloud
 `crop_count` on all, `answer_crop_count` > 0 where the ms was published);
 `publish-figures` uploaded the question + `ms_` PNGs (Chemistry: 3106 PNGs
-across 147 papers) to the private `question-crops`
+across 147 papers; Biology: 3365 PNGs across 96 papers) to the private
+`question-crops`
 bucket (anon `list` → `[]`, anon `sign` → 404 — genuinely private).
 `publish-figures` needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — both now
 in `.env` (`SUPABASE_URL` is the browser-safe project URL, not a secret).
@@ -446,11 +489,11 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
 - Fetch more papers: `paper-finder download [--dry-run] [--limit N]
-  [--subject 9702,9231,9709,9701] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
+  [--subject 9702,9231,9709,9701,9700] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
   [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`, which is now
   **per-subject** (`{"subjects": {"9702": {papers, variants}, "9231": {...},
   "9709": {papers: [1, 5], variants: [1, 2, 3]}, "9701": {papers: [1, 2],
-  variants: [1, 2, 3, 4]}}}`);
+  variants: [1, 2, 3, 4]}, "9700": {papers: [1, 2], variants: [1, 2, 3, 4]}}}`);
   `--papers`/`--variants` apply to every selected subject, `--subject` picks
   which. NOT part of `build` (network side effect). Idempotent (skips files
   already in `data/raw/`).
