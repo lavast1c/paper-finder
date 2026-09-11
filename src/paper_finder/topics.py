@@ -4,7 +4,7 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Five taxonomies today:
+Six taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
@@ -13,6 +13,11 @@ Five taxonomies today:
   ``fs1``..``fs5``.
 * ``PURE_MATH_1`` -- 9709 Paper 1 (Pure Mathematics 1), ``pm1``..``pm8``.
 * ``PROB_STATS_1`` -- 9709 Paper 5 (Probability & Statistics 1), ``ps1``..``ps5``.
+* ``CHEMISTRY`` -- 9701 Papers 1 & 2, sections ``ch01``..``ch22``, from
+  "Cambridge International AS & A Level Chemistry 9701 syllabus for 2025, 2026
+  and 2027" (AS Level subject content, pp.16-38). Like ``PHYSICS``, one
+  taxonomy spans both papers -- P1 (MCQ) and P2 (structured) both examine the
+  same full AS syllabus, unlike 9231/9709's disjoint-content paper splits.
 
 Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
 ``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
@@ -705,6 +710,525 @@ _PROB_STATS_1_TOPICS: tuple[Topic, ...] = (
 )
 
 
+# --- 9701 Papers 1 & 2: Chemistry (AS Level syllabus sections 1-22) -----------
+
+_CHEMISTRY_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="ch01",
+        number=1,
+        name="Atomic structure",
+        blurb=(
+            "Protons, neutrons and electrons: relative charges and relative masses; "
+            "the distribution of mass and charge within an atom; atomic/proton number "
+            "and mass/nucleon number; deducing the numbers of protons, neutrons and "
+            "electrons in an atom or ion; the behaviour of beams of protons, neutrons "
+            "and electrons moving at the same velocity in an electric field; trends in "
+            "atomic and ionic radius across a period and down a group. Isotopes: same "
+            "chemical properties, different physical properties (mass, density). "
+            "Shells, sub-shells and orbitals; the principal quantum number n; the "
+            "number of orbitals and electrons s, p and d sub-shells hold; the aufbau "
+            "order of sub-shells within the first three shells plus 4s and 4p; full and "
+            "noble-gas-shorthand electronic configurations of atoms and ions (e.g. Fe: "
+            "1s2 2s2 2p6 3s2 3p6 3d6 4s2 or [Ar] 3d6 4s2) and electrons-in-boxes "
+            "notation; shapes of s and p orbitals; a free radical as a species with one "
+            "or more unpaired electrons. First, second and successive ionisation "
+            "energies: constructing the defining equations; trends across a period and "
+            "down a group, and the variation in successive values for one element; "
+            "explaining ionisation energy from nuclear charge, atomic/ionic radius, "
+            "shielding and spin-pair repulsion; deducing an element's electronic "
+            "configuration or Periodic Table position from successive ionisation "
+            "energy data."
+        ),
+        subsections=(
+            "1.1 Particles in the atom and atomic radius",
+            "1.2 Isotopes",
+            "1.3 Electrons, energy levels and atomic orbitals",
+            "1.4 Ionisation energy",
+        ),
+    ),
+    Topic(
+        code="ch02",
+        number=2,
+        name="Atoms, molecules and stoichiometry",
+        blurb=(
+            "The unified atomic mass unit; relative atomic, isotopic, molecular and "
+            "formula mass defined in terms of it; the mole and the Avogadro constant. "
+            "Writing formulas of ionic compounds from ionic charge/oxidation number "
+            "(predicted from Periodic Table position, or recalled for common "
+            "polyatomic ions such as NO3-, CO3 2-, SO4 2-, OH-, NH4+, HCO3- and PO4 "
+            "3-); writing and balancing equations, including ionic equations with "
+            "spectator ions removed, and state symbols; empirical versus molecular "
+            "formula; anhydrous, hydrated and water of crystallisation; calculating "
+            "empirical/molecular formulas from data. Mole calculations covering "
+            "reacting masses (including percentage yield), gas volumes, volumes and "
+            "concentrations of solutions, limiting and excess reagent, and deducing "
+            "stoichiometric relationships from such calculations."
+        ),
+        subsections=(
+            "2.1 Relative masses of atoms and molecules",
+            "2.2 The mole and the Avogadro constant",
+            "2.3 Formulas",
+            "2.4 Reacting masses and volumes (of solutions and gases)",
+        ),
+    ),
+    Topic(
+        code="ch03",
+        number=3,
+        name="Chemical bonding",
+        blurb=(
+            "Electronegativity: definition, the factors behind its trends (nuclear "
+            "charge, atomic radius, shielding), and using electronegativity "
+            "differences to predict ionic versus covalent bonding. Ionic bonding "
+            "(sodium chloride, magnesium oxide, calcium fluoride) and metallic bonding "
+            "as electrostatic attractions. Covalent and coordinate (dative covalent) "
+            "bonding in named molecules (H2, O2, N2, Cl2, HCl, CO2, NH3, CH4, C2H6, "
+            "C2H4), expanded octets in Period 3 compounds (SO2, PCl5, SF6), and dative "
+            "bonding in NH4+ and Al2Cl6; sigma bonds from direct orbital overlap and pi "
+            "bonds from sideways p-orbital overlap, described for H2, C2H6, C2H4, HCN "
+            "and N2; sp, sp2 and sp3 hybridisation; bond energy and bond length used to "
+            "compare reactivity. VSEPR shapes and bond angles for BF3, CO2, CH4, NH3, "
+            "H2O, SF6 and PF5, and predicting the shapes of analogous molecules/ions. "
+            "Hydrogen bonding limited to N-H and O-H groups (ammonia, water) and the "
+            "anomalous properties of ice/water it explains (high melting/boiling point, "
+            "high surface tension, ice less dense than water); bond polarity and dipole "
+            "moments from electronegativity; van der Waals' forces as the generic term "
+            "for intermolecular forces, split into instantaneous dipole-induced dipole "
+            "(London dispersion) and permanent dipole-permanent dipole forces "
+            "(hydrogen bonding being a special, stronger case of the latter); ionic, "
+            "covalent and metallic bonds all being stronger than intermolecular forces. "
+            "Dot-and-cross diagrams for ionic, covalent and coordinate bonding, "
+            "including expanded-octet and odd-electron species. (Reaction mechanisms "
+            "that use curly arrows belong to organic chemistry's characteristic "
+            "reactions, not here.)"
+        ),
+        subsections=(
+            "3.1 Electronegativity and bonding",
+            "3.2 Ionic bonding",
+            "3.3 Metallic bonding",
+            "3.4 Covalent bonding and coordinate (dative covalent) bonding",
+            "3.5 Shapes of molecules",
+            "3.6 Intermolecular forces, electronegativity and bond properties",
+            "3.7 Dot-and-cross diagrams",
+        ),
+    ),
+    Topic(
+        code="ch04",
+        number=4,
+        name="States of matter",
+        blurb=(
+            "The kinetic-theory origin of gas pressure as collisions between gas "
+            "molecules and the container wall; the ideal-gas assumptions of zero "
+            "particle volume and no intermolecular forces; using pV = nRT, including "
+            "to find Mr. Lattice structures: giant ionic (sodium chloride, magnesium "
+            "oxide), simple molecular (iodine, buckminsterfullerene C60, ice), giant "
+            "molecular (silicon(IV) oxide, graphite, diamond) and giant metallic "
+            "(copper); relating structure/bonding type to melting point, boiling "
+            "point, electrical conductivity and solubility, and deducing the structure "
+            "and bonding present in a substance from given data."
+        ),
+        subsections=(
+            "4.1 The gaseous state: ideal and real gases and pV = nRT",
+            "4.2 Bonding and structure",
+        ),
+    ),
+    Topic(
+        code="ch05",
+        number=5,
+        name="Chemical energetics",
+        blurb=(
+            "Exothermic (delta H negative) and endothermic (delta H positive) "
+            "reactions; constructing and interpreting a reaction pathway (energy "
+            "profile) diagram showing enthalpy change and activation energy; standard "
+            "conditions (298 K, 101 kPa); enthalpy change of reaction, formation, "
+            "combustion and neutralisation. Energy transfer as bond breaking "
+            "(endothermic) and bond making (exothermic); using bond energies (some "
+            "exact, most average) to calculate delta Hr; calculating enthalpy changes "
+            "from experimental results via q = mc delta T and delta H = -mc delta T / "
+            "n. Hess's law energy cycles, including using bond energy data, to find "
+            "enthalpy changes that cannot be measured directly."
+        ),
+        subsections=(
+            "5.1 Enthalpy change, delta H",
+            "5.2 Hess's law",
+        ),
+    ),
+    Topic(
+        code="ch06",
+        number=6,
+        name="Electrochemistry",
+        blurb=(
+            "Calculating oxidation numbers of elements in compounds and ions, and "
+            "using changes in oxidation number to balance equations; redox, "
+            "oxidation, reduction and disproportionation explained in terms of "
+            "electron transfer and oxidation-number change; oxidising agent and "
+            "reducing agent; the Roman-numeral convention for the magnitude of an "
+            "oxidation number."
+        ),
+        subsections=(
+            "6.1 Redox processes: electron transfer and changes in oxidation number "
+            "(oxidation state)",
+        ),
+    ),
+    Topic(
+        code="ch07",
+        number=7,
+        name="Equilibria",
+        blurb=(
+            "Reversible reactions and dynamic equilibrium (equal forward/reverse "
+            "rates, constant concentrations) requiring a closed system; Le "
+            "Chatelier's principle and using it to predict qualitatively the effect "
+            "of temperature, concentration, pressure or a catalyst on a system at "
+            "equilibrium; deducing Kc (concentrations) and Kp (partial pressures, "
+            "mole fraction) expressions and using them in calculations (no "
+            "quadratics) including quantities present at equilibrium; which of these "
+            "changes alter the value of the equilibrium constant itself, as distinct "
+            "from just shifting the position of equilibrium; the Haber and Contact "
+            "processes as industrial applications. Bronsted-Lowry acid/base theory; "
+            "the common acids (HCl, H2SO4, HNO3, CH3COOH) and alkalis (NaOH, KOH, "
+            "NH3); strong acids/bases as fully dissociated versus weak acids/bases as "
+            "partially dissociated, and the qualitative differences in their behaviour "
+            "(reaction with a reactive metal, pH by meter/indicator/conductivity); the "
+            "pH scale (7 = neutral); neutralisation as H+(aq) + OH-(aq) -> H2O(l) "
+            "forming a salt; sketching pH titration curves for strong/weak acid-alkali "
+            "combinations and selecting a suitable indicator. (Enthalpy change of "
+            "neutralisation is measured the same way experimentally but belongs to "
+            "Chemical energetics, not here.)"
+        ),
+        subsections=(
+            "7.1 Chemical equilibria: reversible reactions, dynamic equilibrium",
+            "7.2 Bronsted-Lowry theory of acids and bases",
+        ),
+    ),
+    Topic(
+        code="ch08",
+        number=8,
+        name="Reaction kinetics",
+        blurb=(
+            "Rate of reaction in terms of frequency of collisions and the "
+            "distinction between effective and non-effective collisions; the "
+            "qualitative effect of concentration and pressure changes on rate; "
+            "calculating rate from experimental data. Activation energy, EA, as the "
+            "minimum energy for an effective collision; sketching and using the "
+            "Boltzmann distribution to explain why raising temperature increases the "
+            "proportion of molecules with EA or more, and so the rate. Catalysts "
+            "providing an alternative mechanism of lower activation energy, explained "
+            "via the Boltzmann distribution and via a reaction pathway diagram drawn "
+            "with and without an effective catalyst."
+        ),
+        subsections=(
+            "8.1 Rate of reaction",
+            "8.2 Effect of temperature on reaction rates and the concept of activation energy",
+            "8.3 Homogeneous and heterogeneous catalysts",
+        ),
+    ),
+    Topic(
+        code="ch09",
+        number=9,
+        name="The Periodic Table: chemical periodicity",
+        blurb=(
+            "Period 3 trends in atomic radius, ionic radius, melting point and "
+            "electrical conductivity, explained via structure and bonding. Reactions "
+            "of the Period 3 elements with oxygen (to Na2O, MgO, Al2O3, P4O10, SO2), "
+            "chlorine (to NaCl, MgCl2, AlCl3, SiCl4, PCl5) and water (Na and Mg only); "
+            "the trend in oxidation number of these oxides and chlorides from their "
+            "valence electrons; reactions (if any) of the oxides and chlorides with "
+            "water and the resulting solution pH; acid/base behaviour of the oxides "
+            "and of NaOH/Mg(OH)2/Al(OH)3, including the amphoteric behaviour of "
+            "Al2O3/Al(OH)3 with both acids and (sodium hydroxide only) bases; "
+            "explaining these trends via bonding and electronegativity, and "
+            "suggesting the bonding type present from observed properties. Predicting "
+            "the properties of an element from its group, and deducing an unknown "
+            "element's nature and possible Periodic Table position from given "
+            "physical/chemical data."
+        ),
+        subsections=(
+            "9.1 Periodicity of physical properties of the elements in Period 3",
+            "9.2 Periodicity of chemical properties of the elements in Period 3",
+            "9.3 Chemical periodicity of other elements",
+        ),
+    ),
+    Topic(
+        code="ch10",
+        number=10,
+        name="Group 2",
+        blurb=(
+            "Reactions of the Group 2 elements magnesium to barium with oxygen, "
+            "water and dilute hydrochloric/sulfuric acid; reactions of their oxides, "
+            "hydroxides and carbonates with water and with dilute acids; the trend in "
+            "thermal stability shown by thermal decomposition of the nitrates and "
+            "carbonates down the group; predicting the trends in physical and "
+            "chemical properties of the elements and these compounds down the group; "
+            "the variation in solubility of the hydroxides (increasing down the "
+            "group) and sulfates (decreasing down the group)."
+        ),
+        subsections=(
+            "10.1 Similarities and trends in the properties of the Group 2 metals, "
+            "magnesium to barium, and their compounds",
+        ),
+    ),
+    Topic(
+        code="ch11",
+        number=11,
+        name="Group 17",
+        blurb=(
+            "Colours and the trend in volatility of chlorine, bromine and iodine, "
+            "interpreted via increasing instantaneous dipole-induced dipole forces "
+            "down the group; the trend in halogen-halogen bond strength. Relative "
+            "reactivity of the elements as oxidising agents, including their "
+            "reactions with hydrogen; relative thermal stability of the hydrogen "
+            "halides explained via bond strength. Relative reactivity of halide ions "
+            "as reducing agents; their reactions with aqueous silver ions followed by "
+            "aqueous ammonia, and with concentrated sulfuric acid (balanced "
+            "equations). The disproportionation of chlorine with cold and with hot "
+            "aqueous sodium hydroxide, tracked via oxidation-number change; the use "
+            "of chlorine in water purification via the bactericidal species HOCl and "
+            "ClO-."
+        ),
+        subsections=(
+            "11.1 Physical properties of the Group 17 elements",
+            "11.2 The chemical properties of the halogen elements and the hydrogen halides",
+            "11.3 Some reactions of the halide ions",
+            "11.4 The reactions of chlorine",
+        ),
+    ),
+    Topic(
+        code="ch12",
+        number=12,
+        name="Nitrogen and sulfur",
+        blurb=(
+            "The lack of reactivity of nitrogen, explained by its triple bond "
+            "strength and lack of polarity. The basicity of ammonia via the "
+            "Bronsted-Lowry theory, the structure and acid-base formation of the "
+            "ammonium ion, and displacement of ammonia from ammonium salts by an "
+            "acid-base reaction. Natural and man-made sources of oxides of nitrogen "
+            "and their catalytic removal from vehicle exhaust gases; NO and NO2 "
+            "reacting with unburned hydrocarbons to form peroxyacetyl nitrate (PAN), "
+            "a component of photochemical smog; the role of NO and NO2 in acid rain, "
+            "both directly and by catalysing the oxidation of atmospheric sulfur "
+            "dioxide."
+        ),
+        subsections=("12.1 Nitrogen and sulfur",),
+    ),
+    Topic(
+        code="ch13",
+        number=13,
+        name="An introduction to AS Level organic chemistry",
+        blurb=(
+            "Hydrocarbons (C and H only) versus alkanes (no functional group) versus "
+            "the functional-group homologous series (alkene, halogenoalkane, "
+            "alcohol, aldehyde, ketone, carboxylic acid, ester, amine, nitrile) whose "
+            "functional group dictates physical/chemical behaviour; interpreting "
+            "general, structural, displayed and skeletal formulas; systematic "
+            "nomenclature of simple aliphatic molecules up to six carbons (six-plus-"
+            "six for esters, straight chains only for esters and nitriles); deducing "
+            "a molecular/empirical formula from any of these formula types. "
+            "Terminology: homologous series; saturated/unsaturated; homolytic/"
+            "heterolytic fission; free radical, initiation, propagation, "
+            "termination; nucleophile/electrophile; addition, substitution, "
+            "elimination, hydrolysis, condensation; oxidation ([O]) and reduction "
+            "([H]) in organic redox equations. Mechanism types -- free-radical "
+            "substitution, electrophilic addition, nucleophilic substitution, "
+            "nucleophilic addition -- with curly arrows starting at a bond or a lone "
+            "pair. Straight-chain, branched and cyclic molecules; the shape and bond "
+            "angles at sp, sp2 and sp3 hybridised atoms, their sigma/pi bond "
+            "arrangement, and the term planar (e.g. ethene). Structural isomerism "
+            "(chain, positional, functional group) and stereoisomerism (geometrical "
+            "cis/trans in alkenes, from restricted rotation about a pi bond; optical, "
+            "from a chiral centre giving two enantiomers); identifying chiral centres "
+            "and cis/trans isomerism in a given structural formula, including cyclic "
+            "compounds, and deducing the possible isomers of a molecular formula. "
+            "(The reactions of a specific functional group belong to that group's own "
+            "topic -- Hydrocarbons, Halogen compounds, and so on -- not here.)"
+        ),
+        subsections=(
+            "13.1 Formulas, functional groups and the naming of organic compounds",
+            "13.2 Characteristic organic reactions",
+            "13.3 Shapes of organic molecules; sigma and pi bonds",
+            "13.4 Isomerism: structural isomerism and stereoisomerism",
+        ),
+    ),
+    Topic(
+        code="ch14",
+        number=14,
+        name="Hydrocarbons",
+        blurb=(
+            "Alkanes: preparation by hydrogenating an alkene (H2, Pt/Ni, heat) or "
+            "cracking a longer alkane (heat, Al2O3); complete and incomplete "
+            "combustion; free-radical substitution by Cl2 or Br2 in UV light "
+            "(ethane example) via initiation/propagation/termination; cracking to "
+            "obtain more useful, lower-Mr alkanes and alkenes from crude oil "
+            "fractions; general unreactivity toward polar reagents from strong, "
+            "non-polar C-H bonds; environmental consequences and catalytic removal "
+            "of CO, NOx and unburnt hydrocarbons from combustion. Alkenes: "
+            "preparation by elimination of HX from a halogenoalkane (ethanolic NaOH, "
+            "heat), dehydration of an alcohol, or cracking; electrophilic addition of "
+            "hydrogen, steam, a hydrogen halide or a halogen; oxidation by cold "
+            "dilute acidified KMnO4 to a diol, and by hot concentrated acidified "
+            "KMnO4 to rupture the C=C bond and locate alkene position from the "
+            "products; addition polymerisation (ethene, propene); aqueous bromine as "
+            "a test for C=C; the electrophilic addition mechanism (bromine/ethene, "
+            "hydrogen bromide/propene); the inductive effect of alkyl groups "
+            "stabilising primary/secondary/tertiary cations, explaining Markovnikov "
+            "addition."
+        ),
+        subsections=(
+            "14.1 Alkanes",
+            "14.2 Alkenes",
+        ),
+    ),
+    Topic(
+        code="ch15",
+        number=15,
+        name="Halogen compounds",
+        blurb=(
+            "Halogenoalkane preparation: free-radical substitution of an alkane, "
+            "electrophilic addition of a halogen or hydrogen halide to an alkene, or "
+            "substitution of an alcohol (HX(g); KCl + concentrated H2SO4 or H3PO4; "
+            "PCl3 + heat; PCl5; or SOCl2). Classifying primary/secondary/tertiary. "
+            "Nucleophilic substitution: NaOH(aq) + heat to an alcohol, KCN in "
+            "ethanol + heat to a nitrile, NH3 in ethanol under pressure to an amine, "
+            "and aqueous silver nitrate in ethanol to identify the halogen present "
+            "(bromoethane example). Elimination with ethanolic NaOH + heat to an "
+            "alkene (bromoethane example). The SN1 and SN2 mechanisms, the inductive "
+            "effect of alkyl groups, and primary halogenoalkanes favouring SN2, "
+            "tertiary favouring SN1, secondary a mixture; differing reactivity of "
+            "halogenoalkanes explained by relative C-X bond strength, as shown by "
+            "rate of reaction with aqueous silver nitrate."
+        ),
+        subsections=("15.1 Halogenoalkanes",),
+    ),
+    Topic(
+        code="ch16",
+        number=16,
+        name="Hydroxy compounds",
+        blurb=(
+            "Alcohol preparation: electrophilic addition of steam to an alkene; cold "
+            "dilute acidified KMnO4 on an alkene to a diol; substitution of a "
+            "halogenoalkane with NaOH(aq) + heat; reduction of an aldehyde/ketone "
+            "with NaBH4 or LiAlH4; reduction of a carboxylic acid with LiAlH4; "
+            "hydrolysis of an ester. Reactions: combustion; substitution to a "
+            "halogenoalkane (same reagent set as halogenoalkane preparation); "
+            "reaction with Na(s); oxidation with acidified K2Cr2O7 or KMnO4 -- "
+            "primary alcohols to aldehydes (by distillation), then on to carboxylic "
+            "acids (by refluxing); secondary alcohols to ketones; tertiary alcohols "
+            "resist oxidation; dehydration to an alkene (heated catalyst or "
+            "concentrated acid); esterification with a carboxylic acid and "
+            "concentrated H2SO4 catalyst (ethanol example). Classifying primary/"
+            "secondary/tertiary alcohols, including those with more than one -OH "
+            "group; the orange-to-green colour change of acidified K2Cr2O7 as a "
+            "distinguishing test. Deducing a CH3CH(OH)- group from a positive "
+            "iodoform reaction (alkaline I2(aq), yellow triiodomethane precipitate, "
+            "plus RCO2-). The acidity of alcohols compared with water."
+        ),
+        subsections=("16.1 Alcohols",),
+    ),
+    Topic(
+        code="ch17",
+        number=17,
+        name="Carbonyl compounds",
+        blurb=(
+            "Preparation of aldehydes (from primary alcohols) and ketones (from "
+            "secondary alcohols) by oxidation with acidified K2Cr2O7 or KMnO4 and "
+            "distillation. Reduction with NaBH4 or LiAlH4 back to alcohols. "
+            "Nucleophilic addition of HCN (KCN catalyst, heat) to hydroxynitriles "
+            "(ethanal and propanone examples) and its mechanism. Using "
+            "2,4-dinitrophenylhydrazine (2,4-DNPH) to detect a carbonyl group; "
+            "distinguishing an aldehyde from a ketone via Fehling's or Tollens' "
+            "reagent, or ease of oxidation. Deducing a CH3CO- group from a positive "
+            "iodoform reaction (alkaline I2(aq), yellow triiodomethane precipitate, "
+            "plus RCO2-)."
+        ),
+        subsections=("17.1 Aldehydes and ketones",),
+    ),
+    Topic(
+        code="ch18",
+        number=18,
+        name="Carboxylic acids and derivatives",
+        blurb=(
+            "Carboxylic acid preparation: oxidation of a primary alcohol or "
+            "aldehyde (acidified K2Cr2O7 or KMnO4, refluxing); hydrolysis of a "
+            "nitrile or an ester with dilute acid or alkali, then acidification. "
+            "Reactions: with reactive metals to a salt + H2; neutralisation with "
+            "alkalis; with carbonates to a salt + H2O + CO2; esterification with an "
+            "alcohol (concentrated H2SO4 catalyst); reduction by LiAlH4 to a primary "
+            "alcohol. Esters: formed by condensation of an alcohol and a carboxylic "
+            "acid (concentrated H2SO4 catalyst); hydrolysed by dilute acid or dilute "
+            "alkali plus heat."
+        ),
+        subsections=(
+            "18.1 Carboxylic acids",
+            "18.2 Esters",
+        ),
+    ),
+    Topic(
+        code="ch19",
+        number=19,
+        name="Nitrogen compounds",
+        blurb=(
+            "Primary amine preparation from a halogenoalkane + NH3 in ethanol "
+            "heated under pressure (amine classification is not tested at AS). "
+            "Nitrile preparation from a halogenoalkane + KCN in ethanol + heat; "
+            "hydroxynitrile preparation from an aldehyde/ketone + HCN (KCN "
+            "catalyst). Hydrolysis of a nitrile with dilute acid or dilute alkali, "
+            "followed by acidification, to a carboxylic acid."
+        ),
+        subsections=(
+            "19.1 Primary amines",
+            "19.2 Nitriles and hydroxynitriles",
+        ),
+    ),
+    Topic(
+        code="ch20",
+        number=20,
+        name="Polymerisation",
+        blurb=(
+            "Addition polymerisation exemplified by poly(ethene) and "
+            "poly(chloroethene) (PVC); deducing an addition polymer's repeat unit "
+            "from a given monomer, and identifying the monomer(s) present in a given "
+            "section of a polymer molecule; the difficulty of disposing of "
+            "poly(alkene)s -- non-biodegradability and harmful combustion products."
+        ),
+        subsections=("20.1 Addition polymerisation",),
+    ),
+    Topic(
+        code="ch21",
+        number=21,
+        name="Organic synthesis",
+        blurb=(
+            "For a molecule with several functional groups: identifying them from "
+            "the syllabus reactions and predicting the molecule's properties and "
+            "reactions. Devising a multi-step synthetic route to prepare an organic "
+            "molecule using syllabus reactions; analysing a given synthetic route in "
+            "terms of the reaction type and reagents used at each step, and any "
+            "possible by-products. (The individual reactions used along such a route "
+            "belong to their own functional-group topics; this is the topic that "
+            "stitches them into a route.)"
+        ),
+        subsections=("21.1 Organic synthesis",),
+    ),
+    Topic(
+        code="ch22",
+        number=22,
+        name="Analytical techniques",
+        blurb=(
+            "Analysing an infrared spectrum of a simple molecule to identify "
+            "functional groups from characteristic absorption ranges. Analysing mass "
+            "spectra in terms of m/e values and isotopic abundance; calculating an "
+            "element's relative atomic mass from isotopic abundances or a mass "
+            "spectrum; deducing an organic molecule's molecular mass from the "
+            "molecular ion (M+) peak; suggesting the identity of fragment ions from "
+            "simple fragmentation. Deducing the number of carbon atoms in a compound "
+            "from the [M+1]+ peak (using its ~1.1% natural 13C abundance); deducing "
+            "the presence of a bromine or chlorine atom from the [M+2]+ peak."
+        ),
+        subsections=(
+            "22.1 Infrared spectroscopy",
+            "22.2 Mass spectrometry",
+        ),
+    ),
+)
+
+
 PHYSICS = Taxonomy(
     key="9702",
     subject_code="9702",
@@ -740,6 +1264,15 @@ PROB_STATS_1 = Taxonomy(
     subject_name="Probability & Statistics 1",
     topics=_PROB_STATS_1_TOPICS,
 )
+# Bare code as `key`, like PHYSICS -- one taxonomy spans both papers, since P1
+# (MCQ) and P2 (structured) both examine the same full AS syllabus content.
+CHEMISTRY = Taxonomy(
+    key="9701",
+    subject_code="9701",
+    papers=(1, 2),
+    subject_name="Chemistry",
+    topics=_CHEMISTRY_TOPICS,
+)
 
 TAXONOMIES: tuple[Taxonomy, ...] = (
     PHYSICS,
@@ -747,6 +1280,7 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     FURTHER_PROB_STATS,
     PURE_MATH_1,
     PROB_STATS_1,
+    CHEMISTRY,
 )
 
 # Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``

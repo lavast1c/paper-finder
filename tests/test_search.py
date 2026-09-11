@@ -348,6 +348,41 @@ def test_9231_paper_1_question_is_theory_not_mcq(multi_subject_db):
     assert search("roots polynomial", db_path=multi_subject_db, kind="mcq") == []
 
 
+def test_9701_paper_1_question_is_mcq(tmp_path):
+    # Chemistry is the second subject (after Physics) with a real Paper 1 MCQ /
+    # Paper 2 structured split -- kind must key on is_mcq for it too, not on
+    # "is this Physics".
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, '9701', 'Chemistry', 2024, 's', ?, 1, 'qp', ?)""",
+            [
+                (1, 1, "9701_s24_qp_11.pdf"),
+                (2, 2, "9701_s24_qp_21.pdf"),
+            ],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, ?, 1, ?)""",
+            [
+                (1, 1, "What is the relative atomic mass of antimony?", 1),
+                (2, 2, "Define Le Chatelier's principle for a reversible reaction.", 0),
+            ],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    mcq_hits = search("relative atomic mass antimony", db_path=db_path, kind="mcq")
+    assert [h.question_number for h in mcq_hits] == [1]
+    assert search("relative atomic mass antimony", db_path=db_path, kind="theory") == []
+    theory_hits = search("Le Chatelier reversible", db_path=db_path, kind="theory")
+    assert [h.question_number for h in theory_hits] == [1]
+    assert search("Le Chatelier reversible", db_path=db_path, kind="mcq") == []
+
+
 def test_search_subject_scope(multi_subject_db):
     q = "wave roots chi-squared string polynomial hypothesis"
     all_hits = {h.subject_name for h in search(q, db_path=multi_subject_db, limit=20)}
