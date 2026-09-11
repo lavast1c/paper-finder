@@ -4,7 +4,7 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Six taxonomies today:
+Seven taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
@@ -18,6 +18,10 @@ Six taxonomies today:
   and 2027" (AS Level subject content, pp.16-38). Like ``PHYSICS``, one
   taxonomy spans both papers -- P1 (MCQ) and P2 (structured) both examine the
   same full AS syllabus, unlike 9231/9709's disjoint-content paper splits.
+* ``BIOLOGY`` -- 9700 Papers 1 & 2, sections ``bi01``..``bi11``, from
+  "Cambridge International AS & A Level Biology 9700 syllabus for 2028, 2029
+  and 2030" (AS Level subject content, pp.16-32). Same shape as ``CHEMISTRY``
+  -- one taxonomy spans both papers.
 
 Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
 ``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
@@ -1229,6 +1233,341 @@ _CHEMISTRY_TOPICS: tuple[Topic, ...] = (
 )
 
 
+# --- 9700 Papers 1 & 2: Biology (AS Level syllabus sections 1-11) --------------
+
+_BIOLOGY_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="bi01",
+        number=1,
+        name="Cell structure",
+        blurb=(
+            "Microscope skills: making temporary preparations for a light "
+            "microscope; drawing cells from slides and photomicrographs; "
+            "calculating magnification and actual size from drawings, "
+            "photomicrographs and electron micrographs; using an eyepiece "
+            "graticule and stage micrometer scale, with mm/µm/nm units; defining "
+            "resolution and magnification and the difference between light and "
+            "electron microscopy. Eukaryotic cell organelles and structures and "
+            "their functions: cell surface membrane; nucleus, nuclear envelope and "
+            "nucleolus; rough and smooth endoplasmic reticulum; Golgi body; "
+            "mitochondria (including their small circular DNA); ribosomes (80S in "
+            "the cytoplasm, 70S in chloroplasts and mitochondria); lysosomes; "
+            "centrioles and microtubules; cilia; microvilli; chloroplasts "
+            "(including their small circular DNA); cell wall; plasmodesmata; the "
+            "large permanent vacuole and tonoplast of plant cells. Interpreting "
+            "photomicrographs, electron micrographs and drawings of plant and "
+            "animal cells; comparing plant and animal cell structure; ATP from "
+            "respiration powering energy-requiring processes. The structure of a "
+            "typical prokaryotic bacterium (unicellular, 1-5 µm diameter, "
+            "peptidoglycan cell wall, circular DNA, 70S ribosomes, no "
+            "double-membrane organelles) compared with eukaryotic plant and "
+            "animal cells. Viruses as non-cellular structures with a nucleic acid "
+            "core (DNA or RNA), a protein capsid and, in some, a phospholipid "
+            "envelope. (The functional role each organelle plays in a specific "
+            "process -- e.g. ribosomes in translation, mitochondria in "
+            "respiration -- belongs to that process's own topic; this is the "
+            "topic for organelle identification and structure.)"
+        ),
+        subsections=(
+            "1.1 The microscope in cell studies",
+            "1.2 Cells as the basic units of living organisms",
+        ),
+    ),
+    Topic(
+        code="bi02",
+        number=2,
+        name="Biological molecules",
+        blurb=(
+            "Testing for biological molecules: Benedict's test for reducing "
+            "sugars (including a semi-quantitative version), the iodine test for "
+            "starch, the emulsion test for lipids, the biuret test for proteins, "
+            "and the acid-hydrolysis test for non-reducing sugars. Carbohydrates: "
+            "ring forms of alpha- and beta-glucose; monomer, polymer, "
+            "macromolecule, monosaccharide, disaccharide and polysaccharide; "
+            "covalent bonds joining monomers into polymers; reducing sugars "
+            "(glucose, fructose, maltose) versus the non-reducing sugar sucrose; "
+            "glycosidic bond formation by condensation and breakage by "
+            "hydrolysis; the molecular structure of starch (amylose and "
+            "amylopectin), glycogen and cellulose and how each structure relates "
+            "to its biological function (energy storage versus plant cell wall "
+            "strength). Lipids: triglycerides as non-polar hydrophobic molecules "
+            "-- fatty acids (saturated/unsaturated), glycerol, ester bonds -- and "
+            "their functions; phospholipids and their hydrophilic phosphate heads "
+            "and hydrophobic fatty acid tails. Proteins: amino acid structure and "
+            "peptide bond formation/breakage; primary, secondary, tertiary and "
+            "quaternary structure; the interactions that hold protein shape "
+            "(hydrophobic interactions, hydrogen bonding, ionic bonding, covalent "
+            "disulfide bonds); soluble globular proteins versus insoluble fibrous "
+            "structural proteins; the quaternary structure of haemoglobin (two "
+            "alpha chains, two beta chains, a haem group) and the structure of "
+            "collagen and collagen fibres, each related to function. Water: "
+            "hydrogen bonding between water molecules and the roles this gives "
+            "water in living organisms -- solvent action, high specific heat "
+            "capacity, latent heat of vaporisation."
+        ),
+        subsections=(
+            "2.1 Testing for biological molecules",
+            "2.2 Carbohydrates and lipids",
+            "2.3 Proteins",
+            "2.4 Water",
+        ),
+    ),
+    Topic(
+        code="bi03",
+        number=3,
+        name="Enzymes",
+        blurb=(
+            "Enzymes as globular proteins that catalyse reactions either inside "
+            "cells (intracellular) or after secretion (extracellular); the mode "
+            "of action of enzymes in terms of an active site, enzyme-substrate "
+            "complex, lowering of activation energy and enzyme specificity, "
+            "including the lock-and-key and induced-fit hypotheses. Investigating "
+            "the progress of enzyme-catalysed reactions -- rate of product "
+            "formation using catalase, rate of substrate disappearance using "
+            "amylase -- and using a colorimeter for reactions with a colour "
+            "change. Factors affecting the rate of enzyme-catalysed reactions: "
+            "temperature, pH (using buffer solutions), enzyme concentration, "
+            "substrate concentration and inhibitor concentration. Maximum rate of "
+            "reaction (Vmax) and its use in deriving the Michaelis-Menten "
+            "constant (Km) to compare different enzymes' affinity for their "
+            "substrates. Reversible inhibitors -- both competitive and "
+            "non-competitive -- and their effects on enzyme activity. Comparing "
+            "an enzyme immobilised in alginate with the same enzyme free in "
+            "solution, and the advantages of immobilised enzymes."
+        ),
+        subsections=(
+            "3.1 Mode of action of enzymes",
+            "3.2 Factors that affect enzyme action",
+        ),
+    ),
+    Topic(
+        code="bi04",
+        number=4,
+        name="Cell membranes and transport",
+        blurb=(
+            "The fluid mosaic model of membrane structure: hydrophobic and "
+            "hydrophilic interactions forming the phospholipid bilayer and "
+            "protein arrangement; the arrangement of cholesterol, glycolipids and "
+            "glycoproteins; the roles of phospholipids, cholesterol, glycolipids, "
+            "proteins and glycoproteins in membrane stability, fluidity, "
+            "permeability, transport (carrier proteins and channel proteins), "
+            "cell signalling (cell surface receptors) and cell recognition (cell "
+            "surface antigens). The main stages of cell signalling -- secretion "
+            "of a ligand, its transport to a target cell, its binding to a cell "
+            "surface receptor. Movement of substances into and out of cells: "
+            "simple diffusion, facilitated diffusion, osmosis, active transport, "
+            "endocytosis and exocytosis; investigating diffusion and osmosis "
+            "using plant tissue, dialysis (Visking) tubing and agar; the "
+            "principle that surface area to volume ratio falls as size "
+            "increases, and calculating SA:V for simple 3-D shapes; investigating "
+            "how SA:V affects diffusion rate using agar blocks. Water potential: "
+            "estimating tissue water potential from immersion experiments; "
+            "explaining water movement between cells and solutions in terms of "
+            "water potential, and its different effects on plant cells (turgor, "
+            "plasmolysis) and animal cells (lysis, crenation). (Membrane "
+            "recognition antigens are introduced here; their role in immune "
+            "self/non-self recognition belongs to Immunity.)"
+        ),
+        subsections=(
+            "4.1 Fluid mosaic membranes",
+            "4.2 Movement into and out of cells",
+        ),
+    ),
+    Topic(
+        code="bi05",
+        number=5,
+        name="The mitotic cell cycle",
+        blurb=(
+            "Chromosome structure: DNA, histone proteins, sister chromatids, "
+            "centromere, telomeres. The importance of mitosis in producing "
+            "genetically identical daughter cells during growth of "
+            "multicellular organisms, replacement of damaged or dead cells, "
+            "tissue repair and asexual reproduction. The mitotic cell cycle: "
+            "interphase (growth in G1 and G2, DNA replication in S phase), "
+            "mitosis and cytokinesis; the role of telomeres in preventing gene "
+            "loss from chromosome ends during replication; the role of stem "
+            "cells in cell replacement and tissue repair by mitosis; how "
+            "uncontrolled cell division can form a tumour. Chromosome behaviour "
+            "in plant and animal cells during the mitotic cell cycle and the "
+            "associated behaviour of the nuclear envelope, cell surface "
+            "membrane and spindle, including the named stages prophase, "
+            "metaphase, anaphase and telophase; interpreting photomicrographs, "
+            "diagrams and microscope slides to identify the stage of the "
+            "mitotic cell cycle shown."
+        ),
+        subsections=(
+            "5.1 Replication and division of nuclei and cells",
+            "5.2 Chromosome behaviour in mitosis",
+        ),
+    ),
+    Topic(
+        code="bi06",
+        number=6,
+        name="Nucleic acids and protein synthesis",
+        blurb=(
+            "Nucleotide structure, including the phosphorylated nucleotide ATP; "
+            "purine bases adenine and guanine (double ring) versus pyrimidine "
+            "bases cytosine, thymine and uracil (single ring). DNA structure as "
+            "a double helix: complementary base pairing between antiparallel "
+            "5'-to-3' and 3'-to-5' strands, the different hydrogen bonding of "
+            "C-G versus A-T pairs, and phosphodiester bonds linking nucleotides. "
+            "Semi-conservative DNA replication during S phase: the roles of DNA "
+            "polymerase and DNA ligase, and the difference between leading- and "
+            "lagging-strand replication arising from DNA polymerase adding "
+            "nucleotides only 5' to 3'. RNA structure, using mRNA as the "
+            "example. A gene as a nucleotide sequence coding for a polypeptide; "
+            "the universal genetic code in which base triplets code for amino "
+            "acids or act as start/stop codons. Transcription and translation: "
+            "the roles of RNA polymerase, mRNA, codons, tRNA, anticodons and "
+            "ribosomes; the transcribed (template) strand versus the "
+            "non-transcribed strand; in eukaryotes, removal of introns and "
+            "joining of exons to form mature mRNA from the primary transcript. "
+            "Gene mutation as a change in DNA base sequence -- substitution, "
+            "deletion or insertion of nucleotides -- and how each may alter the "
+            "polypeptide produced."
+        ),
+        subsections=(
+            "6.1 Structure of nucleic acids and replication of DNA",
+            "6.2 Protein synthesis",
+        ),
+    ),
+    Topic(
+        code="bi07",
+        number=7,
+        name="Transport in plants",
+        blurb=(
+            "Plan diagrams of transverse sections of stems, roots and leaves of "
+            "herbaceous dicotyledonous plants; the distribution of xylem and "
+            "phloem in each; drawing and labelling xylem vessel elements, "
+            "phloem sieve tube elements and companion cells from slides, "
+            "photomicrographs and electron micrographs, and relating their "
+            "structure to function. Water transport from soil to xylem via the "
+            "apoplast pathway (lignin, cellulose) and the symplast pathway "
+            "(endodermis, Casparian strip, suberin). Transpiration as "
+            "evaporation of water from internal leaf surfaces followed by "
+            "diffusion of water vapour to the atmosphere; hydrogen bonding of "
+            "water molecules explaining cohesion-tension movement of water in "
+            "the xylem and adhesion to cellulose cell walls. Annotated drawings "
+            "of xerophyte leaf transverse sections to explain adaptations that "
+            "reduce transpirational water loss. Movement of assimilates (e.g. "
+            "sucrose, amino acids) dissolved in water from source to sink in "
+            "phloem sieve tubes; how companion cells transfer assimilates into "
+            "sieve tubes via proton pumps and cotransporter proteins; mass flow "
+            "down a hydrostatic pressure gradient from source to sink."
+        ),
+        subsections=(
+            "7.1 Structure of transport tissues",
+            "7.2 Transport mechanisms",
+        ),
+    ),
+    Topic(
+        code="bi08",
+        number=8,
+        name="Transport in mammals",
+        blurb=(
+            "The mammalian circulatory system as a closed double circulation of "
+            "heart, blood and blood vessels (arteries, arterioles, capillaries, "
+            "venules, veins); the functions of the pulmonary artery, pulmonary "
+            "vein, aorta and vena cava. Recognising arteries, veins and "
+            "capillaries from slides, photomicrographs and electron "
+            "micrographs, and how the structure of muscular arteries, elastic "
+            "arteries, veins and capillaries relates to function. Recognising "
+            "red blood cells, monocytes, neutrophils and lymphocytes. Water as "
+            "the main component of blood and tissue fluid, and its solvent "
+            "action and high specific heat capacity in transport; the "
+            "functions and formation of tissue fluid in a capillary network. "
+            "Oxygen and carbon dioxide transport: the roles of haemoglobin, "
+            "carbonic anhydrase, haemoglobinic acid and carbaminohaemoglobin; "
+            "the chloride shift and its importance; the role of plasma in "
+            "carbon dioxide transport; the oxygen dissociation curve of adult "
+            "haemoglobin and its importance at the partial pressures of oxygen "
+            "found in the lungs versus respiring tissues; the Bohr shift and "
+            "its importance. The heart: external and internal structure; wall "
+            "thickness differences between atria/ventricles and between left/ "
+            "right ventricle; the cardiac cycle, including the relationship "
+            "between blood pressure changes during systole/diastole and valve "
+            "opening/closing; the roles of the sinoatrial node, atrioventricular "
+            "node and Purkyne tissue. (Haemoglobin's molecular structure belongs "
+            "to Biological molecules; this topic covers its transport function.)"
+        ),
+        subsections=(
+            "8.1 The circulatory system",
+            "8.2 Transport of oxygen and carbon dioxide",
+            "8.3 The heart",
+        ),
+    ),
+    Topic(
+        code="bi09",
+        number=9,
+        name="Gas exchange",
+        blurb=(
+            "The structure of the human gas exchange system: lungs, trachea, "
+            "bronchi, bronchioles, alveoli, capillary network. The distribution "
+            "in the gas exchange system of cartilage, ciliated epithelium, "
+            "goblet cells, squamous epithelium of alveoli, smooth muscle and "
+            "capillaries, and recognising each in slides, photomicrographs and "
+            "electron micrographs; plan diagrams of transverse sections of the "
+            "trachea and bronchus walls. The functions of ciliated epithelial "
+            "cells, goblet cells and mucous glands in maintaining gas exchange "
+            "system health; the functions of cartilage, smooth muscle, elastic "
+            "fibres and squamous epithelium. Gas exchange between air in the "
+            "alveoli and blood in the surrounding capillaries. (General "
+            "diffusion theory and membrane structure belong to Cell membranes "
+            "and transport; this topic is specifically the gas exchange organ "
+            "system's structure and function.)"
+        ),
+        subsections=("9.1 The gas exchange system",),
+    ),
+    Topic(
+        code="bi10",
+        number=10,
+        name="Infectious diseases",
+        blurb=(
+            "Infectious diseases as caused by transmissible pathogens. Four "
+            "named diseases and their causative pathogens: cholera (the "
+            "bacterium Vibrio cholerae), malaria (the protoctists Plasmodium "
+            "falciparum, P. malariae, P. ovale and P. vivax), tuberculosis (the "
+            "bacteria Mycobacterium tuberculosis and M. bovis) and HIV/AIDS (the "
+            "human immunodeficiency virus). How each of cholera, malaria, TB and "
+            "HIV is transmitted, and the biological, social and economic "
+            "factors relevant to preventing and controlling them (the malarial "
+            "parasite's life cycle is not required). Antibiotics: how "
+            "penicillin acts on bacteria and why antibiotics do not affect "
+            "viruses; the consequences of antibiotic resistance and steps that "
+            "can reduce its impact."
+        ),
+        subsections=(
+            "10.1 Infectious diseases",
+            "10.2 Antibiotics",
+        ),
+    ),
+    Topic(
+        code="bi11",
+        number=11,
+        name="Immunity",
+        blurb=(
+            "The mode of action of phagocytes (macrophages and neutrophils). "
+            "Antigens, and the difference between self and non-self antigens. "
+            "The sequence of events in a primary immune response, including the "
+            "roles of macrophages, B-lymphocytes (including plasma cells) and "
+            "T-lymphocytes (T-helper cells and T-killer cells). The role of "
+            "memory cells in the secondary immune response and long-term "
+            "immunity. Relating antibody molecular structure to function; the "
+            "hybridoma method for producing monoclonal antibodies, and their "
+            "use in disease diagnosis and treatment. The differences between "
+            "active and passive immunity, and between natural and artificial "
+            "immunity. Vaccines as containing antigens that stimulate an immune "
+            "response for long-term immunity, and how vaccination programmes "
+            "help control the spread of infectious disease."
+        ),
+        subsections=(
+            "11.1 The immune system",
+            "11.2 Antibodies and vaccination",
+        ),
+    ),
+)
+
+
 PHYSICS = Taxonomy(
     key="9702",
     subject_code="9702",
@@ -1273,6 +1612,14 @@ CHEMISTRY = Taxonomy(
     subject_name="Chemistry",
     topics=_CHEMISTRY_TOPICS,
 )
+# Same shape as CHEMISTRY -- one taxonomy spans both papers.
+BIOLOGY = Taxonomy(
+    key="9700",
+    subject_code="9700",
+    papers=(1, 2),
+    subject_name="Biology",
+    topics=_BIOLOGY_TOPICS,
+)
 
 TAXONOMIES: tuple[Taxonomy, ...] = (
     PHYSICS,
@@ -1281,6 +1628,7 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     PURE_MATH_1,
     PROB_STATS_1,
     CHEMISTRY,
+    BIOLOGY,
 )
 
 # Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``

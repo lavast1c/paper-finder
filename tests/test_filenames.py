@@ -97,6 +97,13 @@ def test_9701_papers_share_one_chemistry_subject():
     assert parse_filename("9701_w23_ms_21.pdf").subject_name == "Chemistry"
 
 
+def test_9700_papers_share_one_biology_subject():
+    # Biology 9700: same shape as Chemistry 9701 -- Paper 1 (MCQ) and Paper 2
+    # (structured) both examine the same AS syllabus content.
+    assert parse_filename("9700_s23_qp_12.pdf").subject_name == "Biology"
+    assert parse_filename("9700_w23_ms_21.pdf").subject_name == "Biology"
+
+
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"
