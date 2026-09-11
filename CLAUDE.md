@@ -306,18 +306,19 @@ reveal but swaps the page scroll for a per-column one so the nav/head stay pinne
 fullscreen `height: auto` rule applies) and restores it on exit — otherwise a
 resized box's inline height would beat the fullscreen CSS rule and break the
 per-column scroll. Prev/Next (buttons or arrow keys), Reveal and zoom keep
-working — the whole `#card` subtree is what goes fullscreen. Both `.crop-resize`
-and `.card-fs-btn` use the solid accent `--btn` fill (the same fill as the
-reveal/submit buttons) rather than the translucent `--surface-strong`/`--glass`
-used elsewhere on the card, so these controls stay legible/solid against the
-animated dither backdrop showing through the liquid-glass `.card` panel behind
-them, and read as the site's other solid-accent controls; hover/active state
-is a `box-shadow` escalation rather than a background swap, since the
-background no longer changes. The "Resize" label lives **inside** the
-`.crop-resize-grip` pill itself (a translucent-white `rgb(255 255 255 / 22%)`
-fill over the accent bar, brightening on hover — `--primary-ink` is white in
-every theme so the text always reads) rather than as a separate label span
-beside it. **Topic is a single-select `#f-topic` dropdown** in the filter
+working — the whole `#card` subtree is what goes fullscreen. `.card-fs-btn`
+uses the solid accent `--btn` fill (the same fill as the reveal/submit
+buttons) rather than the translucent `--surface-strong`/`--glass` used
+elsewhere on the card, so it stays legible/solid against the animated dither
+backdrop showing through the liquid-glass `.card` panel behind it; hover is a
+`box-shadow` escalation, active adds `translateY(1px)` like the other solid
+buttons. `.crop-resize` is invisible at rest — just a floating `--btn`-filled
+`.crop-resize-grip` pill (with the "Resize" label inside it) centred in the
+full-width drag hit area; the accent bar itself only fades in while actively
+dragging (`.crop-resize.is-active`, toggled by `topics.js`
+`makeResizeHandle` on pointerdown/up), at which point the pill switches to a
+translucent-white overlay so it still contrasts against the now-accent-filled
+bar behind it. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
