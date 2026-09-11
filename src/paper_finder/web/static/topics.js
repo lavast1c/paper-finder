@@ -26,6 +26,8 @@ const cardMarksEl = document.getElementById("card-marks");
 const revealBtn = document.getElementById("reveal");
 const qCropHintEl = document.getElementById("q-crop-hint");
 const aCropHintEl = document.getElementById("a-crop-hint");
+const qResizeEl = document.getElementById("q-resize");
+const aResizeEl = document.getElementById("a-resize");
 const fsToggleBtn = document.getElementById("fullscreen-toggle");
 const cardImagesEl = document.getElementById("card-images");
 const showTextBtn = document.getElementById("show-text");
@@ -45,6 +47,10 @@ const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 6;
 const ZOOM_STEP = 1.15; // multiplicative — one wheel notch / key press
 const CROP_BUCKET = "question-crops";
+const QHEIGHT_KEY = "paper-finder.qheight"; // per-browser question-crop box height (px)
+const AHEIGHT_KEY = "paper-finder.aheight"; // per-browser mark-scheme-crop box height (px)
+const CROP_MIN_HEIGHT = 160; // px — never let the drag handle shrink the box below this
+const CROP_MAX_HEIGHT = 0.92; // fraction of viewport height — resize clamp ceiling
 
 const PAGE = 20; // deck rows fetched per request (keeps the cloud RPC cap intact)
 const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this close to the end
@@ -415,6 +421,7 @@ function renderCard() {
     showTextBtn.hidden = true;
   }
   qCropHintEl.hidden = !hasCrops; // the pan/zoom hint only applies to a crop
+  qResizeEl.hidden = !hasCrops;
 
   const textVisible = !hasCrops || showText;
   cardQuestionEl.hidden = !textVisible;
@@ -434,10 +441,12 @@ function renderCard() {
     answerImagesEl.hidden = true;
     answerShowTextBtn.hidden = true;
     aCropHintEl.hidden = true;
+    aResizeEl.hidden = true;
     return;
   }
 
   aCropHintEl.hidden = r.answer_crop_count === 0;
+  aResizeEl.hidden = r.answer_crop_count === 0;
   if (r.answer_crop_count > 0) {
     const akey = cardKey(r);
     if (renderedAnswerKey !== akey) {
@@ -572,6 +581,75 @@ function makeCropViewer(imagesEl, storeKey) {
 }
 const qCrop = makeCropViewer(cardImagesEl, QZOOM_KEY);
 const aCrop = makeCropViewer(answerImagesEl, AZOOM_KEY);
+
+// --- resize handle: a large drag bar under each crop box (replaces the native
+// `resize: vertical` corner grip, which was too small to find reliably). Sets
+// `imagesEl.style.height` directly, clamped between CROP_MIN_HEIGHT and a
+// viewport-relative ceiling, persisted per-column to localStorage. Hidden in
+// fullscreen (`.card--fs .crop-resize { display: none }`) since the column
+// height there is fixed to the viewport; `syncFullscreenUI` saves/clears/
+// restores the inline height across that transition so it can't fight the
+// fullscreen `height: auto` rule.
+function makeResizeHandle(handleEl, imagesEl, storeKey) {
+  function maxHeight() {
+    return window.innerHeight * CROP_MAX_HEIGHT;
+  }
+  function setHeight(px) {
+    const clamped = Math.min(maxHeight(), Math.max(CROP_MIN_HEIGHT, px));
+    imagesEl.style.height = clamped + "px";
+    return clamped;
+  }
+  try {
+    const saved = parseFloat(localStorage.getItem(storeKey));
+    if (saved > 0) setHeight(saved);
+  } catch {
+    /* private mode / storage blocked */
+  }
+
+  let dragging = false;
+  let startY = 0;
+  let startHeight = 0;
+  handleEl.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    dragging = true;
+    startY = e.clientY;
+    startHeight = imagesEl.getBoundingClientRect().height;
+    handleEl.setPointerCapture(e.pointerId);
+    handleEl.classList.add("is-active");
+  });
+  handleEl.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    setHeight(startHeight + (e.clientY - startY));
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    handleEl.classList.remove("is-active");
+    try {
+      handleEl.releasePointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+    try {
+      localStorage.setItem(storeKey, imagesEl.style.height.replace("px", ""));
+    } catch {
+      /* private mode / storage blocked */
+    }
+  }
+  handleEl.addEventListener("pointerup", endDrag);
+  handleEl.addEventListener("pointercancel", endDrag);
+  handleEl.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    imagesEl.style.height = "";
+    try {
+      localStorage.removeItem(storeKey);
+    } catch {
+      /* private mode / storage blocked */
+    }
+  });
+}
+makeResizeHandle(qResizeEl, cardImagesEl, QHEIGHT_KEY);
+makeResizeHandle(aResizeEl, answerImagesEl, AHEIGHT_KEY);
 
 // Walk forward one page at a time until the deck covers `target` -- used when a
 // deep-link ?i= lands past the first page.
@@ -733,9 +811,24 @@ function toggleFullscreen() {
   if (inFullscreen()) exitFullscreen();
   else enterFullscreen();
 }
+// A manually-resized crop box carries an inline `style.height`, which (absent
+// `!important`) beats the fullscreen `.card--fs .card-images { height: auto }`
+// rule -- so it must be saved and cleared on entry and restored on exit, or a
+// resized box would fight the fullscreen layout and stop the column scrolling.
+function stashInlineHeight(imagesEl, on) {
+  if (on) {
+    imagesEl.dataset.savedHeight = imagesEl.style.height || "";
+    imagesEl.style.height = "";
+  } else if (imagesEl.dataset.savedHeight !== undefined) {
+    imagesEl.style.height = imagesEl.dataset.savedHeight;
+    delete imagesEl.dataset.savedHeight;
+  }
+}
 function syncFullscreenUI() {
   const on = inFullscreen();
   cardEl.classList.toggle("card--fs", on);
+  stashInlineHeight(cardImagesEl, on);
+  stashInlineHeight(answerImagesEl, on);
   if (fsToggleBtn) {
     fsToggleBtn.setAttribute("aria-label", on ? "Exit fullscreen" : "Enter fullscreen");
     fsToggleBtn.setAttribute("aria-pressed", on ? "true" : "false");

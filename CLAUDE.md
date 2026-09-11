@@ -250,19 +250,38 @@ native scroll via `touch-action`), wheel to zoom toward the pointer,
 double-click to reset, `+` `-` `0` keys zoom the question. Zoom scales the
 crop `<img>`s via an `--img-zoom` custom property on the container
 (`.card-image { width: calc(100% * var(--img-zoom)) }`), 0.3×–6×, persisted
-per column (`localStorage` `paper-finder.qzoom` / `.azoom`); the box is
-`height: 70vh` with `resize: vertical`. The viewer drives whichever element
-actually scrolls — `.card-images` itself normally, its scrolling ancestor
-(the column / `.card-body`) in fullscreen where `.card-images` is
-`overflow: visible`. A muted `.crop-hint` sits above each. `.card` scroll
-areas get accent-tinted scrollbars (`scrollbar-color: var(--rule)` + a
-`::-webkit-scrollbar` fallback). A **fullscreen toggle** (`#fullscreen-toggle` in
-`.card-nav`, or press `f`) blows the current card up via the Fullscreen API on
-`#card` (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs`
-on `fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the
-page scroll for a per-column one so the nav/head stay pinned. Prev/Next
-(buttons or arrow keys), Reveal and zoom keep working — the whole `#card`
-subtree is what goes fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
+per column (`localStorage` `paper-finder.qzoom` / `.azoom`); the box starts at
+`height: 70vh`. A zoomed-out crop (< 100%) is **centred with equal gaps on
+both sides** — `.card-image` carries `margin-inline: auto`, a flexbox
+auto-margin that is inherently "safe": it only absorbs positive leftover
+space, so it resolves to `0` (normal flow-start alignment) the moment the
+crop is zoomed in and overflows, leaving the drag-pan/wheel-zoom scroll math
+(which assumes the un-scrolled left/top edge sits at `scrollLeft/scrollTop =
+0`) untouched. The viewer drives whichever element actually scrolls —
+`.card-images` itself normally, its scrolling ancestor (the column /
+`.card-body`) in fullscreen where `.card-images` is `overflow: visible`. A
+muted `.crop-hint` sits above each. Each box has its own **resize handle**
+below it — a full-width `.crop-resize` drag bar (`topics.js`
+`makeResizeHandle(handleEl, imagesEl, storeKey)`, `#q-resize`/`#a-resize`)
+with a large, accent-highlighted `.crop-resize-grip` pill, replacing the
+native `resize: vertical` corner grip (too small to find/grab reliably);
+pointer-drag sets `imagesEl.style.height` directly (clamped `160px`–92vh),
+double-click resets it, persisted per column (`localStorage`
+`paper-finder.qheight` / `.aheight`) and hidden in fullscreen
+(`#card.card--fs .crop-resize { display: none }`, since the column height
+there is fixed to the viewport). `.card` scroll areas get accent-tinted
+scrollbars (`scrollbar-color: var(--rule)` + a `::-webkit-scrollbar`
+fallback). A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
+press `f`) blows the current card up via the Fullscreen API on `#card`
+(`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs` on
+`fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the
+page scroll for a per-column one so the nav/head stay pinned.
+`syncFullscreenUI` also saves any manually-resized inline height on entry
+(`imagesEl.dataset.savedHeight`, then clears the inline style so the
+fullscreen `height: auto` rule applies) and restores it on exit — otherwise a
+resized box's inline height would beat the fullscreen CSS rule and break the
+per-column scroll. Prev/Next (buttons or arrow keys), Reveal and zoom keep
+working — the whole `#card` subtree is what goes fullscreen. **Topic is a single-select `#f-topic` dropdown** in the filter
 bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
 zero-count options disabled — it replaced the old multi-select `#topic-chips`
 row. The deck stays hidden ("Choose a topic to start revising.") until a topic is

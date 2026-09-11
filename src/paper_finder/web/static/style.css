@@ -883,15 +883,14 @@ ol#results li {
 /* question crops: greyscale page fragments on white, so they read as paper
    rather than a hole punched in the panel (matters in dark mode). The box is a
    pan/zoom surface — drag to pan (JS scroll), wheel to zoom (`--img-zoom`),
-   double-click to reset; `resize: vertical` lets the reader make the pane
-   taller too. */
+   double-click to reset. Height is driven by JS (`.crop-resize` below, not the
+   native `resize:` — its corner grip is too small to find or grab reliably). */
 .card-images {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   height: 70vh;
   overflow: auto;
-  resize: vertical;
   margin-bottom: 0.5rem;
   cursor: grab;
   touch-action: pan-x pan-y;
@@ -906,6 +905,11 @@ ol#results li {
   width: calc(100% * var(--img-zoom, 1));
   max-width: none;
   height: auto;
+  /* flexbox auto-margin centering: absorbs the leftover width once the crop is
+     zoomed out below 100% (equal gap either side); resolves to 0 the moment
+     the crop is back at or above 100%, so the drag-to-pan scroll math (which
+     assumes the crop's left edge starts flush at scroll 0) is untouched. */
+  margin-inline: auto;
   background: var(--primary-ink); /* #ffffff both themes */
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -918,6 +922,39 @@ ol#results li {
   font-size: 0.72rem;
   color: var(--text-muted);
 }
+/* a full-width drag-to-resize bar under the crop, in place of the native
+   resize handle's tiny corner triangle — a wide hit area with an obvious pill
+   grip that brightens to the accent on hover/drag. */
+.crop-resize {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.4rem;
+  margin: 0.1rem 0 0.7rem;
+  border-radius: var(--r-sm);
+  cursor: ns-resize;
+  touch-action: none;
+  transition: background 0.15s var(--ease-out);
+}
+.crop-resize:hover,
+.crop-resize.is-active { background: var(--surface-strong); }
+.crop-resize-grip {
+  width: 3.5rem;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  transition:
+    background 0.15s var(--ease-out),
+    width 0.15s var(--ease-out);
+}
+.crop-resize:hover .crop-resize-grip,
+.crop-resize.is-active .crop-resize-grip {
+  background: var(--primary);
+  width: 4.5rem;
+}
+/* fullscreen: the column scrolls as a whole (see below) — no independent
+   crop height to drag */
+#card.card--fs .crop-resize { display: none; }
 #show-text { margin: 0 0 0.7rem; }
 
 /* accent-tinted scrollbars inside the flashcard — the crop scroll areas and,
@@ -1032,12 +1069,12 @@ ol#results li {
   overflow: auto;
 }
 /* fullscreen: the column scrolls, so the crop box is just content — no fixed
-   height, no its-own scroll, no resize grip */
+   height, no its own scroll (any inline height from `.crop-resize` is cleared
+   by `syncFullscreenUI` while fullscreen, and restored on exit) */
 #card.card--fs .card-images {
   height: auto;
   max-height: none;
   overflow: visible;
-  resize: none;
 }
 #card.card--fs .card-answer { margin-top: 0; }
 #card::backdrop { background: var(--bg); }
@@ -1105,6 +1142,8 @@ footer {
   #verify-code,
   .reveal-btn,
   .card-fs-btn,
+  .crop-resize,
+  .crop-resize-grip,
   .card-arrow { transition: none; }
   button:active { transform: none; }
   /* still hide the bar on scroll, just without the long slide */
