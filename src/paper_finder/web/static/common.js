@@ -61,7 +61,7 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 //
 // The saved choice is applied pre-paint by a tiny inline <script> in each HTML
 // <head> (avoids a flash); this only wires the button, keeps its label in sync,
-// and pokes dotgrid.js to re-read --primary / --dot-base.
+// and pokes dither.js to re-read --dither-wave / --dither-bg.
 
 (function themeToggle() {
   const btn = document.getElementById("theme-toggle");

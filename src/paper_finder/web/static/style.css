@@ -1,10 +1,10 @@
 /* Paper Finder — frosted-panel UI, theme-aware, full-bleed.
    A study-reference tool: IBM Plex type, a deliberate light-blue accent
    (#1d4ed8 light / #93c5fd dark — every text/bg pair WCAG-AA checked). The
-   backdrop the panels refract is an interactive dot grid (`#bg-dots` canvas,
-   `dotgrid.js`) — dots light up with `--primary` near the pointer. Static
-   grid, no reactivity, under `prefers-reduced-motion`. Opaque + reduced
-   -transparency fallbacks below. */
+   backdrop the panels refract is an interactive dithered wave field
+   (`#bg-dither` canvas, `dither.js`) — a lighter-blue wave over a themed
+   ground, nudged by the pointer. One static frame, no reactivity, under
+   `prefers-reduced-motion`. Opaque + reduced-transparency fallbacks below. */
 
 :root {
   color-scheme: light;
@@ -18,8 +18,9 @@
   --surface: rgba(255, 252, 240, 0.56);
   --surface-strong: rgba(255, 252, 240, 0.8);
   /* "liquid glass" — header + search/filter trays: no fill at all, just an SVG
-     refraction that bends the dot grid behind them, a whisper of blur + a lens
-     tint. --glass-backdrop drops to `none` when the OS asks for less transparency. */
+     refraction that bends the dither wave field behind them, a whisper of blur
+     + a lens tint. --glass-backdrop drops to `none` when the OS asks for less
+     transparency. */
   --glass: transparent;
   --glass-backdrop: url(#glass-refraction) saturate(1.6) brightness(1.05) blur(2px);
   --border: rgba(255, 255, 255, 0.7);
@@ -35,8 +36,11 @@
   --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
   --hl-ink: #16191d;              /* dark ink on the highlight (AA) */
 
-  /* backdrop dot grid — dim at rest, `--primary` under the pointer */
-  --dot-base: rgba(37, 99, 235, 0.18);
+  /* backdrop dither wave — a lighter blue over a themed ground. The wave
+     colour is deliberately the same in light and dark; only the ground
+     underneath it changes theme. */
+  --dither-wave: #93c5fd;
+  --dither-bg: #f4edcf;              /* matches --bg: solarized/yellow-tinted cream */
 
   /* radii — a tight, deliberate scale */
   --r-lg: 14px;
@@ -78,7 +82,7 @@
     --rule: rgba(96, 165, 250, 0.4);
     --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
     --hl-ink: #0b0e13;
-    --dot-base: rgba(96, 165, 250, 0.16);
+    --dither-bg: #0a1a33;          /* navy/dark blue ground (wave colour unchanged) */
     --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 14px 44px rgba(0, 0, 0, 0.48);
     --shadow-lg: 0 26px 74px rgba(0, 0, 0, 0.58);
@@ -87,11 +91,9 @@
 }
 
 /* Explicit light mode — the header toggle sets data-theme="light". Solarized
-   Light ground (base3 #fdf6e3). The dot-grid activation colour (--primary) is
-   pinned to the same blue the dark theme uses, per request; only --dot-base
-   opacity is nudged so the resting dots read on the cream. The attribute
-   selector (0,2,0) outranks the dark @media :root rule, so this wins on a
-   dark-OS machine too. */
+   Light ground (base3 #fdf6e3). --primary is pinned to the same blue the dark
+   theme uses, per request. The attribute selector (0,2,0) outranks the dark
+   @media :root rule, so this wins on a dark-OS machine too. */
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #fcf4d9;                    /* base3 warmed a touch yellower, per request */
@@ -105,7 +107,7 @@
   --field-bg: #eee8d5;
   /* the base backdrop pumps saturation 1.6x, which over-warms the cream strip */
   --glass-backdrop: url(#glass-refraction) saturate(1.08) brightness(1.01) blur(2px);
-  --primary: #60a5fa;               /* pinned — dot activation stays put */
+  --primary: #60a5fa;               /* pinned — matches the dark theme's accent */
   --primary-ink: #ffffff;
   --btn: #1d4ed8;                   /* white text is AA (6.5:1) on the cream */
   --accent-ink: #1d4ed8;
@@ -113,7 +115,7 @@
   --rule: rgba(96, 165, 250, 0.4);
   --hl-bg: #ffe08a;
   --hl-ink: #073642;
-  --dot-base: rgba(96, 165, 250, 0.32);
+  --dither-bg: #fcf4d9;             /* matches --bg: this theme's Solarized cream */
   --shadow-sm: 0 2px 10px rgba(88, 110, 117, 0.16);
   --shadow-md: 0 12px 40px rgba(88, 110, 117, 0.2);
   --shadow-lg: 0 24px 70px rgba(88, 110, 117, 0.26);
@@ -152,8 +154,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* live backdrop — the interactive dot grid the glass refracts (dotgrid.js) */
-#bg-dots {
+/* live backdrop — the interactive dither wave field the glass refracts
+   (dither.js, a plain <canvas> WebGL2 context) */
+#bg-dither {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -810,7 +813,7 @@ ol#results li {
 }
 
 /* the flashcard is true liquid glass too (like the header/tray/filterbar) --
-   no fill, just the SVG refraction bending the dot grid behind it */
+   no fill, just the SVG refraction bending the dither wave field behind it */
 .card {
   margin-top: 1rem;
   padding: 1.1rem clamp(1rem, 3vw, 1.6rem) 1.4rem;
@@ -1147,7 +1150,7 @@ footer {
     --blur-thick: 0px;
     --refract: none;
   }
-  #bg-dots { opacity: 0.4; }
+  #bg-dither { opacity: 0.4; }
 }
 @media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
   :root { --surface: #14171f; --surface-strong: #1c2029; --glass: rgba(20, 23, 31, 0.92); }
