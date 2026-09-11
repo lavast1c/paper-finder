@@ -136,7 +136,7 @@ All in the Supabase dashboard for project `gfigwnbkzkgwxcdoqxtz`.
 **Project Settings → Auth → SMTP**):
 - Enable **Custom SMTP**.
 - Sender email: your **verified Brevo sender** from Step 2.
-- Sender name: `Paper Finder`
+- Sender name: `Paper Analyser`
 - Host: `smtp-relay.brevo.com`  ·  Port: `587`
 - Username: your Brevo SMTP **login**  ·  Password: the Brevo **SMTP key**
 - Save. Use the **"Send test email"** button if present.
@@ -147,7 +147,7 @@ Templates**. Supabase sends a numeric code **only if the template body contains
 Edit **both** "Magic Link" **and** "Confirm sign up" (existing users get the
 first, brand-new emails get the second) — set each body to:
 ```html
-<h2>Your Paper Finder sign-in code</h2>
+<h2>Your Paper Analyser sign-in code</h2>
 <p>Enter this code to sign in:</p>
 <p style="font-size:24px;letter-spacing:3px;"><strong>{{ .Token }}</strong></p>
 <p>It expires in 1 hour. If you didn't request it, ignore this email.</p>
@@ -156,7 +156,7 @@ Code length = **Authentication → Sign In / Providers → Email → Email OTP L
 The `#code` input is fixed at 6 digits (matches the current setting) — if you
 change the length there, also change `maxlength` / `pattern` on `#code` in
 `web/static/index.html`.
-Subject for both: `Your Paper Finder sign-in code`. Save each.
+Subject for both: `Your Paper Analyser sign-in code`. Save each.
 
 **3c. Allow sign-ups** — **Authentication → Sign In / Providers → Email**:
 - **Email** provider: enabled.
