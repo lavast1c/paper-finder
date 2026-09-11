@@ -931,44 +931,47 @@ ol#results li {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
-/* a full-width drag-to-resize bar under the crop, in place of the native
-   resize handle's tiny corner triangle — a solid accent (`--btn`, same fill
-   as the reveal button) fill, not the glass `--surface-strong`/`--glass` used
-   elsewhere, keeps it legible against the animated dither backdrop showing
-   through the liquid-glass card behind it, and matches the site's other
-   solid-accent controls. The "Resize" label lives inside the pill itself
-   (`.crop-resize-grip`) rather than beside it. */
+/* a full-width drag-to-resize hit area under the crop, in place of the native
+   resize handle's tiny corner triangle. At rest it's an invisible strip with
+   just a small solid-accent (`--btn`, same fill as the reveal button) pill
+   floating in the middle — `.crop-resize-grip` — so the crop stays uncluttered;
+   the accent bar itself only appears while actively dragging (`.is-active`,
+   toggled by `topics.js` `makeResizeHandle` on pointerdown/up), when the pill
+   switches to a translucent-white overlay on top of it so it still contrasts. */
 .crop-resize {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 1.7rem;
   margin: 0.1rem 0 0.7rem;
-  background: var(--btn);
-  border: 1px solid var(--btn);
+  border: 1px solid transparent;
   border-radius: var(--r-sm);
-  box-shadow: var(--edge);
   cursor: ns-resize;
   touch-action: none;
-  transition: box-shadow 0.15s var(--ease-out);
+  transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
 }
-.crop-resize:hover,
 .crop-resize.is-active {
+  background: var(--btn);
+  border-color: var(--btn);
   box-shadow: var(--shadow-sm), var(--edge), 0 0 0 3px var(--focus-ring);
 }
 .crop-resize-grip {
   padding: 0.2rem 0.9rem;
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--primary-ink);
-  background: rgb(255 255 255 / 22%); /* --primary-ink is white in every theme */
+  color: var(--primary-ink); /* white in every theme */
+  background: var(--btn);
   border-radius: 999px;
+  box-shadow: var(--shadow-sm), var(--edge);
   user-select: none;
-  transition: background 0.15s var(--ease-out);
+  transition: background 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
 }
-.crop-resize:hover .crop-resize-grip,
+.crop-resize:hover .crop-resize-grip {
+  box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
+}
 .crop-resize.is-active .crop-resize-grip {
-  background: rgb(255 255 255 / 34%);
+  background: rgb(255 255 255 / 24%);
+  box-shadow: none;
 }
 /* fullscreen: the column scrolls as a whole (see below) — no independent
    crop height to drag */
