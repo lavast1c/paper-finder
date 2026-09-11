@@ -57,25 +57,42 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
   sync();
 })();
 
-// --- theme toggle: defaults to light, header button forces light / dark ---
+// --- theme toggle: defaults to time-of-day, header button forces light / dark ---
 //
-// The saved choice (or the light default) is applied pre-paint by a tiny
-// inline <script> in each HTML <head> (avoids a flash) -- `root.dataset.theme`
-// is therefore always already "light" or "dark" by the time this runs. This
-// only wires the button, keeps its label in sync, and pokes dither.js to
-// re-read --dither-wave / --dither-bg.
+// Absent an explicit user choice, the theme follows local clock time: light
+// 06:00-18:59, dark otherwise (not OS `prefers-color-scheme`). The pre-paint
+// inline <script> in each HTML <head> applies this (or a saved override)
+// before first paint (avoids a flash) -- `root.dataset.theme` is therefore
+// always already "light" or "dark" by the time this runs. This wires the
+// button, keeps its label in sync, re-checks the clock periodically so a tab
+// left open across the 6am/7pm boundary still flips without a reload, and
+// pokes dither.js to re-read --dither-wave / --dither-bg.
 
 (function themeToggle() {
   const btn = document.getElementById("theme-toggle");
-  if (!btn) return;
   const labelEl = document.getElementById("theme-toggle-label");
   const KEY = "paper-finder.theme";
   const root = document.documentElement;
   const effective = () => root.dataset.theme || "light";
 
+  function autoTheme() {
+    const h = new Date().getHours();
+    return h >= 6 && h < 19 ? "light" : "dark";
+  }
+
+  function hasExplicitChoice() {
+    try {
+      const t = localStorage.getItem(KEY);
+      return t === "dark" || t === "light";
+    } catch (e) {
+      return false;
+    }
+  }
+
   // The visible label names the mode a click switches TO (not the current
   // one) so it always reads as a call to action, matching the aria-label.
   function syncLabel() {
+    if (!btn) return;
     const light = effective() === "light";
     const targetLabel = light ? "Dark mode" : "Light mode";
     btn.setAttribute("aria-label", `Switch to ${targetLabel.toLowerCase()}`);
@@ -83,19 +100,36 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
     if (labelEl) labelEl.textContent = targetLabel;
   }
 
-  btn.addEventListener("click", () => {
-    const next = effective() === "light" ? "dark" : "light";
-    root.dataset.theme = next;
-    try {
-      localStorage.setItem(KEY, next);
-    } catch (e) {
-      /* private mode - the choice just won't persist */
+  // Re-applies the time-based theme if the user hasn't explicitly picked one
+  // via the button -- keeps an open tab in sync with the clock.
+  function syncAuto() {
+    if (hasExplicitChoice()) return;
+    const next = autoTheme();
+    if (root.dataset.theme !== next) {
+      root.dataset.theme = next;
+      syncLabel();
+      window.dispatchEvent(new Event("themechange"));
     }
-    syncLabel();
-    window.dispatchEvent(new Event("themechange"));
-  });
+  }
 
-  syncLabel();
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const next = effective() === "light" ? "dark" : "light";
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem(KEY, next);
+      } catch (e) {
+        /* private mode - the choice just won't persist */
+      }
+      syncLabel();
+      window.dispatchEvent(new Event("themechange"));
+    });
+    syncLabel();
+  }
+
+  // Every 5 minutes is cheap and coarse enough that a missed tick near the
+  // boundary is never off by more than that.
+  setInterval(syncAuto, 5 * 60 * 1000);
 })();
 
 // --- multi-select dropdown ----------------------------------------------
