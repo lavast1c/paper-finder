@@ -809,13 +809,15 @@ ol#results li {
   cursor: pointer;
 }
 
+/* the flashcard is true liquid glass too (like the header/tray/filterbar) --
+   no fill, just the SVG refraction bending the dot grid behind it */
 .card {
   margin-top: 1rem;
   padding: 1.1rem clamp(1rem, 3vw, 1.6rem) 1.4rem;
   border-radius: var(--r-lg);
-  background: var(--surface-strong);
-  -webkit-backdrop-filter: blur(var(--blur-thick)) var(--refract);
-  backdrop-filter: blur(var(--blur-thick)) var(--refract);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md), var(--edge);
 }
@@ -994,6 +996,10 @@ ol#results li {
   align-items: start;
 }
 .card.is-revealed .card-body .card-answer { margin-top: 0; }
+/* MCQ answers are a single letter, no mark-scheme crop -- stack below the
+   question instead of spending half the card on an empty-feeling column */
+.card.is-revealed.no-answer-crop .card-body { display: block; }
+.card.is-revealed.no-answer-crop .card-body .card-answer { margin-top: 1rem; }
 @media (max-width: 860px) {
   .card.is-revealed .card-body { display: block; }
   .card.is-revealed .card-body .card-answer { margin-top: 1rem; }
@@ -1067,6 +1073,18 @@ ol#results li {
 #card.card--fs.is-revealed .card-answer {
   min-height: 0;
   overflow: auto;
+}
+/* MCQ in fullscreen: same stack-instead-of-split as outside fullscreen -- the
+   whole card scrolls as one column rather than reserving a scroll column for
+   a single letter */
+#card.card--fs.is-revealed.no-answer-crop .card-body {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+#card.card--fs.is-revealed.no-answer-crop .card-stage,
+#card.card--fs.is-revealed.no-answer-crop .card-answer {
+  overflow: visible;
 }
 /* fullscreen: the column scrolls, so the crop box is just content — no fixed
    height, no its own scroll (any inline height from `.crop-resize` is cleared

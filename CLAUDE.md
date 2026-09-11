@@ -243,7 +243,14 @@ re-hides** the answer (`topics.js` `toggleAnswer`; `#card-answer` is `hidden`
 until revealed). **Reveal splits the card into two columns** — question crop
 left, mark-scheme crop right, each with its own scroll (`.card.is-revealed
 .card-body` = a `1fr 1fr` grid; stacks to one column under 860px, and under
-640px inside fullscreen). **The question and mark-scheme crops are pan/zoom
+640px inside fullscreen). **MCQs stack instead of splitting** — an MCQ answer
+is just a letter, no mark-scheme crop, so a side-by-side column would waste
+half the card on it; `topics.js` toggles a `.no-answer-crop` class on `#card`
+whenever `answer_crop_count === 0` (the same field that already picks the
+letter-vs-crop answer rendering), and `.card.is-revealed.no-answer-crop
+.card-body` (+ the fullscreen equivalent) forces `display: block` /
+`flex-direction: column` so the answer renders full-width below the question,
+in and out of fullscreen. **The question and mark-scheme crops are pan/zoom
 surfaces** (`topics.js` `makeCropViewer(imagesEl, storeKey)`, one per
 `.card-images`): drag to pan (mouse `pointer` events → scroll, at `PAN_SPEED`
 = 1.6× the raw pointer movement so a short drag covers more ground; touch
@@ -478,15 +485,21 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   (`--primary` `#2563eb` light / `#60a5fa` dark, `--btn` / `--accent-ink`
   siblings; `--hl-bg` stays amber — highlighter, not chrome); opaque +
   reduced-transparency fallbacks). No page taglines — just the `<h1>` + the
-  `#corpus` count line. The **header, search tray and filter bar** are true
-  "liquid glass": `--glass: transparent` (zero fill), and
+  `#corpus` count line. The **header, search tray, filter bar and flashcard**
+  are true "liquid glass": `--glass: transparent` (zero fill), and
   `--glass-backdrop` = `url(#glass-refraction) saturate(1.6) brightness(1.05)
   blur(2px)` — an inline SVG `feTurbulence` + `feDisplacementMap` filter
   (`#glass-refraction`, duplicated into both HTML `<body>`s inside `svg.glass-defs`)
-  that *bends* the dot grid behind the pane. `--glass` falls back to an opaque
+  that *bends* the dot grid behind the pane. `.card` (the topic-browse
+  flashcard) moved onto this same `--glass`/`--glass-backdrop` pair (was a
+  frosted-opaque `--surface-strong` + `blur(var(--blur-thick))` panel); its
+  fullscreen state (`#card.card--fs`) keeps its own opaque `var(--bg)` ground,
+  unaffected, since a fullscreened element needs a real backdrop against the
+  browser's black fullscreen background. `--glass` falls back to an opaque
   fill and `--glass-backdrop` to `none` in the no-`backdrop-filter` /
-  `prefers-reduced-transparency` blocks. Content panels (`#gate`, `.card`,
-  results) keep `--surface` / `--surface-strong`. Deployed at
+  `prefers-reduced-transparency` blocks (so `.card` degrades the same way the
+  header/tray/filterbar already did). Other content panels (`#gate`, search
+  results) still keep `--surface` / `--surface-strong`. Deployed at
   `pastpaperanalyser.vercel.app`. The backdrop the glass refracts is an
   **interactive dot grid** — `#bg-dots` canvas (first child of `<body>`, `z-index:
   -1`, `pointer-events: none`) driven by `dotgrid.js`, a dependency-free port of

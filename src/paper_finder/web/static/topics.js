@@ -394,6 +394,9 @@ function renderCard() {
   nextBtn.disabled = idx >= total - 1;
   // drives the fullscreen split: question left, mark scheme right once revealed
   cardEl.classList.toggle("is-revealed", revealed);
+  // MCQ answers are just a letter (no mark-scheme crop) -- a side-by-side split
+  // wastes half the card on that, so it stacks below the question instead
+  cardEl.classList.toggle("no-answer-crop", r.answer_crop_count === 0);
 
   cardTitleEl.textContent = r.title;
   cardFileEl.textContent = r.filename;
