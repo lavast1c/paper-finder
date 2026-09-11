@@ -58,6 +58,35 @@ def test_parse_ignores_page_furniture_between_rows():
     assert [a.question_number for a in answers] == [1, 2]
 
 
+def test_parse_mcq_answers_handles_a_discounted_question_with_a_marks_line():
+    # CIE 9700_w21_ms_13.pdf: question 3's Answer cell reads "Question
+    # Discounted" instead of a letter, followed by its own Marks-column "1" --
+    # the parser must not treat that "1" as question 4's own label and must
+    # resync onto the real question 4 row that follows.
+    lines = _lines(["1", "D", "1", "2", "B", "1", "3", "Question Discounted", "1", "4", "B", "1"])
+    answers = parse_mcq_answers(lines)
+    assert [(a.question_number, a.answer_text) for a in answers] == [
+        (1, "D"),
+        (2, "B"),
+        (3, "Question discounted"),
+        (4, "B"),
+    ]
+
+
+def test_parse_mcq_answers_handles_a_discounted_question_with_no_marks_line():
+    # CIE 9700_w23_ms_11.pdf: question 3's row has no Marks-column digit at
+    # all -- "4" directly follows "Question discounted". The parser must not
+    # mistake that "4" for a marks value and swallow it.
+    lines = _lines(["1", "D", "1", "2", "B", "1", "3", "Question discounted", "4", "C", "1"])
+    answers = parse_mcq_answers(lines)
+    assert [(a.question_number, a.answer_text) for a in answers] == [
+        (1, "D"),
+        (2, "B"),
+        (3, "Question discounted"),
+        (4, "C"),
+    ]
+
+
 def test_parse_structured_answers_groups_by_question():
     lines = _lines(
         [

@@ -23,6 +23,14 @@ from paper_finder.segment import MCQ_QUESTION_COUNT, is_noise, load_lines, looks
 
 _LETTER = re.compile(r"^[A-D]$")
 _SMALL_INT = re.compile(r"^\d{1,2}$")
+# CIE occasionally voids an MCQ item after publication (a flawed question with
+# no single correct answer) and marks its Answer-column cell "Question
+# discounted" instead of a letter -- every candidate is awarded the mark.
+# Whether a Marks-column digit follows is inconsistent between papers, so
+# parse_mcq_answers() disambiguates by checking whether the next token is
+# already the following question's number rather than assuming a fixed
+# triple width for this one row.
+_DISCOUNTED = re.compile(r"^question\s+discounted$", re.IGNORECASE)
 _PART_LABEL = re.compile(r"^(\d{1,2})\([a-z]\)(?:\([ivx]+\))?\s*$")
 # A question with no lettered parts is labelled with a bare number in the
 # Question column (CIE 9231 does this for its shorter questions). The column
@@ -144,6 +152,14 @@ def parse_mcq_answers(lines: list[dict]) -> list[Answer]:
             answers.append(Answer(expected, triple[1], marks))
             expected += 1
             i += 3
+        elif i + 1 < len(texts) and texts[i] == str(expected) and _DISCOUNTED.match(texts[i + 1]):
+            answers.append(Answer(expected, "Question discounted", 1))
+            expected += 1
+            # A Marks-column digit may or may not follow -- only consume it
+            # when it isn't actually the next question's own label.
+            has_marks_digit = i + 2 < len(texts) and _SMALL_INT.match(texts[i + 2])
+            is_next_question = i + 2 < len(texts) and texts[i + 2] == str(expected)
+            i += 3 if (has_marks_digit and not is_next_question) else 2
         else:
             i += 1
     return answers
