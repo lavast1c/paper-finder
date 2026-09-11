@@ -24,9 +24,9 @@
 
   // --- tunables --------------------------------------------------------
   // Matches the react-bits <Dither /> usage example; wave speed started at
-  // 0.03, then slowed further per request, and colour depth was raised from
-  // the component's default of 4 to 6, per request.
-  const WAVE_SPEED = 0.015;
+  // 0.03, then slowed further twice per request (0.015, then 0.01), and
+  // colour depth was raised from the component's default of 4 to 6, per request.
+  const WAVE_SPEED = 0.01;
   const WAVE_FREQUENCY = 3;
   const WAVE_AMPLITUDE = 0.3;
   const MOUSE_RADIUS = 0.3;

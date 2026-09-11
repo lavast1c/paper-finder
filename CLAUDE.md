@@ -511,7 +511,7 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   fullscreen triangle, replacing the upstream's react-three-fiber +
   postprocessing two-pass pipeline since there's no other 3D content to
   composite with here). Tuned per request: `waveSpeed` started at 0.03, then
-  slowed further to `0.015`; `colorNum` 6 (raised from the component's
+  slowed twice more to `0.015` and then `0.01`; `colorNum` 6 (raised from the component's
   default of 4), `waveFrequency` 3, `waveAmplitude` 0.3, `mouseRadius` 0.3,
   `pixelSize` 2, mouse interaction on. Colour comes from two theme-aware
   custom properties instead of component props: `--dither-wave` (`#1d4ed8` in
