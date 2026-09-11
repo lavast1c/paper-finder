@@ -193,7 +193,12 @@ body {
 }
 
 /* live backdrop — the interactive dither wave field the glass refracts
-   (dither.js, a plain <canvas> WebGL2 context) */
+   (dither.js, a plain <canvas> WebGL2 context). `will-change`/`translateZ`
+   force it onto its own compositor layer -- without that, mobile browsers
+   (notably iOS Safari) can defer repainting a `position: fixed` element
+   during an active touch-scroll and only snap it back into place once the
+   finger lifts, which reads as the background "catching up" after scrolling
+   rather than tracking it live. */
 #bg-dither {
   position: fixed;
   inset: 0;
@@ -201,6 +206,8 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* ---- header: full-width floating glass bar ---- */
@@ -1076,25 +1083,26 @@ ol#results li {
   .card-images { height: 48vh; }
 }
 
-/* ---- touch devices: native pinch-zoom instead of the custom viewer ----
+/* ---- touch devices ----
    `pointer: coarse` is a touchscreen with no fine pointer -- phones and most
    tablets, not a mouse/trackpad, so this doesn't affect desktop regardless of
-   window width. The custom drag-to-pan already only engages for
-   `pointerType === "mouse"` (topics.js) and wheel-to-zoom never fires from a
-   touch gesture, so the one thing actually blocking a native pinch is
-   `touch-action: pan-x pan-y` on `.card-images` -- swap it for `manipulation`
-   (pan + pinch-zoom, no double-tap-zoom) so a pinch scales the crop image
-   itself. The "drag to pan / scroll to zoom" hint no longer applies once
-   pinch takes over, so it's hidden here.
+   window width. Pinch-to-zoom on the crops is handled by a 2-pointer gesture
+   in `topics.js` (`makeCropViewer`) rather than the browser's own page-zoom:
+   `touch-action` on `.card-images` stays `pan-x pan-y` (single-finger native
+   scroll-pan, same as desktop) with no `pinch-zoom` component, so the browser
+   never tries to zoom the *page* underneath our own gesture handling -- a
+   native pinch on a scrollable region is unreliable across mobile browsers
+   anyway (it competes with the scroll gesture), and one gesture only zooming
+   the crop -- not the whole page -- is the actually useful behaviour. The
+   "drag to pan / scroll to zoom" hint no longer describes what's available
+   once pinch takes over, so it's hidden here.
    The liquid-glass backdrop-filter + SVG feDisplacementMap refraction (the
    header/tray/filterbar/card panels) is one of the more GPU-expensive things
    on the page every scroll frame; touch devices skew toward weaker GPUs, so
    they get the same opaque fallback already used for `prefers-reduced-
    transparency` instead. dither.js separately turns off the pointer-ripple
-   uniform and renders at a lower resolution/coarser dither grid on these
-   devices for the same reason. */
+   uniform on these devices (no real pointer to react to). */
 @media (pointer: coarse) {
-  .card-images { touch-action: manipulation; }
   .crop-hint { display: none; }
   .ms-opt { min-height: 44px; }
 

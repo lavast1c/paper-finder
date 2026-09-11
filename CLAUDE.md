@@ -158,20 +158,27 @@ unless the user has explicitly toggled it, in which case that choice is
 persisted in `localStorage` and wins from then on; the time-based default
 re-checks every 5 minutes so an open tab still flips at the boundary.
 Background is an interactive WebGL2 dithered wave-field
-canvas (`dither.js`) behind a liquid-glass (`backdrop-filter`) header/filter
-bar/flashcard, with opaque fallbacks when `backdrop-filter` is unsupported or
-`prefers-reduced-transparency` is set. `@media (pointer: coarse)` (touchscreens,
-not a width breakpoint) gets the same opaque/no-blur fallback for GPU cost, plus
-a coarser/lower-res dither render and no pointer-ripple in `dither.js`; the crop
-viewer's `touch-action` switches to `manipulation` there so a pinch gesture
-zooms the crop natively instead of the desktop drag-pan/wheel-zoom (which
-already only engages for `pointerType === "mouse"`), and the "drag to
-pan/scroll to zoom" hint hides accordingly. `:root[data-theme="dark"]` exists
-alongside `[data-theme="light"]` (was missing — dark mode had silently only
-worked when the OS *also* preferred dark) so the clock-based default renders
-correctly regardless of OS theme. See the files directly for exact
-values/constants — this file only needs to flag that these are deliberate,
-tuned choices, not arbitrary numbers to "clean up".
+canvas (`dither.js`, `#bg-dither`, `position: fixed` + `will-change:
+transform`/`translateZ(0)` to force its own compositor layer — without that,
+mobile browsers can defer repainting a fixed element mid-touch-scroll and only
+snap it into place once the finger lifts) behind a liquid-glass
+(`backdrop-filter`) header/filter bar/flashcard, with opaque fallbacks when
+`backdrop-filter` is unsupported or `prefers-reduced-transparency` is set.
+`@media (pointer: coarse)` (touchscreens, not a width breakpoint) gets the same
+opaque/no-blur fallback for GPU cost, and `dither.js` turns off the
+pointer-ripple uniform there (no real pointer to react to). Pinch-to-zoom on
+the crop images is a hand-rolled 2-pointer gesture in `topics.js`
+(`makeCropViewer`) rather than the browser's native page-zoom — `touch-action`
+on `.card-images` stays `pan-x pan-y` (no `pinch-zoom` component) everywhere so
+the browser never starts its own zoom there and our gesture has the touch
+events to itself; the desktop drag-pan/wheel-zoom still only engages for
+`pointerType === "mouse"`/`"wheel"`, and the "drag to pan/scroll to zoom" hint
+hides on `pointer: coarse` since it no longer describes what's available.
+`:root[data-theme="dark"]` exists alongside `[data-theme="light"]` (was
+missing — dark mode had silently only worked when the OS *also* preferred
+dark) so the clock-based default renders correctly regardless of OS theme. See
+the files directly for exact values/constants — this file only needs to flag
+that these are deliberate, tuned choices, not arbitrary numbers to "clean up".
 
 Next: Stage 6 (semantic search) — see `PLAN.md`.
 

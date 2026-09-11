@@ -536,6 +536,12 @@ function makeCropViewer(imagesEl, storeKey) {
     sc.scrollLeft = cx * ratio - px;
     sc.scrollTop = cy * ratio - py;
   }
+  // set the zoom to an absolute level (touch pinch, which tracks a live
+  // finger-distance ratio rather than a per-event delta) by expressing it as
+  // a `zoomBy` factor relative to the current zoom, reusing its anchor math
+  function zoomTo(targetZ, clientX, clientY) {
+    if (z > 0) zoomBy(targetZ / z, clientX, clientY);
+  }
   function reset() {
     z = 1;
     apply();
@@ -604,6 +610,62 @@ function makeCropViewer(imagesEl, storeKey) {
   }
   imagesEl.addEventListener("pointerup", endDrag);
   imagesEl.addEventListener("pointercancel", endDrag);
+
+  // pinch to zoom (touch): tracks up to 2 simultaneous touch pointers and
+  // scales from the change in their distance apart, anchored to their
+  // midpoint each move so the zoom tracks under the fingers. `touch-action:
+  // pan-x pan-y` on `.card-images` (style.css) has no `pinch-zoom` component,
+  // so the browser never starts its own page-zoom gesture here -- a 2-finger
+  // touch on this element is entirely ours to interpret.
+  const pinchPointers = new Map();
+  let pinchStartDist = 0;
+  let pinchStartZoom = 1;
+  function pinchDistance() {
+    const [a, b] = [...pinchPointers.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  function pinchMidpoint() {
+    const [a, b] = [...pinchPointers.values()];
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+  imagesEl.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // capture only kicks in once a 2nd finger actually lands (a confirmed
+    // pinch) -- capturing on every single-finger touch too risks the
+    // browser treating the pointer as "claimed" and skipping its own native
+    // pan-x/pan-y scroll for it on some engines
+    if (pinchPointers.size === 2) {
+      dragging = false; // a pinch always wins over an in-progress mouse-drag state
+      for (const id of pinchPointers.keys()) {
+        try {
+          imagesEl.setPointerCapture(id);
+        } catch {
+          /* pointer already gone */
+        }
+      }
+      pinchStartDist = pinchDistance();
+      pinchStartZoom = z;
+    }
+  });
+  imagesEl.addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "touch" || !pinchPointers.has(e.pointerId)) return;
+    pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinchPointers.size !== 2 || pinchStartDist < 1) return;
+    e.preventDefault();
+    const mid = pinchMidpoint();
+    zoomTo(pinchStartZoom * (pinchDistance() / pinchStartDist), mid.x, mid.y);
+  });
+  function endPinchPointer(e) {
+    pinchPointers.delete(e.pointerId);
+    try {
+      imagesEl.releasePointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+  }
+  imagesEl.addEventListener("pointerup", endPinchPointer);
+  imagesEl.addEventListener("pointercancel", endPinchPointer);
 
   apply();
   return { zoomBy, reset };
