@@ -42,6 +42,7 @@ const corpusEl = document.getElementById("corpus");
 
 const SHOWTEXT_KEY = "paper-finder.showtext"; // per-browser: keep the question text visible beside the image
 const SHOWANSWERTEXT_KEY = "paper-finder.showanswertext"; // same, for the revealed mark scheme
+const REVEALED_KEY = "paper-finder.revealed"; // per-browser: reveal-answer default for every card
 const QZOOM_KEY = "paper-finder.qzoom"; // per-browser question-crop zoom level
 const AZOOM_KEY = "paper-finder.azoom"; // per-browser mark-scheme-crop zoom level
 const ZOOM_MIN = 0.3;
@@ -74,12 +75,16 @@ const csv = (s) => (s || "").split(",").map((x) => x.trim()).filter(Boolean);
 let deck = [];
 let total = 0;
 let idx = 0;
+// Sticky across cards, deck refreshes and reloads (localStorage), like
+// showText/showAnswerText below -- once revealed once, stays revealed for
+// the next question too, until "Hide answer" is clicked.
 let revealed = false;
 let renderedImagesKey = null; // `${filename}#${qnum}` currently shown in #card-images; guards the swap
 let renderedAnswerKey = null; // same, for #answer-images (separate slot -- the two must not share a guard)
 let showText = false;
 let showAnswerText = false;
 try {
+  revealed = localStorage.getItem(REVEALED_KEY) === "1";
   showText = localStorage.getItem(SHOWTEXT_KEY) === "1";
   showAnswerText = localStorage.getItem(SHOWANSWERTEXT_KEY) === "1";
 } catch {
@@ -485,6 +490,11 @@ function renderCard() {
 function toggleAnswer() {
   if (!deck[idx]) return;
   revealed = !revealed;
+  try {
+    localStorage.setItem(REVEALED_KEY, revealed ? "1" : "");
+  } catch {
+    /* private mode / storage blocked */
+  }
   renderCard();
 }
 
@@ -783,7 +793,6 @@ async function go(delta) {
   const target = Math.min(Math.max(idx + delta, 0), Math.max(total - 1, 0));
   if (target === idx) return;
   idx = target;
-  revealed = false;
   const token = deckToken;
   if (idx >= deck.length) {
     setStatus("Loading…");
@@ -858,7 +867,6 @@ async function refresh() {
   if (token !== deckToken) return;
   if (idx >= deck.length) idx = deck.length - 1;
 
-  revealed = false;
   setStatus("");
   cardEl.hidden = false;
   renderCard();
