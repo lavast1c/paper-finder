@@ -278,12 +278,16 @@ crop is zoomed in and overflows, leaving the drag-pan/wheel-zoom scroll math
 0`) untouched. The viewer drives whichever element actually scrolls —
 `.card-images` itself normally, its scrolling ancestor (the column /
 `.card-body`) in fullscreen where `.card-images` is `overflow: visible`. A
-muted `.crop-hint` sits above each. Each box has its own **resize handle**
+`.crop-hint` (`0.85rem`, sized up from an initial `0.72rem` — too small to
+read comfortably) sits above each. Each box has its own **resize handle**
 below it — a full-width `.crop-resize` drag bar (`topics.js`
 `makeResizeHandle(handleEl, imagesEl, storeKey)`, `#q-resize`/`#a-resize`)
-with a large, accent-highlighted `.crop-resize-grip` pill, replacing the
-native `resize: vertical` corner grip (too small to find/grab reliably);
-pointer-drag sets `imagesEl.style.height` directly (clamped `160px`–92vh),
+with a large `.crop-resize-grip` pill, replacing the native `resize:
+vertical` corner grip (too small to find/grab reliably); the grip is visibly
+accent-tinted (`var(--rule)`, `4.5rem × 8px`) even at rest, not just on
+hover/drag (`var(--primary)`, widening to `5.5rem`) — an initial version that
+only tinted on hover read as invisible until you happened to hover it.
+Pointer-drag sets `imagesEl.style.height` directly (clamped `160px`–92vh),
 double-click resets it, persisted per column (`localStorage`
 `paper-finder.qheight` / `.aheight`) and hidden in fullscreen
 (`#card.card--fs .crop-resize { display: none }`, since the column height
@@ -292,8 +296,11 @@ scrollbars (`scrollbar-color: var(--rule)` + a `::-webkit-scrollbar`
 fallback). A **fullscreen toggle** (`#fullscreen-toggle` in `.card-nav`, or
 press `f`) blows the current card up via the Fullscreen API on `#card`
 (`topics.js` `toggleFullscreen` / `syncFullscreenUI` add `.card--fs` on
-`fullscreenchange`); fullscreen keeps the same 2-col reveal but swaps the
-page scroll for a per-column one so the nav/head stay pinned.
+`fullscreenchange`); the button carries a visible `#fullscreen-toggle-label`
+span next to its icon (was icon-only, easy to miss) reading "Fullscreen" /
+"Exit fullscreen" in step with `.card--fs`, and `.card-fs-btn` widened
+(`gap` + bigger padding/font) to fit it. Fullscreen keeps the same 2-col
+reveal but swaps the page scroll for a per-column one so the nav/head stay pinned.
 `syncFullscreenUI` also saves any manually-resized inline height on entry
 (`imagesEl.dataset.savedHeight`, then clears the inline style so the
 fullscreen `height: auto` rule applies) and restores it on exit — otherwise a
