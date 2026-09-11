@@ -501,16 +501,30 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   header/tray/filterbar already did). Other content panels (`#gate`, search
   results) still keep `--surface` / `--surface-strong`. Deployed at
   `pastpaperanalyser.vercel.app`. The backdrop the glass refracts is an
-  **interactive dot grid** — `#bg-dots` canvas (first child of `<body>`, `z-index:
-  -1`, `pointer-events: none`) driven by `dotgrid.js`, a dependency-free port of
-  react-bits' `<DotGrid />` (no gsap; a hand-rolled frame-rate-independent damped
-  spring per dot). Dots sit at `--dot-base` and lerp to `--primary` within ~150px
-  of the pointer; a deliberate fast swipe nudges nearby dots and a click bursts
-  every dot in range radially outward — both spring home with one soft overshoot.
-  A slow aiming move never triggers the swipe (`SPEED_TRIGGER` + a settle-snap
-  keep the grid dead still). `prefers-reduced-motion` → a static grid, no loop or
-  listeners; pauses while the tab is hidden; re-reads the CSS colours on a theme
-  change. It replaced the old static `--blob-*`
+  **interactive dithered wave field** (2026-09-12, replacing the earlier dot
+  grid) — `#bg-dither` canvas (first child of `<body>`, `z-index: -1`,
+  `pointer-events: none`) driven by `dither.js`, a dependency-free **WebGL2**
+  port of react-bits' `<Dither />` (no react/three/`@react-three/fiber`/
+  `postprocessing` — those are React-only and this is a no-build vanilla-JS
+  site; the fractal-noise wave generation and the 8x8-Bayer ordered-dither
+  post-process are fused into one fragment shader on a `gl_VertexID`-only
+  fullscreen triangle, replacing the upstream's react-three-fiber +
+  postprocessing two-pass pipeline since there's no other 3D content to
+  composite with here). Tuned per request: `waveSpeed` 0.03, `colorNum` 6
+  (raised from the component's default of 4), `waveFrequency` 3,
+  `waveAmplitude` 0.3, `mouseRadius` 0.3, `pixelSize` 2, mouse interaction on.
+  Colour comes from two theme-aware custom properties instead of component
+  props: `--dither-wave` (`#93c5fd`, a lighter blue — deliberately the *same*
+  value in light and dark, per request) and `--dither-bg` (`#f4edcf` system
+  light / `#fcf4d9` explicit light — both match `--bg`, a Solarized/yellow
+  cream — and `#0a1a33` navy in dark). The canvas backing buffer is fixed at
+  1x regardless of devicePixelRatio (matches the upstream component's own
+  `dpr={1}`) since the noise loop runs per pixel every frame and pixelSize
+  already chunks output pixels, so a retina buffer would be 4x the cost for
+  no visible gain. `prefers-reduced-motion` → one static frame, no pointer
+  reactivity, no rAF loop; pauses while the tab is hidden; re-reads the CSS
+  colours on a theme change (same lifecycle shape `dotgrid.js` used). It
+  replaced the old static `--blob-*`
   radial-gradient mesh (`body::before`, removed). The styled-select
   rule is `.select-wrap select` (`appearance:none` + one CSS chevron on every
   filter select). Local mode: JSON over
