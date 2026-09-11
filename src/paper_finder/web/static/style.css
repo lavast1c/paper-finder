@@ -2,9 +2,10 @@
    A study-reference tool: IBM Plex type, a deliberate light-blue accent
    (#1d4ed8 light / #93c5fd dark — every text/bg pair WCAG-AA checked). The
    backdrop the panels refract is an interactive dithered wave field
-   (`#bg-dither` canvas, `dither.js`) — a lighter-blue wave over a themed
-   ground, nudged by the pointer. One static frame, no reactivity, under
-   `prefers-reduced-motion`. Opaque + reduced-transparency fallbacks below. */
+   (`#bg-dither` canvas, `dither.js`) — the accent-blue wave (darker in light
+   theme, lighter in dark, for contrast against each ground) nudged by the
+   pointer. One static frame, no reactivity, under `prefers-reduced-motion`.
+   Opaque + reduced-transparency fallbacks below. */
 
 :root {
   color-scheme: light;
@@ -36,10 +37,11 @@
   --hl-bg: #ffe082;               /* query-term highlight — warm yellow */
   --hl-ink: #16191d;              /* dark ink on the highlight (AA) */
 
-  /* backdrop dither wave — a lighter blue over a themed ground. The wave
-     colour is deliberately the same in light and dark; only the ground
-     underneath it changes theme. */
-  --dither-wave: #93c5fd;
+  /* backdrop dither wave over a themed ground. Light mode wants a darker,
+     more visible wave against the cream ground (--btn's saturated blue,
+     already the light theme's own accent); dark mode overrides back to a
+     lighter blue against the navy ground, below. */
+  --dither-wave: #1d4ed8;
   --dither-bg: #f4edcf;              /* matches --bg: solarized/yellow-tinted cream */
 
   /* radii — a tight, deliberate scale */
@@ -82,7 +84,8 @@
     --rule: rgba(96, 165, 250, 0.4);
     --hl-bg: #d9a441;              /* muted amber — carries on the dark panel */
     --hl-ink: #0b0e13;
-    --dither-bg: #0a1a33;          /* navy/dark blue ground (wave colour unchanged) */
+    --dither-wave: #93c5fd;        /* lighter blue -- the base token is darkened for light mode */
+    --dither-bg: #0a1a33;          /* navy/dark blue ground */
     --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 14px 44px rgba(0, 0, 0, 0.48);
     --shadow-lg: 0 26px 74px rgba(0, 0, 0, 0.58);
@@ -115,6 +118,7 @@
   --rule: rgba(96, 165, 250, 0.4);
   --hl-bg: #ffe08a;
   --hl-ink: #073642;
+  --dither-wave: #1d4ed8;           /* re-declared so this wins over @media dark on a dark-OS machine */
   --dither-bg: #fcf4d9;             /* matches --bg: this theme's Solarized cream */
   --shadow-sm: 0 2px 10px rgba(88, 110, 117, 0.16);
   --shadow-md: 0 12px 40px rgba(88, 110, 117, 0.2);

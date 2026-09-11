@@ -510,14 +510,20 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   post-process are fused into one fragment shader on a `gl_VertexID`-only
   fullscreen triangle, replacing the upstream's react-three-fiber +
   postprocessing two-pass pipeline since there's no other 3D content to
-  composite with here). Tuned per request: `waveSpeed` 0.03, `colorNum` 6
-  (raised from the component's default of 4), `waveFrequency` 3,
-  `waveAmplitude` 0.3, `mouseRadius` 0.3, `pixelSize` 2, mouse interaction on.
-  Colour comes from two theme-aware custom properties instead of component
-  props: `--dither-wave` (`#93c5fd`, a lighter blue — deliberately the *same*
-  value in light and dark, per request) and `--dither-bg` (`#f4edcf` system
-  light / `#fcf4d9` explicit light — both match `--bg`, a Solarized/yellow
-  cream — and `#0a1a33` navy in dark). The canvas backing buffer is fixed at
+  composite with here). Tuned per request: `waveSpeed` started at 0.03, then
+  slowed further to `0.015`; `colorNum` 6 (raised from the component's
+  default of 4), `waveFrequency` 3, `waveAmplitude` 0.3, `mouseRadius` 0.3,
+  `pixelSize` 2, mouse interaction on. Colour comes from two theme-aware
+  custom properties instead of component props: `--dither-wave` (`#1d4ed8` in
+  light — the app's own `--btn` blue, darker/more saturated for contrast
+  against the cream ground, per request — `#93c5fd` lighter blue in dark for
+  contrast against the navy; **not** the same value across themes, unlike the
+  background) and `--dither-bg` (`#f4edcf` system light / `#fcf4d9` explicit
+  light — both match `--bg`, a Solarized/yellow cream — and `#0a1a33` navy in
+  dark). `--dither-wave` is re-declared in `:root[data-theme="light"]` (not
+  just the base `:root`) so an explicit light choice still gets the darker
+  wave on a dark-OS machine, where the `@media (prefers-color-scheme: dark)`
+  block would otherwise win that property. The canvas backing buffer is fixed at
   1x regardless of devicePixelRatio (matches the upstream component's own
   `dpr={1}`) since the noise loop runs per pixel every frame and pixelSize
   already chunks output pixels, so a retina buffer would be 4x the cost for
