@@ -319,12 +319,25 @@ toggled by `topics.js` `makeResizeHandle` on pointerdown/up) the hit area
 itself becomes visible as the same liquid glass as the rest of the card
 (`--glass`/`--glass-backdrop`) rather than a solid fill, so it reads as part
 of the glass panel; the pill stays solid-accent throughout so it's always
-legible against whatever is behind it. **Topic is a single-select `#f-topic` dropdown** in the filter
-bar (after Season(s)), options `"<n>. <name> (<count>)"` from `topic_counts`,
-zero-count options disabled — it replaced the old multi-select `#topic-chips`
-row. The deck stays hidden ("Choose a topic to start revising.") until a topic is
-picked. `browse_by_topic` still takes a `codes` array (the dropdown sends one);
-old `?topics=a,b` deep links clamp to the first. Local endpoints `/api/topics` +
+legible against whatever is behind it. **Topic(s) is a `.multiselect` dropdown**
+(`#f-topic`, same `PF.multiSelect()` pattern as Paper(s)/Year(s)/Season(s) — a
+`.ms-toggle` button + checkbox `.ms-opt` rows in a `.ms-panel`) in the filter
+bar (after Season(s)); `topics.js` `renderTopicOptions()` rebuilds the panel's
+checkboxes from `topic_counts` on every `refresh()` (`"<n>. <name> (<count>)"`,
+zero-count options disabled unless already picked), then calls
+`topicEl._ms.setValues([...selected])` to re-tick the survivors and repaint
+the toggle's label. Each checkbox's `data-short` is just its section number,
+so picking several keeps the closed toggle compact ("1, 3, 5") instead of
+concatenating full names. `PF.multiSelect()` itself was changed to re-query its
+panel's checkboxes on every call (`values()`/`setValues()`/`paintLabel()`)
+rather than a one-time snapshot, since the topic panel's checkboxes -- unlike
+Paper/Year/Season's static ones -- are rebuilt from scratch each refresh. The
+deck stays hidden ("Choose one or more topics to start revising.") until at
+least one is picked; `selected` is a `Set` of any size (was clamped to one
+code) and `browse_by_topic` already unioned however many codes it was given
+(newest-paper-first, a question tagged with more than one pick counted once).
+`?topics=a,b` deep links now restore both instead of clamping to the first.
+Local endpoints `/api/topics` +
 `/api/browse` (501 in cloud mode); cloud uses the `browse_questions` /
 `topic_counts` RPCs. The corpus line under the `<h1>` shows just
 `"<n> questions · <n> question papers"` (the subject name was dropped).
@@ -509,7 +522,12 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   `data-theme="light"` unless `localStorage["paper-finder.theme"]` was
   explicitly saved as `"dark"` by the header toggle; `common.js`'s
   `themeToggle` no longer tracks `prefers-color-scheme` at all, since
-  `root.dataset.theme` is now always already set by the time it runs. No page
+  `root.dataset.theme` is now always already set by the time it runs. The
+  header's `#theme-toggle` button (sun/moon icon, `#theme-toggle-label` span)
+  names the mode a click switches **to**, not the current one ("Dark mode"
+  while in light theme, "Light mode" while in dark) — sized to match the
+  fullscreen/reveal buttons (padding + icon bump 18px → 20px) rather than the
+  old icon-only square. No page
   taglines — just the `<h1>` + the `#corpus` count line. The **header, search
   tray, filter bar and flashcard**
   are true "liquid glass": `--glass: transparent` (zero fill), and

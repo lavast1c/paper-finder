@@ -13,7 +13,7 @@ const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
-const topicEl = document.getElementById("f-topic"); // syllabus section; deck stays hidden until one is picked
+const topicEl = document.getElementById("f-topic"); // multi-select dropdown: syllabus sections; deck stays hidden until at least one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
 const cardEl = document.getElementById("card");
@@ -64,7 +64,7 @@ let subject = DEFAULT_SUBJECT; // one subject at a time; its taxonomy fills the 
 
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
-let selected = new Set(); // the picked topic (0 or 1 code); a Set keeps the deck/browse plumbing unchanged
+let selected = new Set(); // the picked topics (any number of codes) — union'd by browse_by_topic
 // Multi-select scope filters (each a .multiselect dropdown). Paper(s) = paper
 // number ("1" = MCQ, "2" = theory), Season(s) = session letters, Year(s) =
 // years. An empty array = no restriction on that axis.
@@ -232,21 +232,29 @@ async function loadCorpusLine() {
   }
 }
 
-// --- topic dropdown -------------------------------------------------
+// --- topic multi-select ----------------------------------------------
 
-// Rebuild the <option> list from the current (filter-scoped) counts, keeping the
-// user's pick selected. A zero-count topic under the active filters is disabled.
+// Rebuild the checkbox list from the current (filter-scoped) counts, keeping
+// the user's picks checked. A zero-count topic under the active filters is
+// disabled unless it's already picked (so a pick never becomes unreachable).
 function renderTopicOptions() {
-  const current = [...selected][0] || "";
-  topicEl.replaceChildren();
-  topicEl.append(new Option("Choose a topic…", ""));
+  const panel = topicEl.querySelector(".ms-panel");
+  panel.replaceChildren();
   for (const t of topicList) {
-    const opt = new Option(`${t.number}. ${t.name} (${t.count})`, t.code);
-    opt.disabled = t.count === 0 && t.code !== current;
-    if (t.subsections && t.subsections.length) opt.title = t.subsections.join(" · ");
-    topicEl.append(opt);
+    const label = document.createElement("label");
+    label.className = "ms-opt";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = t.code;
+    box.dataset.short = String(t.number); // keeps the closed toggle's label short: "1, 3, 5"
+    box.disabled = t.count === 0 && !selected.has(t.code);
+    const span = document.createElement("span");
+    span.textContent = `${t.number}. ${t.name} (${t.count})`;
+    label.append(box, span);
+    if (t.subsections && t.subsections.length) label.title = t.subsections.join(" · ");
+    panel.append(label);
   }
-  topicEl.value = current;
+  if (topicEl._ms) topicEl._ms.setValues([...selected]);
 }
 
 // --- the card ------------------------------------------------------
@@ -755,7 +763,7 @@ async function refresh() {
 
   if (selected.size === 0) {
     cardEl.hidden = true;
-    setStatus("Choose a topic to start revising.");
+    setStatus("Choose one or more topics to start revising.");
     return;
   }
 
@@ -898,9 +906,9 @@ if (subjectEl) {
   subjectEl.addEventListener("change", () => {
     subject = subjectEl.value;
     syncPaperFieldVisibility();
-    // the picked topic and any Paper(s) pick belong to the old subject
+    // the picked topics and any Paper(s) pick belong to the old subject
     selected.clear();
-    topicEl.value = "";
+    if (topicEl._ms) topicEl._ms.setValues([]);
     if (subject !== DEFAULT_SUBJECT) {
       filters.papers = [];
       if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
@@ -910,9 +918,11 @@ if (subjectEl) {
   });
 }
 
+PF.multiSelect(topicEl);
 topicEl.addEventListener("change", () => {
-  selected.clear();
-  if (topicEl.value) selected.add(topicEl.value);
+  selected = new Set(
+    [...topicEl.querySelectorAll('input[type="checkbox"]:checked')].map((b) => b.value),
+  );
   idx = 0;
   refresh();
 });
@@ -921,7 +931,7 @@ clearAllBtn.addEventListener("click", () => {
   filters.papers = [];
   filters.seasons = [];
   filters.years = [];
-  topicEl.value = "";
+  if (topicEl._ms) topicEl._ms.setValues([]);
   syncToggleUI();
   idx = 0;
   refresh();
@@ -999,7 +1009,7 @@ function onReady(email, client) {
   syncPaperFieldVisibility();
   syncToggleUI();
   idx = i;
-  selected = new Set(codes.slice(0, 1)); // single-select now; pruned in refresh()
+  selected = new Set(codes); // pruned against the server's valid-code list in refresh()
   refresh();
 }
 

@@ -68,14 +68,19 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 (function themeToggle() {
   const btn = document.getElementById("theme-toggle");
   if (!btn) return;
+  const labelEl = document.getElementById("theme-toggle-label");
   const KEY = "paper-finder.theme";
   const root = document.documentElement;
   const effective = () => root.dataset.theme || "light";
 
+  // The visible label names the mode a click switches TO (not the current
+  // one) so it always reads as a call to action, matching the aria-label.
   function syncLabel() {
     const light = effective() === "light";
-    btn.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
+    const targetLabel = light ? "Dark mode" : "Light mode";
+    btn.setAttribute("aria-label", `Switch to ${targetLabel.toLowerCase()}`);
     btn.setAttribute("aria-pressed", String(light));
+    if (labelEl) labelEl.textContent = targetLabel;
   }
 
   btn.addEventListener("click", () => {
@@ -112,15 +117,20 @@ function multiSelect(root) {
   const toggle = root.querySelector(".ms-toggle");
   const panel = root.querySelector(".ms-panel");
   const valueEl = root.querySelector(".ms-value");
-  const boxes = [...panel.querySelectorAll('input[type="checkbox"]')];
+  // Queried fresh each call, not captured once -- the topic panel's checkboxes
+  // are rebuilt from scratch whenever the topic list changes (subject switch,
+  // count refresh), so a one-time snapshot would go stale.
+  const boxes = () => [...panel.querySelectorAll('input[type="checkbox"]')];
   const placeholder = root.dataset.placeholder || "Any";
 
   function values() {
-    return boxes.filter((b) => b.checked).map((b) => b.value);
+    return boxes()
+      .filter((b) => b.checked)
+      .map((b) => b.value);
   }
 
   function paintLabel() {
-    const picked = boxes.filter((b) => b.checked);
+    const picked = boxes().filter((b) => b.checked);
     valueEl.textContent = picked.length
       ? picked.map((b) => b.dataset.short || b.nextElementSibling.textContent.trim()).join(", ")
       : placeholder;
@@ -161,7 +171,7 @@ function multiSelect(root) {
     values,
     setValues(list) {
       const want = new Set(list || []);
-      for (const b of boxes) b.checked = want.has(b.value);
+      for (const b of boxes()) b.checked = want.has(b.value);
       paintLabel();
     },
     close,
