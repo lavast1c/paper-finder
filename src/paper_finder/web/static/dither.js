@@ -32,8 +32,16 @@
   const MOUSE_RADIUS = 0.3;
   const COLOR_NUM = 6;
   const PIXEL_SIZE = 2;
+  // Touch devices (phones, most tablets) skew toward weaker GPUs and have no
+  // real "pointer" to react to -- `pointer: coarse` disables the mouse-ripple
+  // uniform below and, for the same performance reason, chunks the dither
+  // grid coarser and renders at a fraction of the CSS resolution (upscaled by
+  // the browser), since the noise loop runs per rendered pixel every frame.
+  const PIXEL_SIZE_COARSE = 3;
+  const RESOLUTION_SCALE_COARSE = 0.65;
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const coarsePointer = window.matchMedia("(pointer: coarse)");
 
   // --- colour ------------------------------------------------------------
   // Read --dither-wave / --dither-bg off :root so the field tracks the theme --
@@ -250,7 +258,6 @@
   gl.uniform1f(u.uWaveAmplitude, WAVE_AMPLITUDE);
   gl.uniform1f(u.uMouseRadius, MOUSE_RADIUS);
   gl.uniform1f(u.uColorNum, COLOR_NUM);
-  gl.uniform1f(u.uPixelSize, PIXEL_SIZE);
 
   // --- sizing --------------------------------------------------------
   // Fixed at 1x regardless of devicePixelRatio, same as upstream's `dpr={1}`
@@ -260,14 +267,18 @@
   let width = 0;
   let height = 0;
   function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
+    const scale = coarsePointer.matches ? RESOLUTION_SCALE_COARSE : 1;
+    const cssWidth = window.innerWidth;
+    const cssHeight = window.innerHeight;
+    width = Math.max(1, Math.round(cssWidth * scale));
+    height = Math.max(1, Math.round(cssHeight * scale));
     canvas.width = width;
     canvas.height = height;
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
+    canvas.style.width = cssWidth + "px";
+    canvas.style.height = cssHeight + "px";
     gl.viewport(0, 0, width, height);
     gl.uniform2f(u.uResolution, width, height);
+    gl.uniform1f(u.uPixelSize, coarsePointer.matches ? PIXEL_SIZE_COARSE : PIXEL_SIZE);
   }
 
   // --- pointer ---------------------------------------------------------
@@ -316,13 +327,19 @@
 
   function applyMotionMode() {
     stop();
-    if (reduceMotion.matches) {
+    // Touch devices have no real pointer to react to -- `mousemove` mostly
+    // won't fire from a touch drag anyway, but this makes it explicit and
+    // skips the interaction math in the shader too.
+    if (reduceMotion.matches || coarsePointer.matches) {
       window.removeEventListener("mousemove", onMove);
       gl.uniform1i(u.uMouseInteraction, 0);
-      paint(0);
     } else {
       window.addEventListener("mousemove", onMove, { passive: true });
       gl.uniform1i(u.uMouseInteraction, 1);
+    }
+    if (reduceMotion.matches) {
+      paint(0);
+    } else {
       start();
     }
   }
@@ -343,6 +360,12 @@
   };
   if (schemeQuery.addEventListener) schemeQuery.addEventListener("change", onScheme);
   if (reduceMotion.addEventListener) reduceMotion.addEventListener("change", applyMotionMode);
+  if (coarsePointer.addEventListener) {
+    coarsePointer.addEventListener("change", () => {
+      resize();
+      applyMotionMode();
+    });
+  }
   // common.js fires this when the header toggle flips data-theme
   window.addEventListener("themechange", onScheme);
 })();

@@ -160,7 +160,16 @@ re-checks every 5 minutes so an open tab still flips at the boundary.
 Background is an interactive WebGL2 dithered wave-field
 canvas (`dither.js`) behind a liquid-glass (`backdrop-filter`) header/filter
 bar/flashcard, with opaque fallbacks when `backdrop-filter` is unsupported or
-`prefers-reduced-transparency` is set. See the files directly for exact
+`prefers-reduced-transparency` is set. `@media (pointer: coarse)` (touchscreens,
+not a width breakpoint) gets the same opaque/no-blur fallback for GPU cost, plus
+a coarser/lower-res dither render and no pointer-ripple in `dither.js`; the crop
+viewer's `touch-action` switches to `manipulation` there so a pinch gesture
+zooms the crop natively instead of the desktop drag-pan/wheel-zoom (which
+already only engages for `pointerType === "mouse"`), and the "drag to
+pan/scroll to zoom" hint hides accordingly. `:root[data-theme="dark"]` exists
+alongside `[data-theme="light"]` (was missing — dark mode had silently only
+worked when the OS *also* preferred dark) so the clock-based default renders
+correctly regardless of OS theme. See the files directly for exact
 values/constants — this file only needs to flag that these are deliberate,
 tuned choices, not arbitrary numbers to "clean up".
 
