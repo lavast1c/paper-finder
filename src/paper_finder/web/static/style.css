@@ -126,6 +126,40 @@
   --edge: inset 0 1px 0 var(--specular), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Explicit dark mode — the header toggle, or the clock-based default (light
+   06:00-18:59, dark otherwise), sets data-theme="dark". Same values as the
+   `@media (prefers-color-scheme: dark)` block above, just keyed off the
+   attribute instead of the OS query so dark mode still applies on a
+   light-OS/light-mode phone in the evening -- the media query alone only
+   fires when the OS itself prefers dark, which the attribute-selector
+   (0,2,0) outranks either way. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0e13;
+  --text: #f2f5f8;
+  --text-muted: rgba(240, 244, 248, 0.64);
+  --surface: rgba(255, 255, 255, 0.1);
+  --surface-strong: rgba(255, 255, 255, 0.17);
+  --border: rgba(255, 255, 255, 0.24);
+  --hairline: rgba(255, 255, 255, 0.14);
+  --specular: rgba(255, 255, 255, 0.55);
+  --field-bg: #1b2029;
+  --primary: #60a5fa;
+  --primary-ink: #ffffff;
+  --btn: #2563eb;
+  --accent-ink: #93c5fd;
+  --focus-ring: rgba(96, 165, 250, 0.5);
+  --rule: rgba(96, 165, 250, 0.4);
+  --hl-bg: #d9a441;
+  --hl-ink: #0b0e13;
+  --dither-wave: #93c5fd;
+  --dither-bg: #0a1a33;
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 14px 44px rgba(0, 0, 0, 0.48);
+  --shadow-lg: 0 26px 74px rgba(0, 0, 0, 0.58);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 .sr-only {
@@ -1031,9 +1065,57 @@ ol#results li {
    question instead of spending half the card on an empty-feeling column */
 .card.is-revealed.no-answer-crop .card-body { display: block; }
 .card.is-revealed.no-answer-crop .card-body .card-answer { margin-top: 1rem; }
+/* Below 860px the 2-col split can't fit -- stack instead (`#card-stage`
+   precedes `#card-answer` in the DOM, so the mark scheme lands below the
+   question, not beside it). Each crop box also shrinks from the desktop 70vh
+   -- two stacked 70vh boxes would need well over a full screen of scrolling
+   just to see both. */
 @media (max-width: 860px) {
   .card.is-revealed .card-body { display: block; }
   .card.is-revealed .card-body .card-answer { margin-top: 1rem; }
+  .card-images { height: 48vh; }
+}
+
+/* ---- touch devices: native pinch-zoom instead of the custom viewer ----
+   `pointer: coarse` is a touchscreen with no fine pointer -- phones and most
+   tablets, not a mouse/trackpad, so this doesn't affect desktop regardless of
+   window width. The custom drag-to-pan already only engages for
+   `pointerType === "mouse"` (topics.js) and wheel-to-zoom never fires from a
+   touch gesture, so the one thing actually blocking a native pinch is
+   `touch-action: pan-x pan-y` on `.card-images` -- swap it for `manipulation`
+   (pan + pinch-zoom, no double-tap-zoom) so a pinch scales the crop image
+   itself. The "drag to pan / scroll to zoom" hint no longer applies once
+   pinch takes over, so it's hidden here.
+   The liquid-glass backdrop-filter + SVG feDisplacementMap refraction (the
+   header/tray/filterbar/card panels) is one of the more GPU-expensive things
+   on the page every scroll frame; touch devices skew toward weaker GPUs, so
+   they get the same opaque fallback already used for `prefers-reduced-
+   transparency` instead. dither.js separately turns off the pointer-ripple
+   uniform and renders at a lower resolution/coarser dither grid on these
+   devices for the same reason. */
+@media (pointer: coarse) {
+  .card-images { touch-action: manipulation; }
+  .crop-hint { display: none; }
+  .ms-opt { min-height: 44px; }
+
+  :root[data-theme="light"] {
+    --surface: rgba(255, 252, 240, 0.95);
+    --surface-strong: #fffcf0;
+    --glass: rgba(255, 252, 240, 0.9);
+    --glass-backdrop: none;
+    --blur: 0px;
+    --blur-thick: 0px;
+    --refract: none;
+  }
+  :root[data-theme="dark"] {
+    --surface: #14171f;
+    --surface-strong: #1c2029;
+    --glass: rgba(20, 23, 31, 0.92);
+    --glass-backdrop: none;
+    --blur: 0px;
+    --blur-thick: 0px;
+    --refract: none;
+  }
 }
 
 .card-nav-mid {
