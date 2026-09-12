@@ -56,17 +56,23 @@ def _question_column_x0(lines: list[dict]) -> float:
 
 
 # --- mark-scheme crop rectangles ---
-# The MS is a landscape Question / Answer / Marks table; a crop is the full-width
-# band from a question's first row down to the next question's first row (several
+# The MS is a Question / Answer / Marks table; a crop is the full-width band
+# from a question's first row down to the next question's first row (several
 # questions share a page). Wider x-span than the QP crop -- it has to reach the
 # Marks column -- and a tighter body band that stays clear of the page footer.
-_MS_CROP_X0 = 55.0
-_MS_CROP_X1 = 795.0
+# Every subject's MS was landscape (842x595) until Economics 9708, whose MS is
+# portrait (595x842) instead -- so the x-span is a *fraction* of each page's
+# real width (applied per page below), not the fixed absolute pixels a
+# landscape-only assumption would bake in. The fractions themselves are the
+# original landscape pixel bounds (55.0 / 795.0 of an 842pt-wide page).
+_MS_CROP_X0_FRAC = 55.0 / 842.0
+_MS_CROP_X1_FRAC = 795.0 / 842.0
 _MS_BODY_TOP = 0.045
 _MS_BODY_BOTTOM = 0.915
 _MS_CROP_TOP_PAD = 4.0
 _MS_CROP_MIN_HEIGHT = 20.0
 _MS_DEFAULT_PAGE_HEIGHT = 595.0  # A4 landscape at 72 dpi; every 9702 ms page 2+
+_MS_DEFAULT_PAGE_WIDTH = 842.0  # matches _MS_DEFAULT_PAGE_HEIGHT's landscape baseline
 
 
 @dataclass
@@ -115,11 +121,15 @@ def _answer_crop_rects(
     first_page, last_page = min(pages), max(pages)
     heights = {ln["page"]: ln.get("height", _MS_DEFAULT_PAGE_HEIGHT) for ln in block}
     default_height = max(heights.values(), default=_MS_DEFAULT_PAGE_HEIGHT)
+    widths = {ln["page"]: ln.get("width", _MS_DEFAULT_PAGE_WIDTH) for ln in block}
+    default_width = max(widths.values(), default=_MS_DEFAULT_PAGE_WIDTH)
 
     rects: list[tuple[int, float, float, float, float]] = []
     for page in range(first_page, last_page + 1):
         height = heights.get(page, default_height)
+        width = widths.get(page, default_width)
         band_top, band_bottom = _MS_BODY_TOP * height, _MS_BODY_BOTTOM * height
+        crop_x0, crop_x1 = _MS_CROP_X0_FRAC * width, _MS_CROP_X1_FRAC * width
 
         page_lines = [ln for ln in block if ln["page"] == page]
         if page == first_page and page_lines:
@@ -136,7 +146,7 @@ def _answer_crop_rects(
         bottom = min(bottom, band_bottom)
         if bottom - top < _MS_CROP_MIN_HEIGHT:
             continue
-        rects.append((page, _MS_CROP_X0, round(top, 1), _MS_CROP_X1, round(bottom, 1)))
+        rects.append((page, round(crop_x0, 1), round(top, 1), round(crop_x1, 1), round(bottom, 1)))
     return tuple(rects)
 
 

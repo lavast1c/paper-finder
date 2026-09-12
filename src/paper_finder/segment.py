@@ -260,6 +260,7 @@ def load_lines(json_path: Path) -> list[dict]:
     lines: list[dict] = []
     for page in data["pages"]:
         height = page["height"] or 842.0
+        width = page["width"] or 595.0
         top, bottom = _BODY_TOP * height, _BODY_BOTTOM * height
         page_lines = [
             {
@@ -269,6 +270,7 @@ def load_lines(json_path: Path) -> list[dict]:
                 "y0": line["y0"],
                 "y1": line["y1"],
                 "height": height,
+                "width": width,
                 "y_frac": line["y0"] / height,
                 "in_body": top <= line["y0"] <= bottom,
             }
