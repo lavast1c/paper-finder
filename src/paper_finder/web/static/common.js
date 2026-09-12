@@ -216,7 +216,7 @@ function multiSelect(root) {
 PF.multiSelect = multiSelect;
 
 // The "Paper(s)" filter is really the MCQ-vs-theory split: CIE Physics,
-// Chemistry and Biology Paper 1 are multiple-choice, Paper 2 is
+// Chemistry, Biology and Economics Paper 1 are multiple-choice, Paper 2 is
 // structured/theory (there is no Paper 3 or 4 in any of them). Ticked box
 // values are the paper number; collapse them to the `kind` the search /
 // browse endpoints take. Both (or neither) ticked = no restriction.
@@ -231,7 +231,7 @@ PF.paperKind = function paperKind(values) {
 // these. 9231 and 9709 each split into two subjects that are both structured,
 // so neither has an MCQ paper. Separate from DEFAULT_SUBJECT (app.js /
 // topics.js), which is only "which subject is preselected".
-PF.MCQ_SUBJECTS = new Set(["Physics", "Chemistry", "Biology"]);
+PF.MCQ_SUBJECTS = new Set(["Physics", "Chemistry", "Biology", "Economics"]);
 PF.hasMcqPapers = (subject) => PF.MCQ_SUBJECTS.has(subject);
 
 // --- query-term highlighting -----------------------------------------
