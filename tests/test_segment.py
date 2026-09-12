@@ -125,6 +125,35 @@ def test_structured_start_ignores_a_margin_number_with_no_prose_after_it():
     assert [q.number for q in segment_structured(lines)] == [1, 2]
 
 
+def test_structured_start_ignores_a_chart_axis_tick_column():
+    # A data-response chart's y-axis draws its scale as several bare small
+    # integers stacked in the page's left margin -- found via Economics 9708,
+    # where the tick "2" (the expected next question number) sat at the same
+    # x0 a real question number would, and a chart-legend word ("Trains")
+    # right after it satisfied the body-lookahead's "capitalised word" prose
+    # check. None of that tick column may be mistaken for question 2 starting
+    # inside question 1's own body.
+    lines = _structured_lines()
+    axis_column = [
+        _line("5", x0=50.9, page=4, y_frac=0.40),
+        _line("4", x0=50.9, page=4, y_frac=0.44),
+        _line("3", x0=50.9, page=4, y_frac=0.48),
+        _line("2", x0=50.9, page=4, y_frac=0.52),
+        _line("Trains", x0=249.2, page=4, y_frac=0.52),
+        _line("1", x0=50.9, page=4, y_frac=0.56),
+        _line("0", x0=50.9, page=4, y_frac=0.60),
+    ]
+    lines[5:5] = axis_column  # after question 1's own prose, before [Total: 3]
+    questions = segment_structured(lines)
+    assert [q.number for q in questions] == [1, 2]
+    # the axis text stays part of question 1's own body -- extraction doesn't
+    # strip chart furniture, it just mustn't be mistaken for question 2's start
+    assert "kinetic energy" in questions[0].text
+    assert "Trains" in questions[0].text
+    assert "Trains" not in questions[1].text
+    assert "friction force" in questions[1].text
+
+
 def test_structured_start_survives_a_figure_between_number_and_prose():
     # CIE 9231 often puts a graph or a displayed formula right after the question
     # number, so the first prose/part line is several lines down.

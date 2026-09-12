@@ -418,6 +418,41 @@ def test_9700_paper_1_question_is_mcq(tmp_path):
     assert search("semi-conservative DNA replication", db_path=db_path, kind="mcq") == []
 
 
+def test_9708_paper_1_question_is_mcq(tmp_path):
+    # Economics is the fourth subject (after Physics, Chemistry and Biology)
+    # with a real Paper 1 MCQ / Paper 2 structured split -- kind must key on
+    # is_mcq for it too, not on subject identity.
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, '9708', 'Economics', 2024, 's', ?, 1, 'qp', ?)""",
+            [
+                (1, 1, "9708_s24_qp_11.pdf"),
+                (2, 2, "9708_s24_qp_21.pdf"),
+            ],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, ?, 1, ?)""",
+            [
+                (1, 1, "Which of the following is a factor of production?", 1),
+                (2, 2, "Discuss whether monetary policy is the best way to reduce inflation.", 0),
+            ],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    mcq_hits = search("factor of production", db_path=db_path, kind="mcq")
+    assert [h.question_number for h in mcq_hits] == [1]
+    assert search("factor of production", db_path=db_path, kind="theory") == []
+    theory_hits = search("monetary policy reduce inflation", db_path=db_path, kind="theory")
+    assert [h.question_number for h in theory_hits] == [1]
+    assert search("monetary policy reduce inflation", db_path=db_path, kind="mcq") == []
+
+
 def test_search_subject_scope(multi_subject_db):
     q = "wave roots chi-squared string polynomial hypothesis"
     all_hits = {h.subject_name for h in search(q, db_path=multi_subject_db, limit=20)}
