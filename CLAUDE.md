@@ -21,10 +21,10 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done. Stage 6 (semantic search) open.
 
-**Corpus: five subjects / seven topic taxonomies**, distinguished by
+**Corpus: six subjects / eight topic taxonomies**, distinguished by
 `papers.subject_name`. Sessions across all subjects: `s20`-`s26` (May/June),
 `w20`-`w25` (Oct/Nov), and Feb/March `m20`-`m26` (variant 2 only) for
-9702/9709/9701/9700 (9231 has no `m` series or `w26`).
+9702/9709/9701/9700/9708 (9231 has no `m` series or `w26`).
 
 | Subject | Code/paper | QP papers | Questions | Answered | Taxonomy |
 |---|---|---|---|---|---|
@@ -35,11 +35,14 @@ Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done. Stage 6 (semantic search) ope
 | Probability & Stats 1 | 9709 P5 | 46 | 307 | 307 | `ps1`-`ps5` (5) |
 | Chemistry | 9701 P1+P2 | 98 | 2186 | 2185 | `ch01`-`ch22` (22) |
 | Biology | 9700 P1+P2 | 96 | 2208 | 2208 | `bi01`-`bi11` (11) |
+| Economics | 9708 P1+P2 | 98 | 1694 | 1694 | `ec01`-`ec06` (6) |
 
-Physics/Chemistry/Biology Paper 1 is MCQ, Paper 2 structured — the only three
-subjects where `is_mcq` varies within a subject; 9231/9709 papers are all
-structured. Taxonomies for Physics/Chemistry/Biology each span both papers
-(one taxonomy, not split by paper).
+Physics/Chemistry/Biology/Economics Paper 1 is MCQ, Paper 2 structured — the
+only four subjects where `is_mcq` varies within a subject; 9231/9709 papers
+are all structured. Taxonomies for Physics/Chemistry/Biology/Economics each
+span both papers (one taxonomy, not split by paper) — Economics is coarser
+than the others (6 topics, not 11-22) since that's the AS syllabus's own
+top-level section count there.
 
 Known gaps (all confirmed as real source-document issues, not pipeline bugs):
 `9702_s26_qp_21` is excluded entirely via `config.EXCLUDE_FILENAMES` (its mark
@@ -47,8 +50,8 @@ scheme was never published — every question would show unanswered);
 `9701_s24_qp_22.pdf` question 5 and `9709_s26_qp_12` (a 4-page preview PDF, 9
 questions short) each have one missing answer/paper but stay in the corpus.
 
-Taxonomies live in `src/paper_finder/topics.py` as seven `Taxonomy` instances
-(`TAXONOMIES`, 69 topics total); `taxonomy_for(subject_code, paper)` /
+Taxonomies live in `src/paper_finder/topics.py` as eight `Taxonomy` instances
+(`TAXONOMIES`, 75 topics total); `taxonomy_for(subject_code, paper)` /
 `taxonomy_by_name(subject_name)` resolve one. Labels live in
 `labels/question_topics.tsv` (hand-committable TSV, no CIE text — just
 `filename<TAB>qnum<TAB>codes<TAB>source`), loaded by `paper-finder topics`
@@ -57,13 +60,13 @@ this is the repair step, not optional).
 
 **Labelling, no `ANTHROPIC_API_KEY` set:** only 9702's 2024-2026 papers were
 labelled by `paper-finder classify` (the LLM labeller). Everything else was
-labelled without a key: MCQ papers (9702/9701/9700 Paper 1) via a fixed
+labelled without a key: MCQ papers (9702/9701/9700/9708 Paper 1) via a fixed
 position-in-paper heuristic weighting each topic's typical share of the paper
 — applied identically to every P1 file in a subject, not a per-paper read, so
 treat it as ~80-85% accurate; every structured paper (9702 P2, all 9231, all
-9709, 9701 P2, 9700 P2) was hand-labelled by reading each question. Refine any
-`llm` row later with `classify --relabel` once a key is set (`classify.py` is
-not yet taxonomy-aware).
+9709, 9701 P2, 9700 P2, 9708 P2) was hand-labelled by reading each question.
+Refine any `llm` row later with `classify --relabel` once a key is set
+(`classify.py` is not yet taxonomy-aware).
 
 Every question has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set by `segment`), and structured
@@ -71,8 +74,10 @@ questions also get an **image crop of their mark-scheme answer**
 (`answers.answer_crop_rects`/`answer_crop_count`, set by `marks`). Both are
 rendered by `paper-finder figures` into `data/crops/<stem>/qNN_pK.png`
 (greyscale PNGs, ~150 MB total, gitignored + vercelignored). Every mark
-scheme seen so far is landscape (h=595 w=842) — `marks.py`'s crop-geometry
-constants are unconditional, not per-subject. The browse-by-topic flashcard
+scheme was landscape (h=595 w=842) until Economics 9708, whose MS is
+portrait (h=842 w=595) instead — `marks.py`'s crop x-bounds are a *fraction*
+of each page's real width, not fixed pixels, so this needed no per-subject
+branch (see Pipeline fixes below). The browse-by-topic flashcard
 (served at `/`) shows crops instead of raw text, with a "Show text" fallback
 toggle; MCQ answers show just the letter (no mark-scheme crop exists for
 them).
@@ -113,6 +118,35 @@ patches), each verified against a full cross-subject rebuild when made —
   sequence match and silently dropped every later question in that paper. A
   `_DISCOUNTED` regex + resync branch (checking whether the next token is
   already the *following* question's number) fixes this generally.
+- **Portrait mark schemes, found via Economics** (2026-09-12): every prior
+  subject's MS was landscape (842x595); Economics 9708's is portrait
+  (595x842). `segment.py`'s `load_lines()` now exposes each line's page
+  `width` (mirroring the existing `height`), and `marks.py`'s
+  `_answer_crop_rects()` derives its crop x-bounds as a *fraction* of each
+  page's real width instead of the old fixed pixel constants — a no-op for
+  every existing 842pt-wide MS.
+- **MCQ voided-question free-text notices, found via Economics** (2026-09-12):
+  `parse_mcq_answers()` only recognized a voided item written as the fixed
+  "Question discounted" cell (see above). One Economics MS voids two items
+  with free prose instead ("Due to an issue with question N, the question has
+  been removed from the question paper."), wrapped across however many
+  physical lines the sentence needs. `_voided_question_end()` resyncs on the
+  next question's own label (or the end of the table, for a voided last
+  question) rather than pinning down every phrasing CIE might use, accepting
+  the gap as a voided-question notice only when a token in it reads like one.
+- **Chart y-axis mistaken for a question number, found via Economics**
+  (2026-09-12): a data-response chart's y-axis often draws its numeric scale
+  as bare small integers in the page's left margin — the same x0/text shape a
+  genuine question number has, and Economics's charts are native PDF text,
+  not an embedded image, so this is the first subject to hit it. One chart's
+  "2" tick collided with `segment_structured`'s expected next number, and a
+  chart-legend word right after it satisfied the body-lookahead's prose
+  check, cutting a question off mid-chart. `_is_axis_tick_column()`
+  generalizes the fix: several bare small integers stacked in the same
+  x-column at tight, regular (<60pt) spacing is a signal a genuine structured
+  question number never gives (its body always runs to a full page or more).
+  Wired into `_is_structured_question_start()` only — an MCQ paper's real
+  1..40 sequence can legitimately be this tightly packed.
 
 **Deployed** to Vercel + Supabase (see `DEPLOY_PROGRESS.md`). The local build
 pipeline is unchanged (still SQLite). `paper-finder publish` pushes `qp`
@@ -128,7 +162,7 @@ user's JWT. RLS + `EXECUTE` grants restrict everything to `authenticated`;
 anon gets nothing. Local `paper-finder serve` (no Supabase env) is untouched
 — SQLite, no login, PDF deep-links.
 
-Supabase migrations `0001`-`0012` are applied (project
+Supabase migrations `0001`-`0013` are applied (project
 `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`).
 Each subject-addition migration since 0008 is DDL-only: widen the
 `questions_topic_codes_valid` CHECK to include the new taxonomy's codes —
@@ -136,7 +170,7 @@ Each subject-addition migration since 0008 is DDL-only: widen the
 params are already generic (added in 0008/0009) and don't need touching.
 `publish` re-upserts `public.topics` from `topics.py` every run.
 
-Cloud is live: **461 qp papers, 7998 questions, 7996 answered**; crop PNGs
+Cloud is live: **559 qp papers, 9692 questions, 9690 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
 `list`/`sign` both fail — genuinely private). Deployed at
 `pastpaperanalyser.vercel.app`.
@@ -148,8 +182,8 @@ for every subject are uploaded to the private `question-crops` bucket (anon
 browse page) is a set of custom multi-select dropdowns
 (`PF.multiSelect()` in `common.js`) that serialize to the URL as query params
 so state is deep-linkable. The Paper(s) filter (MCQ vs Theory) is hidden for
-every subject except Physics/Chemistry/Biology (`PF.MCQ_SUBJECTS` in
-`common.js`) since only those have a real MCQ paper. The flashcard reveals a
+every subject except Physics/Chemistry/Biology/Economics (`PF.MCQ_SUBJECTS`
+in `common.js`) since only those have a real MCQ paper. The flashcard reveals a
 question/mark-scheme crop pair side-by-side (stacked to one column on MCQs,
 which have no mark-scheme crop, and on narrow screens), each crop pan/zoomable
 and independently resizable, with a fullscreen mode. Default theme follows
@@ -194,14 +228,15 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
 - Fetch more papers: `paper-finder download [--dry-run] [--limit N]
-  [--subject 9702,9231,9709,9701,9700] [--years 2024-2026] [--sessions s,w,m] [--papers 1,2]
-  [--variants 1,2,3,4]` — scope defaults in `config.DOWNLOAD_SCOPE`, which is
-  **per-subject** (`{"subjects": {"9702": {papers, variants}, "9231": {...},
-  "9709": {papers: [1, 5], variants: [1, 2, 3]}, "9701": {papers: [1, 2],
-  variants: [1, 2, 3, 4]}, "9700": {papers: [1, 2], variants: [1, 2, 3, 4]}}}`);
-  `--papers`/`--variants` apply to every selected subject, `--subject` picks
-  which. NOT part of `build` (network side effect). Idempotent (skips files
-  already in `data/raw/`).
+  [--subject 9702,9231,9709,9701,9700,9708] [--years 2024-2026] [--sessions s,w,m]
+  [--papers 1,2] [--variants 1,2,3,4]` — scope defaults in
+  `config.DOWNLOAD_SCOPE`, which is **per-subject** (`{"subjects": {"9702":
+  {papers, variants}, "9231": {...}, "9709": {papers: [1, 5], variants: [1, 2,
+  3]}, "9701": {papers: [1, 2], variants: [1, 2, 3, 4]}, "9700": {papers: [1,
+  2], variants: [1, 2, 3, 4]}, "9708": {papers: [1, 2], variants: [1, 2, 3,
+  4]}}}`); `--papers`/`--variants` apply to every selected subject, `--subject`
+  picks which. NOT part of `build` (network side effect). Idempotent (skips
+  files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
   (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics` -> `figures`,
   each idempotent). A `db.py` schema change = delete `papers.db` first, then
