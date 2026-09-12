@@ -50,6 +50,22 @@ _STRUCTURED_START_TOP_OF_PAGE = 0.12
 # part label or a sentence) before giving up on it being a question start.
 _STRUCTURED_BODY_LOOKAHEAD = 16
 
+# A data-response chart's y-axis often draws its numeric scale (0, 1, 2, 3 ...)
+# as bare small integers in the page's left margin -- the same x0/text shape a
+# genuine question number has (found via Economics 9708, whose data-response
+# charts are native PDF text, not an embedded image). Only structured papers
+# need the guard below: a *structured* question's body runs to many lines of
+# prose, so consecutive question numbers are always pages apart, never <60pt
+# of vertical space from each other -- a signal a genuine number never gives
+# but a chart's axis, stacked tight and regular in the same x-column, always
+# does. An MCQ paper's own 1..40 sequence can legitimately be this tightly
+# packed (a one-line stem + four options easily fits under 60pt), so this
+# guard is deliberately not wired into segment_mcq.
+_AXIS_TICK_X_TOLERANCE = 2.0  # pt a tick label may drift from its column's x0
+_AXIS_TICK_MIN_RUN = 3  # stacked bare numbers before it's a column, not noise
+_AXIS_TICK_MAX_GAP = 60.0  # pt -- tick spacing is a fraction of this; well
+# under the vertical room a real question's own body always takes
+
 # --- question-image crop rectangles (Stage 2) ---
 # A crop is the whole question column, page by page, at fixed x-bounds -- NOT the
 # text bbox union: a diagram or table is routinely wider than the narrowest text
@@ -407,6 +423,45 @@ def _format_mcq_question(block: list[dict]) -> str:
     return result.strip()
 
 
+def _is_axis_tick_column(content: list[dict], i: int) -> bool:
+    """True if ``content[i]`` sits in a tightly, regularly spaced run of bare
+    small integers in the same x-column on its page -- a chart's y-axis scale,
+    not a question number (see the module-level comment by ``_AXIS_TICK_*``
+    for why this distinguishes the two).
+
+    The column can also hold an unrelated question's own number label (left
+    margin x0 is shared real estate), so this doesn't require the *whole*
+    column to be tick-tight -- only the contiguous run immediately around
+    ``content[i]``, extended outward while consecutive gaps stay tick-sized."""
+    line = content[i]
+    if not _BARE_NUMBER.match(line["text"].strip()):
+        # An axis tick is always a number alone on its line -- a candidate
+        # whose line carries inline question text ("1 Which of...") can't be
+        # one, and wouldn't be found by identity below.
+        return False
+    x0 = line.get("x0", 0.0)
+    column = sorted(
+        (
+            ln
+            for ln in content
+            if ln["page"] == line["page"]
+            and _BARE_NUMBER.match(ln["text"].strip())
+            and abs(ln.get("x0", 0.0) - x0) <= _AXIS_TICK_X_TOLERANCE
+        ),
+        key=lambda ln: ln["y0"],
+    )
+    pos = next(idx for idx, ln in enumerate(column) if ln is line)
+    lo = pos
+    while lo > 0 and column[lo]["y0"] - column[lo - 1]["y0"] <= _AXIS_TICK_MAX_GAP:
+        lo -= 1
+    hi = pos
+    while (
+        hi < len(column) - 1 and column[hi + 1]["y0"] - column[hi]["y0"] <= _AXIS_TICK_MAX_GAP
+    ):
+        hi += 1
+    return hi - lo + 1 >= _AXIS_TICK_MIN_RUN
+
+
 def segment_mcq(lines: list[dict]) -> list[Question]:
     content = content_lines(lines)
 
@@ -479,6 +534,8 @@ def _is_structured_question_start(content: list[dict], i: int, expected: int) ->
         and line["x0"] < _MARGIN_X
         and line["y_frac"] < _STRUCTURED_START_MAX_Y
     ):
+        return False
+    if _is_axis_tick_column(content, i):
         return False
     # When the number shares its line with the opening words, that trailing text
     # is the body confirmation.
