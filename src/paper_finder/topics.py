@@ -4,7 +4,7 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Seven taxonomies today:
+Eight taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
@@ -22,6 +22,11 @@ Seven taxonomies today:
   "Cambridge International AS & A Level Biology 9700 syllabus for 2028, 2029
   and 2030" (AS Level subject content, pp.16-32). Same shape as ``CHEMISTRY``
   -- one taxonomy spans both papers.
+* ``ECONOMICS`` -- 9708 Papers 1 & 2, sections ``ec01``..``ec06``, from
+  "Cambridge International AS & A Level Economics 9708 syllabus for 2026, 2027
+  and 2028" (AS Level content, pp.15-23). Same shape as ``CHEMISTRY``/
+  ``BIOLOGY`` -- one taxonomy spans both papers, just a coarser 6-section
+  split since that is the syllabus's own top-level section count here.
 
 Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
 ``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
@@ -1568,6 +1573,251 @@ _BIOLOGY_TOPICS: tuple[Topic, ...] = (
 )
 
 
+# --- 9708 Papers 1 & 2: Economics (AS Level syllabus sections 1-6) -----------
+
+_ECONOMICS_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="ec01",
+        number=1,
+        name="Basic economic ideas and resource allocation",
+        blurb=(
+            "The fundamental economic problem of scarcity and the need to make "
+            "choices at all levels -- individuals, firms, governments; the "
+            "nature and definition of opportunity cost arising from choices; "
+            "the basic questions of resource allocation (what, how, and for "
+            "whom to produce). Economic methodology: economics as a social "
+            "science, the distinction between positive statements (facts) and "
+            "normative statements (value judgements), the meaning of ceteris "
+            "paribus, and the importance of the time period (short run, long "
+            "run, very long run). Factors of production -- land, labour, "
+            "capital and enterprise -- their definitions and rewards, the "
+            "difference between human and physical capital, division of "
+            "labour and specialisation, and the entrepreneur's role in "
+            "risk-bearing and organising the other factors. Decision-making "
+            "and resource allocation in market, planned and mixed economic "
+            "systems. Production possibility curves (PPCs): their meaning, "
+            "the shape implied by constant versus increasing opportunity "
+            "costs, the causes and consequences of shifts in a PPC, and the "
+            "significance of a position within the curve. Classification of "
+            "goods and services: free goods versus private (economic) goods, "
+            "public goods, merit goods (under-consumed because of imperfect "
+            "information) and demerit goods (over-consumed for the same "
+            "reason)."
+        ),
+        subsections=(
+            "1.1 Scarcity, choice and opportunity cost",
+            "1.2 Economic methodology",
+            "1.3 Factors of production",
+            "1.4 Resource allocation in different economic systems",
+            "1.5 Production possibility curves",
+            "1.6 Classification of goods and services",
+        ),
+    ),
+    Topic(
+        code="ec02",
+        number=2,
+        name="The price system and the microeconomy",
+        blurb=(
+            "Effective demand; individual and market demand and supply; the "
+            "determinants of demand and of supply; the causes of a shift in "
+            "the demand curve versus the supply curve, and the distinction "
+            "between a shift in a curve and a movement along it. Price "
+            "elasticity of demand (PED), income elasticity of demand (YED) "
+            "and cross elasticity of demand (XED): their definitions, "
+            "formulae and calculation; the significance of the size and sign "
+            "of each coefficient; descriptions of elasticity values "
+            "(perfectly elastic, highly elastic, unitary, highly inelastic, "
+            "perfectly inelastic); how PED varies along a straight-line "
+            "demand curve; the factors affecting each elasticity; the "
+            "relationship between PED and total expenditure on a product; "
+            "and the implications of these elasticities for decision-making. "
+            "Price elasticity of supply (PES): its definition, formula, "
+            "calculation, the factors affecting it, and its implications for "
+            "how quickly and easily firms react to changed market "
+            "conditions. Market equilibrium and disequilibrium; the effects "
+            "of shifts in demand and supply on equilibrium price and "
+            "quantity; relationships between markets -- joint demand "
+            "(complements), alternative demand (substitutes), derived demand "
+            "and joint supply; the functions of price in resource allocation "
+            "(rationing, signalling, incentivising). Consumer surplus and "
+            "producer surplus: their meaning and significance, and how "
+            "elasticity of demand and supply affects the extent of changes "
+            "in each. (Elasticity calculations and demand/supply diagrams "
+            "belong here; a specific tax or subsidy's effect on who bears "
+            "the incidence of a price change belongs to Government "
+            "microeconomy intervention.)"
+        ),
+        subsections=(
+            "2.1 Demand and supply curves",
+            "2.2 Price elasticity, income elasticity and cross elasticity of demand",
+            "2.3 Price elasticity of supply",
+            "2.4 The interaction of demand and supply",
+            "2.5 Consumer and producer surplus",
+        ),
+    ),
+    Topic(
+        code="ec03",
+        number=3,
+        name="Government microeconomy intervention",
+        blurb=(
+            "Reasons for government intervention in individual markets: "
+            "addressing the non-provision of public goods, addressing the "
+            "over-consumption of demerit goods and the under-consumption of "
+            "merit goods, and controlling prices in markets. Methods and "
+            "effects of intervention: the impact and incidence of specific "
+            "indirect taxes and of subsidies (including which side of the "
+            "market bears more of the burden, depending on elasticity), "
+            "direct provision of goods and services, maximum and minimum "
+            "prices, buffer stock schemes, and the provision of information. "
+            "Addressing income and wealth inequality: the distinction "
+            "between income as a flow and wealth as a stock; measuring "
+            "inequality (including the Gini coefficient, calculation not "
+            "required); the economic reasons why income and wealth "
+            "inequality arise; and policies to redistribute income and "
+            "wealth -- the minimum wage, transfer payments, progressive "
+            "income, inheritance and capital taxes, and state provision of "
+            "essential goods and services. (The general definitions of "
+            "indirect taxes and subsidies as tools and their incidence "
+            "within one market belong here; how such taxes fit into the "
+            "government's overall budget belongs to Government "
+            "macroeconomic intervention.)"
+        ),
+        subsections=(
+            "3.1 Reasons for government intervention in markets",
+            "3.2 Methods and effects of government intervention in markets",
+            "3.3 Addressing income and wealth inequality",
+        ),
+    ),
+    Topic(
+        code="ec04",
+        number=4,
+        name="The Macroeconomy",
+        blurb=(
+            "National income statistics: the meaning of national income and "
+            "its measurement via Gross Domestic Product (GDP), Gross "
+            "National Income (GNI) and Net National Income (NNI); adjusting "
+            "measures from market prices to basic prices and from gross to "
+            "net values. The circular flow of income in a closed and an open "
+            "economy -- the flow between households, firms, government and "
+            "the international economy; injections and leakages (the "
+            "multiplier is not required); equilibrium and disequilibrium in "
+            "the flow. Aggregate Demand (AD) and Aggregate Supply (AS) "
+            "analysis: the definition and components of AD (AD = C + I + G + "
+            "(X - M)) and its determinants; the shape of and causes of "
+            "shifts in the AD curve; the definition, determinants and shape "
+            "of the AS curve in the short run (SRAS) and long run (LRAS); "
+            "causes of shifts in SRAS and LRAS; the distinction between a "
+            "movement along and a shift in AD or AS; and how AD/AS "
+            "equilibrium determines real output, the price level and "
+            "employment. Economic growth: its meaning, measurement, the "
+            "distinction between nominal and real GDP growth, and its causes "
+            "and consequences. Unemployment: its meaning, measures (with "
+            "reference to difficulties in measurement), causes and types "
+            "(frictional, structural, cyclical, seasonal, technological), "
+            "and consequences. Price stability: the definitions of "
+            "inflation, deflation and disinflation; measuring price-level "
+            "changes via the consumer price index (CPI) and the "
+            "difficulties in doing so; the distinction between nominal "
+            "(money) and real values; the causes of inflation (cost-push and "
+            "demand-pull); and its consequences. (This topic is the "
+            "underlying national-income measures and the AD/AS model "
+            "itself; using that model to analyse the impact of a specific "
+            "fiscal, monetary or supply-side policy belongs to Government "
+            "macroeconomic intervention.)"
+        ),
+        subsections=(
+            "4.1 National income statistics",
+            "4.2 Introduction to the circular flow of income",
+            "4.3 Aggregate Demand and Aggregate Supply analysis",
+            "4.4 Economic growth",
+            "4.5 Unemployment",
+            "4.6 Price stability",
+        ),
+    ),
+    Topic(
+        code="ec05",
+        number=5,
+        name="Government macroeconomic intervention",
+        blurb=(
+            "Government macroeconomic policy objectives: price stability, "
+            "low unemployment and economic growth (policy conflicts and "
+            "trade-offs are not required). Fiscal policy: the meaning of a "
+            "government budget, the distinction between a budget deficit and "
+            "a budget surplus, the meaning and significance of the national "
+            "debt; taxation -- types of tax (direct/indirect, "
+            "progressive/regressive/proportional), rates of tax (marginal "
+            "and average rates), and reasons for taxation; government "
+            "spending -- capital (investment) versus current spending, and "
+            "reasons for it; the distinction between expansionary and "
+            "contractionary fiscal policy; and AD/AS analysis of the impact "
+            "of expansionary or contractionary fiscal policy on equilibrium "
+            "national income, real output, the price level and employment. "
+            "Monetary policy: its definition; its tools -- interest rates, "
+            "the money supply and credit regulations; the distinction "
+            "between expansionary and contractionary monetary policy; and "
+            "AD/AS analysis of its impact. Supply-side policy: its meaning "
+            "in terms of its effect on the LRAS curve; its objectives of "
+            "increasing productivity and productive capacity; its tools (for "
+            "example training, infrastructure development, support for "
+            "technological improvement); and AD/AS analysis of its impact. "
+            "(The definitions of specific indirect taxes and subsidies as "
+            "market-intervention tools, and their impact within one market, "
+            "belong to Government microeconomy intervention; this topic is "
+            "fiscal, monetary and supply-side policy at the level of the "
+            "whole economy.)"
+        ),
+        subsections=(
+            "5.1 Government macroeconomic policy objectives",
+            "5.2 Fiscal policy",
+            "5.3 Monetary policy",
+            "5.4 Supply-side policy",
+        ),
+    ),
+    Topic(
+        code="ec06",
+        number=6,
+        name="International economic issues",
+        blurb=(
+            "The reasons for international trade: the distinction between "
+            "absolute and comparative advantage; the benefits of "
+            "specialisation and free trade (trade liberalisation), including "
+            "the trading possibility curve; exports, imports and the terms "
+            "of trade -- their measurement and the causes and impact of "
+            "changes in them; and the limitations of the theories of "
+            "absolute and comparative advantage. Protectionism: its meaning "
+            "in the context of international trade; the different tools of "
+            "protection and their impact -- tariffs, import quotas, export "
+            "subsidies, embargoes and excessive administrative burdens ('red "
+            "tape'); and the arguments for and against protectionism. The "
+            "current account of the balance of payments: its components "
+            "(trade in goods, trade in services, primary income and "
+            "secondary income), the definition of balance and of imbalances "
+            "(deficit and surplus); calculating the balance of trade in "
+            "goods, in services, in goods and services, and the current "
+            "account balance (CAB); and the causes and consequences of "
+            "current-account imbalances for the domestic and external "
+            "economy. Exchange rates: the definition of an exchange rate; "
+            "the determination of a floating exchange rate; the distinction "
+            "between depreciation and appreciation; the causes of changes in "
+            "a floating exchange rate (demand and supply of the currency); "
+            "and AD/AS analysis of the impact of exchange-rate changes on "
+            "the domestic economy's equilibrium national income, real "
+            "output, the price level and employment. Policies to correct "
+            "current-account imbalances: the government policy objective of "
+            "current-account stability, and the effect of fiscal, monetary, "
+            "supply-side and protectionist policies on the current account."
+        ),
+        subsections=(
+            "6.1 The reasons for international trade",
+            "6.2 Protectionism",
+            "6.3 Current account of the balance of payments",
+            "6.4 Exchange rates",
+            "6.5 Policies to correct imbalances in the current account of the balance of payments",
+        ),
+    ),
+)
+
+
 PHYSICS = Taxonomy(
     key="9702",
     subject_code="9702",
@@ -1620,6 +1870,16 @@ BIOLOGY = Taxonomy(
     subject_name="Biology",
     topics=_BIOLOGY_TOPICS,
 )
+# Same shape as CHEMISTRY/BIOLOGY -- one taxonomy spans both papers. Coarser
+# than the others (6 topics, not 11-22) since that's the AS syllabus's own
+# top-level section count for Economics ("topics 1.1-6.5").
+ECONOMICS = Taxonomy(
+    key="9708",
+    subject_code="9708",
+    papers=(1, 2),
+    subject_name="Economics",
+    topics=_ECONOMICS_TOPICS,
+)
 
 TAXONOMIES: tuple[Taxonomy, ...] = (
     PHYSICS,
@@ -1629,6 +1889,7 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     PROB_STATS_1,
     CHEMISTRY,
     BIOLOGY,
+    ECONOMICS,
 )
 
 # Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``
