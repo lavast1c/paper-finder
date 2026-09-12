@@ -31,6 +31,16 @@ _SMALL_INT = re.compile(r"^\d{1,2}$")
 # already the following question's number rather than assuming a fixed
 # triple width for this one row.
 _DISCOUNTED = re.compile(r"^question\s+discounted$", re.IGNORECASE)
+# CIE also voids a question with free-text prose instead of the fixed
+# "Question discounted" cell -- e.g. "Due to an issue with question 22, the
+# question has been removed from the question paper.", wrapped across however
+# many physical lines the sentence needs (found via Economics 9708). Rather
+# than pin down every phrasing CIE might use, _voided_question_end() resyncs
+# on the next question's own label (or the end of the table, for a voided
+# last question) and only accepts the gap as a voided-question notice when at
+# least one token in it reads like one.
+_VOIDED_HINT = re.compile(r"remov|discount|void", re.IGNORECASE)
+_VOIDED_RESYNC_LOOKAHEAD = 8  # generous bound on wrapped physical lines
 _PART_LABEL = re.compile(r"^(\d{1,2})\([a-z]\)(?:\([ivx]+\))?\s*$")
 # A question with no lettered parts is labelled with a bare number in the
 # Question column (CIE 9231 does this for its shorter questions). The column
@@ -150,6 +160,22 @@ def _answer_crop_rects(
     return tuple(rects)
 
 
+def _voided_question_end(texts: list[str], i: int, expected: int) -> int | None:
+    """Index just past a free-text voided-question notice starting at
+    ``texts[i] == str(expected)``, or ``None`` if what follows doesn't read
+    like one. Resyncs on the next question's own label within a short
+    lookahead, or on the end of the table when the voided question is the
+    paper's last (no further label to resync on)."""
+    next_label = str(expected + 1)
+    limit = min(len(texts), i + 1 + _VOIDED_RESYNC_LOOKAHEAD)
+    for j in range(i + 1, limit):
+        if texts[j] == next_label:
+            return j if _VOIDED_HINT.search(" ".join(texts[i + 1 : j])) else None
+    if limit == len(texts) and _VOIDED_HINT.search(" ".join(texts[i + 1 : limit])):
+        return limit
+    return None
+
+
 def parse_mcq_answers(lines: list[dict]) -> list[Answer]:
     texts = _content_texts(lines)
     answers: list[Answer] = []
@@ -170,6 +196,12 @@ def parse_mcq_answers(lines: list[dict]) -> list[Answer]:
             has_marks_digit = i + 2 < len(texts) and _SMALL_INT.match(texts[i + 2])
             is_next_question = i + 2 < len(texts) and texts[i + 2] == str(expected)
             i += 3 if (has_marks_digit and not is_next_question) else 2
+        elif texts[i] == str(expected) and (
+            end := _voided_question_end(texts, i, expected)
+        ) is not None:
+            answers.append(Answer(expected, "Question voided", 1))
+            expected += 1
+            i = end
         else:
             i += 1
     return answers
