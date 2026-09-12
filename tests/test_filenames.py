@@ -104,6 +104,13 @@ def test_9700_papers_share_one_biology_subject():
     assert parse_filename("9700_w23_ms_21.pdf").subject_name == "Biology"
 
 
+def test_9708_papers_share_one_economics_subject():
+    # Economics 9708: same shape as Chemistry/Biology -- Paper 1 (MCQ) and
+    # Paper 2 (structured) both examine the same AS syllabus content.
+    assert parse_filename("9708_s23_qp_12.pdf").subject_name == "Economics"
+    assert parse_filename("9708_w23_ms_21.pdf").subject_name == "Economics"
+
+
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"
