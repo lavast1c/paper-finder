@@ -4,7 +4,7 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Eight taxonomies today:
+Eleven taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
@@ -13,6 +13,17 @@ Eight taxonomies today:
   ``fs1``..``fs5``.
 * ``PURE_MATH_1`` -- 9709 Paper 1 (Pure Mathematics 1), ``pm1``..``pm8``.
 * ``PROB_STATS_1`` -- 9709 Paper 5 (Probability & Statistics 1), ``ps1``..``ps5``.
+* ``PURE_MATH_3`` -- 9709 Paper 3 (Pure Mathematics 3), ``pm31``..``pm39``, from
+  "Cambridge International AS & A Level Mathematics 9709 syllabus for 2028,
+  2029 and 2030" (pp.26-30). Builds on ``PURE_MATH_1``; an A Level paper, not
+  AS Level like every taxonomy above it.
+* ``MECHANICS`` -- 9709 Paper 4 (Mechanics), ``mc1``..``mc5``, same syllabus
+  (pp.31-33). A Level.
+* ``PROB_STATS_2`` -- 9709 Paper 6 (Probability & Statistics 2),
+  ``ps21``..``ps25``, same syllabus (pp.37-39). Builds on ``PROB_STATS_1`` and
+  ``PURE_MATH_3``. A Level. ``PURE_MATH_3``/``MECHANICS``/``PROB_STATS_2`` are
+  each their own single-paper subject, same disjoint-content shape as
+  ``PURE_MATH_1``/``PROB_STATS_1`` -- not one taxonomy spanning several papers.
 * ``CHEMISTRY`` -- 9701 Papers 1 & 2, sections ``ch01``..``ch22``, from
   "Cambridge International AS & A Level Chemistry 9701 syllabus for 2025, 2026
   and 2027" (AS Level subject content, pp.16-38). Like ``PHYSICS``, one
@@ -715,6 +726,425 @@ _PROB_STATS_1_TOPICS: tuple[Topic, ...] = (
             "nq > 5), and using this approximation with a continuity correction."
         ),
         subsections=("5.5 The normal distribution",),
+    ),
+)
+
+
+# --- 9709 Paper 3: Pure Mathematics 3 (syllabus section 3, A Level) -----------
+# "Knowledge of the content of Paper 1: Pure Mathematics 1 is assumed" -- the
+# syllabus explicitly builds on PURE_MATH_1 rather than repeating it.
+
+_PURE_MATH_3_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="pm31",
+        number=1,
+        name="Algebra",
+        blurb=(
+            "Understanding the meaning of |x|, sketching y = |ax + b|, and using "
+            "relations such as |a| = |b| iff a^2 = b^2 and |x - a| < b iff "
+            "a - b < x < a + b when solving equations and inequalities, "
+            "e.g. |3x - 2| = |2x + 7|, 2x + 5 < |x + 1|. Dividing a polynomial of "
+            "degree not exceeding 4 by a linear or quadratic polynomial and "
+            "identifying the quotient and remainder (which may be zero). Using the "
+            "factor theorem and the remainder theorem, including factors of the form "
+            "(ax + b) where the coefficient of x is not unity. Expressing a rational "
+            "function in partial fractions where the denominator is no more "
+            "complicated than (ax + b)(cx + d)(ex + f), (ax + b)(cx + d)^2 or "
+            "(ax + b)(cx^2 + d), excluding cases where the numerator's degree "
+            "exceeds the denominator's. Using the expansion of (1 + x)^n for "
+            "rational n and |x| < 1, including adapting the standard series to "
+            "expand e.g. 1/sqrt(1 - 2x)."
+        ),
+        subsections=("3.1 Algebra",),
+    ),
+    Topic(
+        code="pm32",
+        number=2,
+        name="Logarithmic and exponential functions",
+        blurb=(
+            "Understanding the relationship between logarithms and indices and "
+            "using the laws of logarithms (excluding change of base). Understanding "
+            "the definition and properties of e^x and ln x, including their "
+            "relationship as inverse functions, their graphs, and the graph of "
+            "y = e^(kx) for both positive and negative k. Using logarithms to solve "
+            "equations and inequalities where the unknown appears in indices, "
+            "e.g. 2^x < 5, 3^(2x - 1) > 4^(1 - x). Using logarithms to transform a "
+            "given relationship to linear form and hence determine unknown "
+            "constants from the gradient and/or intercept: y = kx^n gives "
+            "ln y = ln k + n ln x, which is linear in ln x and ln y; y = k(a^x) "
+            "gives ln y = ln k + x ln a, which is linear in x and ln y."
+        ),
+        subsections=("3.2 Logarithmic and exponential functions",),
+    ),
+    Topic(
+        code="pm33",
+        number=3,
+        name="Trigonometry",
+        blurb=(
+            "Understanding the relationship of secant, cosecant and cotangent to "
+            "cosine, sine and tangent, and using properties and graphs of all six "
+            "trig functions for angles of any magnitude. Using trig identities for "
+            "simplification and exact evaluation of expressions and in solving "
+            "equations, including sec^2(theta) = 1 + tan^2(theta), "
+            "cosec^2(theta) = 1 + cot^2(theta), the expansions of "
+            "sin(A +/- B), cos(A +/- B) and tan(A +/- B), the double-angle formulae "
+            "for sin 2A, cos 2A and tan 2A, and expressing a cos(theta) + b sin(theta) "
+            "in the forms R sin(theta +/- alpha) and R cos(theta +/- alpha), "
+            "e.g. simplifying cos(x - 30deg) - sqrt(3) sin(x - 60deg), or solving "
+            "tan(theta) + cot(theta) = 4."
+        ),
+        subsections=("3.3 Trigonometry",),
+    ),
+    Topic(
+        code="pm34",
+        number=4,
+        name="Differentiation",
+        blurb=(
+            "Using the derivatives of e^x, ln x, sin x, cos x, tan x and "
+            "tan^-1(x), together with constant multiples, sums, differences and "
+            "composites (derivatives of sin^-1(x) and cos^-1(x) are not required). "
+            "Differentiating products and quotients, e.g. (2x - 3)/sqrt(4x + 2), "
+            "x^2 ln x, x e^(1 - x^2). Finding and using the first derivative of a "
+            "function defined parametrically (e.g. x = t - e^(2t), y = t + e^(2t)) "
+            "or implicitly (e.g. x^2 + y^2 = xy + 7), including problems involving "
+            "tangents and normals."
+        ),
+        subsections=("3.4 Differentiation",),
+    ),
+    Topic(
+        code="pm35",
+        number=5,
+        name="Integration",
+        blurb=(
+            "Extending 'reverse differentiation' to integrate e^(ax+b), "
+            "1/(ax + b), sin(ax + b), cos(ax + b), sec^2(ax + b) and "
+            "1/(a^2 + x^2), including examples such as 3/(1 + 2x^2). Using trig "
+            "relationships (e.g. double-angle formulae) in carrying out "
+            "integration, such as sin^2(x) or cos^2(2x). Integrating rational "
+            "functions by decomposition into partial fractions (restricted to the "
+            "types specified in Algebra/3.1 above). Recognising an integrand of the "
+            "form f'(x)/f(x) and integrating such functions, e.g. x/(1 + x^2), "
+            "tan x. Recognising when an integrand can usefully be regarded as a "
+            "product and using integration by parts, e.g. x sin 2x, x^2 e^-x, ln x, "
+            "x tan^-1(x). Using a given substitution to simplify and evaluate a "
+            "definite or indefinite integral, e.g. integrating sin^2(2x) cos(x) "
+            "using u = sin x."
+        ),
+        subsections=("3.5 Integration",),
+    ),
+    Topic(
+        code="pm36",
+        number=6,
+        name="Numerical solution of equations",
+        blurb=(
+            "Locating approximately a root of an equation by graphical "
+            "considerations and/or searching for a sign change, e.g. finding a "
+            "pair of consecutive integers between which a root lies. Understanding "
+            "the idea of, and the notation for, a sequence of approximations "
+            "converging to a root of an equation. Understanding how a given simple "
+            "iterative formula x_(n+1) = F(x_n) relates to the equation being "
+            "solved, and using a given iteration, or one based on a given "
+            "rearrangement, to determine a root to a prescribed degree of accuracy "
+            "(knowledge of the convergence condition is not included, but "
+            "understanding that an iteration may fail to converge is expected)."
+        ),
+        subsections=("3.6 Numerical solution of equations",),
+    ),
+    Topic(
+        code="pm37",
+        number=7,
+        name="Vectors",
+        blurb=(
+            "Using standard vector notations, including column vectors, "
+            "xi + yj + zk, AB (displacement vector) and a. Carrying out addition "
+            "and subtraction of vectors and multiplication of a vector by a "
+            "scalar, and interpreting these geometrically, e.g. 'OABC is a "
+            "parallelogram' is equivalent to OB = OA + OC. Calculating the "
+            "magnitude of a vector and using unit vectors, displacement vectors "
+            "and position vectors in 2 or 3 dimensions. Understanding the "
+            "significance of the symbols in r = a + tb and finding the equation of "
+            "a line given sufficient information. Determining whether two lines "
+            "are parallel, intersect or are skew, and finding the point of "
+            "intersection when it exists (the shortest distance between skew "
+            "lines and the common perpendicular are not required). Using formulae "
+            "to calculate the scalar product of two vectors and using scalar "
+            "products in problems involving lines and points, e.g. the angle "
+            "between two lines, or the foot of the perpendicular from a point to "
+            "a line, including 3D objects such as cuboids and tetrahedra "
+            "(the vector product is not required)."
+        ),
+        subsections=("3.7 Vectors",),
+    ),
+    Topic(
+        code="pm38",
+        number=8,
+        name="Differential equations",
+        blurb=(
+            "Formulating a simple statement involving a rate of change as a "
+            "differential equation, including introducing and evaluating a "
+            "constant of proportionality where necessary. Finding by integration "
+            "a general form of solution for a first order differential equation "
+            "in which the variables are separable (including any of the "
+            "integration techniques from Integration/3.5 above). Using an initial "
+            "condition to find a particular solution. Interpreting the solution "
+            "of a differential equation in the context of a problem being "
+            "modelled by the equation, where no specialised knowledge of the "
+            "context is required."
+        ),
+        subsections=("3.8 Differential equations",),
+    ),
+    Topic(
+        code="pm39",
+        number=9,
+        name="Complex numbers",
+        blurb=(
+            "Understanding the idea of a complex number, the terms real part, "
+            "imaginary part, modulus, argument and conjugate (notations Re z, "
+            "Im z, |z|, arg z, z*), and that two complex numbers are equal iff "
+            "both real and imaginary parts are equal. Carrying out addition, "
+            "subtraction, multiplication and division of complex numbers in "
+            "Cartesian form x + iy, showing full working for multiplication or "
+            "division. Using the result that non-real roots of a polynomial "
+            "equation with real coefficients occur in conjugate pairs, e.g. "
+            "solving a cubic or quartic given one complex root. Representing "
+            "complex numbers geometrically on an Argand diagram. Multiplying and "
+            "dividing complex numbers in polar form r(cos theta + i sin theta) = "
+            "r e^(i theta), including |z1 z2| = |z1||z2| and "
+            "arg(z1 z2) = arg(z1) + arg(z2) and the corresponding division "
+            "results. Finding the two square roots of a complex number, e.g. of "
+            "5 + 12i in exact Cartesian form. Understanding in simple terms the "
+            "geometrical effect of conjugating a complex number and of adding, "
+            "subtracting, multiplying and dividing two complex numbers. "
+            "Illustrating simple equations and inequalities involving complex "
+            "numbers by loci in an Argand diagram, e.g. |z - a| < k, "
+            "|z - a| = |z - b|, arg(z - a) = alpha."
+        ),
+        subsections=("3.9 Complex numbers",),
+    ),
+)
+
+
+# --- 9709 Paper 4: Mechanics (syllabus section 4, A Level) --------------------
+# Questions are mainly numerical, testing mechanical principles without heavy
+# algebra or trigonometry; vector notation is not used on the question papers.
+# Algebraic methods from PURE_MATH_1 are assumed.
+
+_MECHANICS_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="mc1",
+        number=1,
+        name="Forces and equilibrium",
+        blurb=(
+            "Identifying the forces acting in a given situation, e.g. by drawing "
+            "a force diagram. Understanding the vector nature of force, and "
+            "finding and using components and resultants (calculations are always "
+            "required, not approximate scale drawings). Using the principle that, "
+            "when a particle is in equilibrium, the vector sum of the forces "
+            "acting is zero, equivalently that the sum of the components in any "
+            "direction is zero (solutions by resolving are usually expected). "
+            "Understanding that a contact force between two surfaces can be "
+            "represented by a normal component and a frictional component, using "
+            "the model of a 'smooth' contact and understanding its limitations. "
+            "Understanding limiting friction and limiting equilibrium, recalling "
+            "the coefficient of friction, and using F = mu R or F <= mu R as "
+            "appropriate (terminology such as 'about to slip' means 'in limiting "
+            "equilibrium'). Using Newton's third law, e.g. the force exerted by a "
+            "particle on the ground is equal and opposite to the force exerted by "
+            "the ground on the particle."
+        ),
+        subsections=("4.1 Forces and equilibrium",),
+    ),
+    Topic(
+        code="mc2",
+        number=2,
+        name="Kinematics of motion in a straight line",
+        blurb=(
+            "Understanding distance and speed as scalar quantities and "
+            "displacement, velocity and acceleration as vector quantities, "
+            "restricted to motion in one dimension ('deceleration' may mean "
+            "decreasing speed). Sketching and interpreting displacement-time and "
+            "velocity-time graphs, appreciating that the area under a "
+            "velocity-time graph represents displacement, the gradient of a "
+            "displacement-time graph represents velocity, and the gradient of a "
+            "velocity-time graph represents acceleration. Using differentiation "
+            "and integration with respect to time to solve problems concerning "
+            "displacement, velocity and acceleration (calculus restricted to "
+            "Pure Mathematics 1 techniques). Using appropriate formulae for motion "
+            "with constant acceleration in a straight line, including setting up more "
+            "than one equation using information about different particles' "
+            "motion."
+        ),
+        subsections=("4.2 Kinematics of motion in a straight line",),
+    ),
+    Topic(
+        code="mc3",
+        number=3,
+        name="Momentum",
+        blurb=(
+            "Using the definition of linear momentum and showing understanding "
+            "of its vector nature, for motion in one dimension only. Using "
+            "conservation of linear momentum to solve problems modelled as the "
+            "direct impact of two bodies, including direct impact where the "
+            "bodies coalesce on impact (knowledge of impulse and the coefficient "
+            "of restitution is not required)."
+        ),
+        subsections=("4.3 Momentum",),
+    ),
+    Topic(
+        code="mc4",
+        number=4,
+        name="Newton's laws of motion",
+        blurb=(
+            "Applying Newton's laws of motion to the linear motion of a particle "
+            "of constant mass moving under constant forces, which may include "
+            "friction, tension in an inextensible string and thrust in a "
+            "connecting rod (any other resisting force such as air resistance is "
+            "indicated in the question). Using the relationship between mass and "
+            "weight, W = mg, with g = 10 (m/s^2) unless stated otherwise. Solving "
+            "problems modelled as the motion of a particle moving vertically or "
+            "on an inclined plane with constant acceleration, including cases "
+            "where the acceleration while moving up a rough plane differs from "
+            "the acceleration moving down it. Solving problems modelled as the "
+            "motion of connected particles, e.g. particles connected by a light "
+            "inextensible string over a smooth pulley, or a car towing a trailer "
+            "by a light rope or rigid tow-bar."
+        ),
+        subsections=("4.4 Newton's laws of motion",),
+    ),
+    Topic(
+        code="mc5",
+        number=5,
+        name="Energy, work and power",
+        blurb=(
+            "Understanding the concept of work done by a force and calculating "
+            "the work done by a constant force whose point of application "
+            "undergoes a displacement not necessarily parallel to the force, "
+            "W = Fd cos(theta) (the scalar product is not required). "
+            "Understanding gravitational potential energy and kinetic energy and "
+            "using the appropriate formulae. Understanding and using the "
+            "relationship between the change in energy of a system and the work "
+            "done by external forces, and using the principle of conservation of "
+            "energy in appropriate cases, including motion that may not be linear "
+            "(e.g. a child on a smooth curved slide) where only overall energy "
+            "changes need considering. Using the definition of power as the rate "
+            "at which a force does work, and the relationship between power, "
+            "force and velocity for a force acting in the direction of motion, "
+            "P = Fv, including calculating average power as work done over time "
+            "taken. Solving problems involving, e.g., the instantaneous "
+            "acceleration of a car moving on a hill against a resistance."
+        ),
+        subsections=("4.5 Energy, work and power",),
+    ),
+)
+
+
+# --- 9709 Paper 6: Probability & Statistics 2 (syllabus section 6, A Level) ---
+# "Knowledge of the content of Paper 5: Probability & Statistics 1 is assumed
+# ... Knowledge of calculus within the content for Paper 3: Pure Mathematics 3
+# will also be assumed."
+
+_PROB_STATS_2_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="ps21",
+        number=1,
+        name="The Poisson distribution",
+        blurb=(
+            "Using formulae to calculate probabilities for the distribution "
+            "Po(m), and using the fact that if X ~ Po(m) then the mean and "
+            "variance of X are each equal to m (proofs are not required). "
+            "Understanding the relevance of the Poisson distribution to the "
+            "distribution of random events and using it as a model. Using the "
+            "Poisson distribution as an approximation to the binomial "
+            "distribution where appropriate (n large and p small, approximately "
+            "n > 50 and np < 5). Using the normal distribution, with continuity "
+            "correction, as an approximation to the Poisson distribution where "
+            "appropriate (m large, approximately m > 15)."
+        ),
+        subsections=("6.1 The Poisson distribution",),
+    ),
+    Topic(
+        code="ps22",
+        number=2,
+        name="Linear combinations of random variables",
+        blurb=(
+            "Using, when solving problems, the results that E(aX + b) = "
+            "aE(X) + b and Var(aX + b) = a^2 Var(X); E(aX + bY) = aE(X) + bE(Y); "
+            "Var(aX + bY) = a^2 Var(X) + b^2 Var(Y) for independent X and Y; that "
+            "if X has a normal distribution then so does aX + b; that if X and Y "
+            "have independent normal distributions then aX + bY has a normal "
+            "distribution; and that if X and Y have independent Poisson "
+            "distributions then X + Y has a Poisson distribution (proofs of "
+            "these results are not required)."
+        ),
+        subsections=("6.2 Linear combinations of random variables",),
+    ),
+    Topic(
+        code="ps23",
+        number=3,
+        name="Continuous random variables",
+        blurb=(
+            "Understanding the concept of a continuous random variable and "
+            "recalling and using properties of a probability density function "
+            "defined over a single interval, where the domain may be infinite, "
+            "e.g. f(x) = 4/x^3 for x >= 1. Using a probability density function "
+            "to solve problems involving probabilities and to calculate the mean "
+            "and variance of a distribution, including locating the median or "
+            "other percentiles by direct consideration of an area using the "
+            "density function (explicit knowledge of the cumulative distribution "
+            "function is not included)."
+        ),
+        subsections=("6.3 Continuous random variables",),
+    ),
+    Topic(
+        code="ps24",
+        number=4,
+        name="Sampling and estimation",
+        blurb=(
+            "Understanding the distinction between a sample and a population and "
+            "the necessity for randomness in choosing samples, and explaining in "
+            "simple terms why a given sampling method may be unsatisfactory "
+            "(including an elementary understanding of random numbers in "
+            "producing random samples; knowledge of particular methods such as "
+            "quota or stratified sampling is not required). Recognising that a "
+            "sample mean can be regarded as a random variable, using E(Xbar) = mu "
+            "and Var(Xbar) = sigma^2 / n, and using the fact that Xbar has a "
+            "normal distribution if X has a normal distribution. Using the "
+            "Central Limit Theorem where appropriate (only an informal "
+            "understanding is required: for large sample sizes the distribution "
+            "of a sample mean is approximately normal). Calculating unbiased "
+            "estimates of the population mean and variance from a sample, using "
+            "raw or summarised data (only a simple understanding of 'unbiased' is "
+            "required). Determining and interpreting a confidence interval for a "
+            "population mean where the population is normally distributed with "
+            "known variance or where a large sample is used, and determining an "
+            "approximate confidence interval for a population proportion from a "
+            "large sample."
+        ),
+        subsections=("6.4 Sampling and estimation",),
+    ),
+    Topic(
+        code="ps25",
+        number=5,
+        name="Hypothesis tests",
+        blurb=(
+            "Understanding the nature of a hypothesis test, the difference "
+            "between one-tailed and two-tailed tests, and the terms null "
+            "hypothesis, alternative hypothesis, significance level, rejection "
+            "region (critical region), acceptance region and test statistic, "
+            "interpreted in the context of the question. Formulating hypotheses "
+            "and carrying out a hypothesis test for a single observation from a "
+            "population with a binomial or Poisson distribution, using direct "
+            "evaluation of probabilities or a normal approximation to the "
+            "binomial/Poisson where appropriate. Formulating hypotheses and "
+            "carrying out a hypothesis test concerning the population mean where "
+            "the population is normally distributed with known variance or a "
+            "large sample is used. Understanding the terms Type I error and "
+            "Type II error, and calculating the probabilities of making Type I "
+            "and Type II errors in specific situations involving tests based on "
+            "a normal distribution or direct evaluation of binomial or Poisson "
+            "probabilities."
+        ),
+        subsections=("6.5 Hypothesis tests",),
     ),
 )
 
@@ -1853,6 +2283,30 @@ PROB_STATS_1 = Taxonomy(
     subject_name="Probability & Statistics 1",
     topics=_PROB_STATS_1_TOPICS,
 )
+# A Level papers (P1/P5 above are AS Level). Each is its own single-paper
+# subject, same shape as PURE_MATH_1/PROB_STATS_1 -- disjoint syllabus content,
+# not one taxonomy spanning several papers.
+PURE_MATH_3 = Taxonomy(
+    key="9709p3",
+    subject_code="9709",
+    papers=(3,),
+    subject_name="Pure Mathematics 3",
+    topics=_PURE_MATH_3_TOPICS,
+)
+MECHANICS = Taxonomy(
+    key="9709p4",
+    subject_code="9709",
+    papers=(4,),
+    subject_name="Mechanics",
+    topics=_MECHANICS_TOPICS,
+)
+PROB_STATS_2 = Taxonomy(
+    key="9709p6",
+    subject_code="9709",
+    papers=(6,),
+    subject_name="Probability & Statistics 2",
+    topics=_PROB_STATS_2_TOPICS,
+)
 # Bare code as `key`, like PHYSICS -- one taxonomy spans both papers, since P1
 # (MCQ) and P2 (structured) both examine the same full AS syllabus content.
 CHEMISTRY = Taxonomy(
@@ -1887,6 +2341,9 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     FURTHER_PROB_STATS,
     PURE_MATH_1,
     PROB_STATS_1,
+    PURE_MATH_3,
+    MECHANICS,
+    PROB_STATS_2,
     CHEMISTRY,
     BIOLOGY,
     ECONOMICS,
