@@ -686,11 +686,13 @@ const aCrop = makeCropViewer(answerImagesEl, AZOOM_KEY);
 // --- resize handle: a large drag bar under each crop box (replaces the native
 // `resize: vertical` corner grip, which was too small to find reliably). Sets
 // `imagesEl.style.height` directly, clamped between CROP_MIN_HEIGHT and a
-// viewport-relative ceiling, persisted per-column to localStorage. Hidden in
-// fullscreen (`.card--fs .crop-resize { display: none }`) since the column
-// height there is fixed to the viewport; `syncFullscreenUI` saves/clears/
-// restores the inline height across that transition so it can't fight the
-// fullscreen `height: auto` rule.
+// viewport-relative ceiling, persisted per-column to localStorage. A
+// double-click on the handle is a no-op (not a drag, so no pointermove fires
+// and setHeight is never called) — the size only ever changes from an actual
+// drag. Hidden in fullscreen (`.card--fs .crop-resize { display: none }`)
+// since the column height there is fixed to the viewport; `syncFullscreenUI`
+// saves/clears/restores the inline height across that transition so it can't
+// fight the fullscreen `height: auto` rule.
 function makeResizeHandle(handleEl, imagesEl, storeKey) {
   function maxHeight() {
     return window.innerHeight * CROP_MAX_HEIGHT;
@@ -739,15 +741,6 @@ function makeResizeHandle(handleEl, imagesEl, storeKey) {
   }
   handleEl.addEventListener("pointerup", endDrag);
   handleEl.addEventListener("pointercancel", endDrag);
-  handleEl.addEventListener("dblclick", (e) => {
-    e.preventDefault();
-    imagesEl.style.height = "";
-    try {
-      localStorage.removeItem(storeKey);
-    } catch {
-      /* private mode / storage blocked */
-    }
-  });
 }
 makeResizeHandle(qResizeEl, cardImagesEl, QHEIGHT_KEY);
 makeResizeHandle(aResizeEl, answerImagesEl, AHEIGHT_KEY);
