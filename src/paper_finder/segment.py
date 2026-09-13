@@ -247,6 +247,22 @@ def is_noise(text: str) -> bool:
 # row-to-row gap (12pt+ even in a dense table).
 _ROW_Y_TOLERANCE = 2.0
 
+# Wider same-row tolerance used only when the *new* line being placed is
+# itself a margin question-number label (see _reading_order). The offset
+# between a label and its own opening line -- caused by the label's larger
+# font being vertically centred against a two-baseline expression (e.g. an
+# integral's bounds) -- was measured at 0.3-17.7pt across every CIE 9709 Pure
+# Maths 3 paper (each of its structured questions opens its own page, so a
+# label's only real neighbour above it is either its own opening line or a
+# blank page-top/page-number gap of 26pt+ -- there is no genuine *different*
+# question packed tightly enough above a label to be caught by widening this
+# far); comfortably below that 26pt floor.
+_LABEL_ROW_Y_TOLERANCE = 18.0
+
+
+def _looks_like_margin_label(ln: dict) -> bool:
+    return bool(_BARE_NUMBER.match(ln["text"].strip())) and ln.get("x0", 0.0) < _MARGIN_X
+
 
 def _reading_order(page_lines: list[dict]) -> list[dict]:
     """Sort one page's lines into top-to-bottom, left-to-right reading order.
@@ -254,17 +270,36 @@ def _reading_order(page_lines: list[dict]) -> list[dict]:
     PyMuPDF's own line order usually already is that, but a differently-
     encoded font run (e.g. a margin question number, or one column of a
     landscape mark-scheme table) can be emitted as a separate text block out
-    of visual order. Rows are found by clustering on y0 gaps rather than a
-    fixed rounding bucket: a naive ``round(y0)`` boundary is not robust --
-    two cells of the same row can land in adjacent integer buckets purely
-    from a fraction-of-a-point baseline difference between their fonts,
-    which silently drops one of the two apart from its row rather than
-    fixing anything.
+    of visual order. Rows are found by clustering on the gap between one
+    line's y0 and the *previous* row's last-added y0 -- a naive ``round(y0)``
+    boundary is not robust: two cells of the same row can land in adjacent
+    integer buckets purely from a fraction-of-a-point baseline difference
+    between their fonts, which silently drops one of the two apart from its
+    row rather than fixing anything.
+
+    A margin question-number label gets a wider gap tolerance than everything
+    else (``_LABEL_ROW_Y_TOLERANCE`` vs ``_ROW_Y_TOLERANCE``): a label set in
+    a noticeably larger font than its own opening line (e.g. CIE 9709 Pure
+    Maths 3's "Find the exact value of..." one-liners, where a tall
+    two-baseline integral expression pushes the label's own top edge several
+    points below the prose line's top) sorts several points *after* the
+    prose line's y0 under the tight tolerance, so `segment_structured` finds
+    the label at a later content-line index than its own opening sentence
+    and that sentence gets swept into the *previous* question's block
+    instead (`9709_s20_qp_33.pdf` Q1 silently absorbing Q2's "Find the exact
+    value of..." while Q2 itself is emitted with no text at all -- found via
+    hand-labelling Pure Maths 3). The wider tolerance is scoped to *only* a
+    label line's own merge decision (not, say, a rotated "DO NOT WRITE IN
+    THIS MARGIN" sidebar's, whose bbox can span nearly the whole page height
+    and would otherwise bridge every row on the page into one) -- it never
+    looks at a line's own y1/height at all, just like the tight case, so it
+    carries none of that risk.
     """
     ordered = sorted(page_lines, key=lambda ln: ln["y0"])
     rows: list[list[dict]] = []
     for ln in ordered:
-        if rows and ln["y0"] - rows[-1][-1]["y0"] <= _ROW_Y_TOLERANCE:
+        tolerance = _LABEL_ROW_Y_TOLERANCE if _looks_like_margin_label(ln) else _ROW_Y_TOLERANCE
+        if rows and ln["y0"] - rows[-1][-1]["y0"] <= tolerance:
             rows[-1].append(ln)
         else:
             rows.append([ln])
