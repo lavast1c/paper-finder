@@ -1,5 +1,6 @@
 from paper_finder.segment import (
     _crop_rects,
+    _reading_order,
     _split_stem_and_options,
     content_lines,
     is_noise,
@@ -382,6 +383,56 @@ def test_segment_mcq_stops_at_trailing_data_sheet():
     assert len(questions) == 1
     assert "molar gas constant" not in questions[0].text
     assert questions[0].crop_rects[-1][0] == 2  # crop stops on the question's own page
+
+
+def _pos(text, x0, y0, y1=None):
+    return {"text": text, "x0": x0, "y0": y0, "y1": y1 if y1 is not None else y0 + 11.0}
+
+
+def test_reading_order_pulls_a_margin_label_before_its_offset_opening_line():
+    # CIE 9709_s20_qp_33.pdf: question 2's label "2" is set in a font tall
+    # enough that its own y0 (71.6) sits ~5.8pt *below* the y0 of its opening
+    # line "Find the exact value of..." (65.8) -- a plain top-to-top gap
+    # check (the old, tight-only tolerance) sorts the label after its own
+    # prose, so segment_structured finds the label at a later content-line
+    # index than the sentence and sweeps that sentence into the *previous*
+    # question's block instead, leaving this question with no text at all.
+    page_lines = [
+        _pos("Find the exact value of the integral.", 72.8, 65.8, 89.4),
+        _pos("2 x e^-2x dx.", 196.3, 65.3, 92.5),
+        _pos("2", 49.3, 71.6, 83.0),
+        _pos("[5]", 531.7, 71.7, 83.1),
+    ]
+    ordered = _reading_order(page_lines)
+    assert [ln["text"] for ln in ordered] == [
+        "2",
+        "Find the exact value of the integral.",
+        "2 x e^-2x dx.",
+        "[5]",
+    ]
+
+
+def test_reading_order_wider_label_tolerance_does_not_leak_to_ordinary_lines():
+    # The wider _LABEL_ROW_Y_TOLERANCE only applies to the *new* line being
+    # placed when it is itself a margin question-number label -- an ordinary
+    # body line the same distance from the row above it must still use the
+    # tight _ROW_Y_TOLERANCE and stay a separate row (this is what protects
+    # normal multi-line prose from being scrambled: see the Economics MCQ
+    # and Pure Maths 1 mark-scheme regressions caught while developing this
+    # fix, both from an earlier, broader clustering approach).
+    # x0 deliberately *decreases* on the second line: if the two were wrongly
+    # merged into one row, sorting that row by x0 would put this line first,
+    # flipping the output order -- keeping them as separate rows preserves
+    # the original top-to-bottom y0 order regardless of x0.
+    page_lines = [
+        _pos("first sentence of the question", 72.8, 60.0, 72.0),
+        _pos("a distinct second sentence, 10pt below", 50.0, 70.0, 82.0),
+    ]
+    ordered = _reading_order(page_lines)
+    assert [ln["text"] for ln in ordered] == [
+        "first sentence of the question",
+        "a distinct second sentence, 10pt below",
+    ]
 
 
 def test_noise_matches_furniture_but_not_questions():
