@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -45,8 +46,13 @@ _PART_LABEL = re.compile(r"^(\d{1,2})\([a-z]\)(?:\([ivx]+\))?\s*$")
 # A question with no lettered parts is labelled with a bare number in the
 # Question column (CIE 9231 does this for its shorter questions). The column
 # starts at x0 ~= 69-90; answer text sits at x0 ~= 122, so a low x0 disambiguates
-# a question label from a stray "5" inside an answer.
-_BARE_LABEL = re.compile(r"^(\d{1,2})$")
+# a question label from a stray "5" inside an answer. A leading "." is
+# tolerated -- found via 9709_w22_ms_11.pdf, whose own PDF content stream has
+# question 4's label as the two literal characters ".4" (confirmed via the raw
+# glyph codes, not a pymupdf artifact); the answer text immediately follows it
+# in full, so this is a genuine but recoverable label typo, not an absent
+# mark scheme like the documented known gaps.
+_BARE_LABEL = re.compile(r"^\.?(\d{1,2})$")
 _MS_QUESTION_COL_MAX_X = 95.0  # fallback ceiling when a scheme has no part labels
 _MS_QUESTION_COL_TOLERANCE = 14.0  # px a bare label may sit from the part-label column
 _DOT_RUN = re.compile(r"\.{3,}")
@@ -59,10 +65,18 @@ def _part_label_number(text: str) -> int | None:
 
 def _question_column_x0(lines: list[dict]) -> float:
     """Left edge of the Question column, taken from the (unambiguous) lettered
-    part labels -- ``1(a)``, ``4(b)`` never occur inside an answer body. Falls
-    back to a fixed ceiling when a scheme has no lettered parts at all."""
-    xs = [ln.get("x0", 0.0) for ln in lines if _PART_LABEL.match(ln["text"].strip())]
-    return min(xs) if xs else _MS_QUESTION_COL_MAX_X
+    part labels -- ``1(a)``, ``4(b)`` never occur inside an answer body. Most
+    labels in a scheme share one x0, but a longer compound label like
+    ``10(b)(ii)`` can render several points further left than a plain
+    ``N(a)``/``N(b)`` -- e.g. found via a 9709 Pure Mathematics 3 mark scheme
+    where two ``N(a)(i)``/``N(b)(ii)`` rows sat at x0 ~81-83 against every
+    other label's ~91, and ``min()`` picked that outlier as "the" column edge,
+    pushing it far enough left that a bare (no-sub-part) question's own label
+    fell outside _bare_label_number's tolerance. The most common x0 is used
+    instead so a single such outlier can't drag the whole column. Falls back
+    to a fixed ceiling when a scheme has no lettered parts at all."""
+    xs = [round(ln.get("x0", 0.0), 1) for ln in lines if _PART_LABEL.match(ln["text"].strip())]
+    return Counter(xs).most_common(1)[0][0] if xs else _MS_QUESTION_COL_MAX_X
 
 
 # --- mark-scheme crop rectangles ---

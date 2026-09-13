@@ -163,6 +163,57 @@ def test_structured_answers_ignore_stray_small_integers_in_the_body():
     assert "IQR = 4" in answers[0].answer_text
 
 
+def test_structured_answers_read_a_bare_label_with_a_stray_leading_dot():
+    # CIE 9709_w22_ms_11.pdf: question 4's own label is literally ".4" in the
+    # PDF's content stream (confirmed via raw glyph codes, not an extraction
+    # artifact) -- a genuine source typo, but the answer text right after it
+    # is complete, so this is recoverable rather than an absent mark scheme.
+    lines = [
+        _row("Question", 69, page=6, y0=40.0),
+        _row("1", 86, page=6, y0=55.0),
+        _row("obtain x = 2", 122, page=6, y0=70.0),
+        _row("2(a)", 80, page=6, y0=90.0),
+        _row("obtain a = 12", 122, page=6, y0=105.0),
+        _row("2(b)", 80, page=7, y0=40.0),
+        _row("obtain b = 3", 122, page=7, y0=55.0),
+        _row("3", 86, page=7, y0=80.0),
+        _row("obtain c = 5", 122, page=7, y0=95.0),
+        _row(".4", 85, page=8, y0=40.0),
+        _row("coefficient of x^2 is 10", 122, page=8, y0=55.0),
+        _row("5(a)", 80, page=9, y0=40.0),
+        _row("angle AOB = 76.4", 122, page=9, y0=55.0),
+    ]
+    answers = parse_structured_answers(lines)
+    assert [a.question_number for a in answers] == [1, 2, 3, 4, 5]
+    assert "coefficient of x^2 is 10" in answers[3].answer_text
+
+
+def test_structured_answers_column_x0_ignores_a_compound_label_outlier():
+    # CIE 9709_s20_ms_31.pdf: every "N(a)"/"N(b)" label sits at x0 ~91, but a
+    # later two-level compound label "10(a)(i)"/"10(b)(ii)" renders several
+    # points further left (~81-83) -- a longer label, not always left-flush.
+    # _question_column_x0() used to take min(xs), so that one outlier dragged
+    # the "column" left enough that bare (no-sub-part) question 1's own label
+    # at x0 ~97 fell outside _bare_label_number's tolerance and was silently
+    # dropped. The most common x0 must be used instead.
+    lines = [
+        _row("Question", 69, page=6, y0=40.0),
+        _row("1", 97, page=6, y0=55.0),  # bare label, no sub-parts
+        _row("obtain the linear inequality", 137, page=6, y0=70.0),
+        _row("2(a)", 91, page=6, y0=110.0),
+        _row("resultant force is zero", 122, page=6, y0=125.0),
+        _row("2(b)", 91, page=7, y0=55.0),
+        _row("obtain distance = 12 m", 122, page=7, y0=70.0),
+        _row("10(a)(i)", 81, page=12, y0=55.0),  # the compound-label outlier
+        _row("obtain a = 2", 122, page=12, y0=70.0),
+        _row("10(b)(ii)", 83, page=13, y0=55.0),
+        _row("obtain position vector 2i - 3j", 122, page=13, y0=70.0),
+    ]
+    answers = parse_structured_answers(lines)
+    assert [a.question_number for a in answers] == [1, 2, 10]
+    assert "obtain the linear inequality" in answers[0].answer_text
+
+
 def test_answer_crop_rects_single_page_stops_at_next_question():
     block = [_ln("1(a)", y0=100.0), _ln("mark point", y0=130.0)]
     next_start = _ln("2(a)", y0=300.0)
