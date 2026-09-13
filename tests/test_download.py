@@ -15,7 +15,7 @@ _MULTI_SUBJECT_SCOPE = {
     "subjects": {
         "9702": {"papers": [1], "variants": [1]},
         "9231": {"papers": [1, 4], "variants": [1]},
-        "9709": {"papers": [1, 5], "variants": [1]},
+        "9709": {"papers": [1, 3, 4, 5, 6], "variants": [1]},
         "9701": {"papers": [1, 2], "variants": [1]},
         "9700": {"papers": [1, 2], "variants": [1]},
         "9708": {"papers": [1, 2], "variants": [1]},
@@ -79,14 +79,17 @@ def test_iter_candidates_skips_excluded_filenames():
 def test_iter_candidates_uses_each_subjects_own_papers_and_variants():
     cands = list(iter_candidates(_MULTI_SUBJECT_SCOPE))
     names = [c.filename for c in cands]
-    # each subject uses its own papers: 9702 P1, 9231 P1+P4, 9709 P1+P5, 9701
-    # P1+P2, 9700 P1+P2, 9708 P1+P2
+    # each subject uses its own papers: 9702 P1, 9231 P1+P4, 9709 P1+P3+P4+P5+P6,
+    # 9701 P1+P2, 9700 P1+P2, 9708 P1+P2
     assert names == [
         "9702_s24_qp_11.pdf",
         "9231_s24_qp_11.pdf",
         "9231_s24_qp_41.pdf",
         "9709_s24_qp_11.pdf",
+        "9709_s24_qp_31.pdf",
+        "9709_s24_qp_41.pdf",
         "9709_s24_qp_51.pdf",
+        "9709_s24_qp_61.pdf",
         "9701_s24_qp_11.pdf",
         "9701_s24_qp_21.pdf",
         "9700_s24_qp_11.pdf",

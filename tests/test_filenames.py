@@ -89,6 +89,14 @@ def test_9709_paper_splits_into_two_subjects():
     assert parse_filename("9709_s24_qp_21.pdf").subject_name == "Mathematics"
 
 
+def test_9709_a_level_papers_split_into_three_more_subjects():
+    # Mathematics 9709: Papers 3, 4 and 6 are the A Level papers, each its own
+    # subject with its own syllabus content, same shape as P1/P5 above.
+    assert parse_filename("9709_s24_qp_31.pdf").subject_name == "Pure Mathematics 3"
+    assert parse_filename("9709_w23_ms_41.pdf").subject_name == "Mechanics"
+    assert parse_filename("9709_s24_qp_61.pdf").subject_name == "Probability & Statistics 2"
+
+
 def test_9701_papers_share_one_chemistry_subject():
     # Chemistry 9701: unlike 9231/9709, Paper 1 (MCQ) and Paper 2 (structured)
     # both examine the same AS syllabus content -- no SUBJECT_PAPER_NAMES

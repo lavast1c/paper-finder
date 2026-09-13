@@ -141,6 +141,9 @@ def test_publish_statement_order_and_commit(local_db):
     assert by_code["ps1"][4] == "Probability & Statistics 1"
     assert by_code["bi01"][4] == "Biology"
     assert by_code["ec01"][4] == "Economics"
+    assert by_code["pm31"][4] == "Pure Mathematics 3"
+    assert by_code["mc1"][4] == "Mechanics"
+    assert by_code["ps21"][4] == "Probability & Statistics 2"
 
     # every question row carries the is_mcq bool as its last value
     question_rows = log[3][2]

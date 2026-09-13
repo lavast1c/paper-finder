@@ -94,6 +94,9 @@ def test_each_taxonomy_numbers_its_topics_from_one():
         "9231p4": "fs",
         "9709p1": "pm",
         "9709p5": "ps",
+        "9709p3": "pm3",
+        "9709p4": "mc",
+        "9709p6": "ps2",
         "9701": "ch",
         "9700": "bi",
         "9708": "ec",
@@ -122,6 +125,9 @@ def test_lookup_tables_are_the_union_of_every_taxonomy():
     assert BY_CODE["ch07"].name == "Equilibria"
     assert BY_CODE["bi06"].name == "Nucleic acids and protein synthesis"
     assert BY_CODE["ec04"].name == "The Macroeconomy"
+    assert BY_CODE["pm39"].name == "Complex numbers"
+    assert BY_CODE["mc1"].name == "Forces and equilibrium"
+    assert BY_CODE["ps24"].name == "Sampling and estimation"
     assert all(BY_CODE[t.code] is t for t in ALL_TOPICS)
 
 
@@ -133,6 +139,9 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9231", 2) is None
     assert taxonomy_for("9709", 1).subject_name == "Pure Mathematics 1"
     assert taxonomy_for("9709", 5).subject_name == "Probability & Statistics 1"
+    assert taxonomy_for("9709", 3).subject_name == "Pure Mathematics 3"
+    assert taxonomy_for("9709", 4).subject_name == "Mechanics"
+    assert taxonomy_for("9709", 6).subject_name == "Probability & Statistics 2"
     assert taxonomy_for("9709", 2) is None
     assert taxonomy_for("9701", 1).subject_name == "Chemistry"
     assert taxonomy_for("9701", 2).subject_name == "Chemistry"
@@ -237,6 +246,34 @@ def test_parse_labels_rejects_wrong_taxonomy_for_9709_paper(tmp_path):
     # 9709 Paper 1 tagged with a Paper 5 (statistics) code
     path = _write_labels(tmp_path, "9709_s24_qp_11.pdf\t1\tps1\thand\n")
     with pytest.raises(ValueError, match="Pure Mathematics 1"):
+        parse_labels(path)
+
+
+def test_parse_labels_accepts_maths_a_level_codes(tmp_path):
+    # 9709 Papers 3, 4 and 6 (A Level): Pure Maths 3, Mechanics, Prob & Stats 2
+    path = _write_labels(
+        tmp_path,
+        "9709_s24_qp_31.pdf\t1\tpm39\thand\n"
+        "9709_s24_qp_41.pdf\t2\tmc1,mc4\thand\n"
+        "9709_s24_qp_61.pdf\t3\tps21\thand\n",
+    )
+    rows = parse_labels(path)
+    assert [(r.filename, r.topic_codes) for r in rows] == [
+        ("9709_s24_qp_31.pdf", ("pm39",)),
+        ("9709_s24_qp_41.pdf", ("mc1", "mc4")),
+        ("9709_s24_qp_61.pdf", ("ps21",)),
+    ]
+
+
+def test_parse_labels_rejects_wrong_taxonomy_for_maths_a_level_paper(tmp_path):
+    # Paper 3 (Pure Maths 3) tagged with a Paper 4 (Mechanics) code
+    path = _write_labels(tmp_path, "9709_s24_qp_31.pdf\t1\tmc1\thand\n")
+    with pytest.raises(ValueError, match="Pure Mathematics 3"):
+        parse_labels(path)
+    # Paper 6 (Prob & Stats 2) tagged with a Paper 5 (Prob & Stats 1) code --
+    # ps4/ps5 are real codes, just on the wrong taxonomy
+    path = _write_labels(tmp_path, "9709_s24_qp_61.pdf\t1\tps4\thand\n")
+    with pytest.raises(ValueError, match="Probability & Statistics 2"):
         parse_labels(path)
 
 
