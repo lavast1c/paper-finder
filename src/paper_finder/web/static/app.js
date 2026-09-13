@@ -8,6 +8,7 @@ const { el } = PF;
 const form = document.getElementById("search");
 const input = document.getElementById("q");
 const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
+const curriculumEl = document.getElementById("curriculum"); // CIE AS Level / CIE A Level -- filters #subject's options
 const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off non-MCQ subjects
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
@@ -119,10 +120,41 @@ function currentSubject() {
 
 // The "Paper(s)" filter is the MCQ-vs-theory split, which only applies to
 // subjects with a real MCQ paper (PF.MCQ_SUBJECTS in common.js -- 9231 and
-// 9709 each split into two subjects that are both structured). Off those
+// 9709 each split into several subjects that are all structured). Off those
 // subjects the field is hidden and `kind` is forced to "all".
 function syncPaperFieldVisibility() {
   if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(currentSubject());
+}
+
+// Curriculum is derived from the selected subject (PF.curriculumOf in
+// common.js), not tracked as separate URL/API state -- this keeps #curriculum
+// showing the right value and hides every #subject <option> that doesn't
+// belong to it, so a picked subject and its curriculum can never disagree.
+function applyCurriculumFilter(curriculum) {
+  if (!subjectEl) return;
+  for (const opt of subjectEl.options) {
+    opt.hidden = PF.curriculumOf(opt.value) !== curriculum;
+  }
+}
+function syncCurriculum() {
+  if (!curriculumEl) return;
+  curriculumEl.value = PF.curriculumOf(currentSubject());
+  applyCurriculumFilter(curriculumEl.value);
+}
+
+// Common follow-through whenever the effective subject changes, whether from
+// a direct Subject pick or from switching Curriculum onto a subject that
+// wasn't already selected.
+function onSubjectChanged() {
+  syncCurriculum();
+  syncPaperFieldVisibility();
+  // a Paper(s) pick left over from switching off an MCQ subject would be
+  // stale (the field is now hidden and `kind` forced to "all") — drop it
+  if (!PF.hasMcqPapers(currentSubject()) && paperEl && paperEl._ms) {
+    paperEl._ms.setValues([]);
+  }
+  if (input.value.trim()) run();
+  else writeUrl("");
 }
 
 function scope() {
@@ -276,15 +308,20 @@ for (const group of [paperEl, yearEl, seasonEl]) {
 }
 
 if (subjectEl) {
-  subjectEl.addEventListener("change", () => {
-    syncPaperFieldVisibility();
-    // a Paper(s) pick left over from switching off an MCQ subject would be
-    // stale (the field is now hidden and `kind` forced to "all") — drop it
-    if (!PF.hasMcqPapers(currentSubject()) && paperEl && paperEl._ms) {
-      paperEl._ms.setValues([]);
+  subjectEl.addEventListener("change", onSubjectChanged);
+}
+
+if (curriculumEl) {
+  curriculumEl.addEventListener("change", () => {
+    applyCurriculumFilter(curriculumEl.value);
+    // the previously-selected subject may no longer be visible -- fall back
+    // to the first option that is (alphabetically first within the new
+    // curriculum, matching DOM order)
+    if (subjectEl && PF.curriculumOf(currentSubject()) !== curriculumEl.value) {
+      const firstVisible = [...subjectEl.options].find((o) => !o.hidden);
+      if (firstVisible) subjectEl.value = firstVisible.value;
     }
-    if (input.value.trim()) run();
-    else writeUrl("");
+    onSubjectChanged();
   });
 }
 
@@ -311,6 +348,7 @@ function onReady(email, client) {
     if (subjectEl && wantSubject && [...subjectEl.options].some((o) => o.value === wantSubject)) {
       subjectEl.value = wantSubject;
     }
+    syncCurriculum();
     syncPaperFieldVisibility();
     const initial = params.get("q");
     if (initial) {
