@@ -9,6 +9,7 @@
 const { el } = PF;
 
 const subjectEl = document.getElementById("subject"); // Physics / Further Pure Maths / Further Prob & Stats
+const curriculumEl = document.getElementById("curriculum"); // CIE AS Level / CIE A Level -- filters #subject's options
 const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper — hidden off non-MCQ subjects
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
@@ -966,19 +967,60 @@ function syncPaperFieldVisibility() {
   if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(subject);
 }
 
+// Curriculum is derived from the selected subject (PF.curriculumOf in
+// common.js), not tracked as separate URL/API state -- this keeps #curriculum
+// showing the right value and hides every #subject <option> that doesn't
+// belong to it, so a picked subject and its curriculum can never disagree.
+function applyCurriculumFilter(curriculum) {
+  if (!subjectEl) return;
+  for (const opt of subjectEl.options) {
+    opt.hidden = PF.curriculumOf(opt.value) !== curriculum;
+  }
+}
+function syncCurriculum() {
+  if (!curriculumEl) return;
+  curriculumEl.value = PF.curriculumOf(subject);
+  applyCurriculumFilter(curriculumEl.value);
+}
+
+// Common follow-through whenever the effective subject changes, whether from
+// a direct Subject pick or from switching Curriculum onto a subject that
+// wasn't already selected.
+function onSubjectChanged() {
+  syncCurriculum();
+  syncPaperFieldVisibility();
+  // the picked topics and any Paper(s) pick belong to the old subject
+  selected.clear();
+  if (topicEl._ms) topicEl._ms.setValues([]);
+  if (!PF.hasMcqPapers(subject)) {
+    filters.papers = [];
+    if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
+  }
+  idx = 0;
+  refresh();
+}
+
 if (subjectEl) {
   subjectEl.addEventListener("change", () => {
     subject = subjectEl.value;
-    syncPaperFieldVisibility();
-    // the picked topics and any Paper(s) pick belong to the old subject
-    selected.clear();
-    if (topicEl._ms) topicEl._ms.setValues([]);
-    if (!PF.hasMcqPapers(subject)) {
-      filters.papers = [];
-      if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
+    onSubjectChanged();
+  });
+}
+
+if (curriculumEl) {
+  curriculumEl.addEventListener("change", () => {
+    applyCurriculumFilter(curriculumEl.value);
+    // the previously-selected subject may no longer be visible -- fall back
+    // to the first option that is (alphabetically first within the new
+    // curriculum, matching DOM order)
+    if (subjectEl && PF.curriculumOf(subject) !== curriculumEl.value) {
+      const firstVisible = [...subjectEl.options].find((o) => !o.hidden);
+      if (firstVisible) {
+        subject = firstVisible.value;
+        subjectEl.value = subject;
+      }
     }
-    idx = 0;
-    refresh();
+    onSubjectChanged();
   });
 }
 
@@ -1070,6 +1112,7 @@ function onReady(email, client) {
 
   const { codes, i } = readUrl();
   if (subjectEl) subjectEl.value = subject;
+  syncCurriculum();
   syncPaperFieldVisibility();
   syncToggleUI();
   idx = i;
