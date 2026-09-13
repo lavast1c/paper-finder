@@ -35,7 +35,10 @@ SUBJECT_PAPER_NAMES: dict[tuple[str, int], str] = {
     ("9231", 1): "Further Pure Mathematics",  # 9231 Paper 1
     ("9231", 4): "Further Probability & Statistics",  # 9231 Paper 4
     ("9709", 1): "Pure Mathematics 1",  # 9709 Paper 1
+    ("9709", 3): "Pure Mathematics 3",  # 9709 Paper 3 (A Level)
+    ("9709", 4): "Mechanics",  # 9709 Paper 4 (A Level)
     ("9709", 5): "Probability & Statistics 1",  # 9709 Paper 5
+    ("9709", 6): "Probability & Statistics 2",  # 9709 Paper 6 (A Level)
 }
 
 
@@ -103,17 +106,21 @@ CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cache
 # Default scope for `paper-finder download`; override per-run with CLI flags.
 # `subjects` is per-code: each subject carries its own papers + variants, since
 # 9702 (P1 MCQ / P2 structured), 9231 (P1 Further Pure / P4 Further Stats),
-# 9709 (P1 Pure Math 1 / P5 Prob & Stats 1), 9701 (P1 MCQ / P2 structured, same
-# split as 9702), 9700 (P1 MCQ / P2 structured, same split again) and 9708
-# (P1 MCQ / P2 structured, same split again) have nothing in common. years /
-# sessions / types are shared. The candidate cross-product over-generates
-# (e.g. 9702 "m" is variant 2 only); 404s are expected and harmless --
-# download treats "not on mirror" as a non-event.
+# 9709 (P1 Pure Math 1 / P3 Pure Math 3 / P4 Mechanics / P5 Prob & Stats 1 / P6
+# Prob & Stats 2 -- P1/P5 are AS Level, P3/P4/P6 are A Level), 9701 (P1 MCQ /
+# P2 structured, same split as 9702), 9700 (P1 MCQ / P2 structured, same split
+# again) and 9708 (P1 MCQ / P2 structured, same split again) have nothing in
+# common. years / sessions / types are shared. The candidate cross-product
+# over-generates (e.g. 9702 "m" is variant 2 only); 404s are expected and
+# harmless -- download treats "not on mirror" as a non-event.
 DOWNLOAD_SCOPE: dict = {
     "subjects": {
         "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
         "9231": {"papers": [1, 4], "variants": [1, 2, 3]},  # Further Maths: Pure 1 + Prob & Stats
-        "9709": {"papers": [1, 5], "variants": [1, 2, 3]},  # Maths: Pure 1 + Prob & Stats 1
+        "9709": {
+            "papers": [1, 3, 4, 5, 6],  # Pure 1, Pure 3, Mechanics, Prob & Stats 1 + 2
+            "variants": [1, 2, 3, 4],  # 4th variant tried too; harmless 404 if it doesn't exist
+        },
         "9701": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Chemistry: P1 MCQ / P2 structured
         "9700": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Biology: P1 MCQ / P2 structured
         "9708": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Economics: P1 MCQ / P2 structured
