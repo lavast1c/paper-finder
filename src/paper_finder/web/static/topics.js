@@ -981,6 +981,11 @@ function syncCurriculum() {
   if (!curriculumEl) return;
   curriculumEl.value = PF.curriculumOf(subject);
   applyCurriculumFilter(curriculumEl.value);
+  // both of the above set state directly rather than through a `change`
+  // event, so the custom dropdowns' toggle labels (and, if open, the
+  // Subject panel's now-changed set of rows) need an explicit repaint
+  if (curriculumEl._dd) curriculumEl._dd.refresh();
+  if (subjectEl && subjectEl._dd) subjectEl._dd.refresh();
 }
 
 // Common follow-through whenever the effective subject changes, whether from
@@ -1001,6 +1006,7 @@ function onSubjectChanged() {
 }
 
 if (subjectEl) {
+  PF.selectDropdown(subjectEl);
   subjectEl.addEventListener("change", () => {
     subject = subjectEl.value;
     onSubjectChanged();
@@ -1008,6 +1014,7 @@ if (subjectEl) {
 }
 
 if (curriculumEl) {
+  PF.selectDropdown(curriculumEl);
   curriculumEl.addEventListener("change", () => {
     applyCurriculumFilter(curriculumEl.value);
     // the previously-selected subject may no longer be visible -- fall back
