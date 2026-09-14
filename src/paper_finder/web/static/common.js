@@ -146,6 +146,26 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
 //
 // Keyboard: the toggle is a plain <button> (Space/Enter opens); Escape closes
 // and returns focus; the panel is the native focus order of its checkboxes.
+//
+// Open/close float the panel in/out (see `.ms-panel`/`.ms-panel--from` in
+// style.css). The two directions work differently:
+//   - open() is a plain `hidden = false` -- style.css's @starting-style rule
+//     gives the panel its "just appeared" opacity/transform, so the float-in
+//     needs no JS timing at all.
+//   - close() adds `.ms-panel--from` (an ordinary transition, since the panel
+//     is already rendered at that point -- always reliable) and only sets
+//     `hidden = true` once that transition actually finishes
+//     (`transitionend`, with a timeout fallback in case it never fires -- e.g.
+//     the panel gets torn down mid-animation). An earlier version instead
+//     tried to animate `display` itself (via @starting-style + allow-discrete)
+//     for both directions -- that turned out to be unreliable for closing:
+//     the discrete `display` transition could get stuck mid-flight and never
+//     actually reach `display: none`, which then silently broke every
+//     *subsequent* open's animation too (the element was technically never
+//     "unrendered" again, so @starting-style had nothing left to trigger on).
+const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MS_CLOSE_FALLBACK_MS = 260; // > style.css's .ms-panel transition (0.2s)
+
 function multiSelect(root) {
   if (root._ms) return root._ms;
   const toggle = root.querySelector(".ms-toggle");
@@ -156,6 +176,9 @@ function multiSelect(root) {
   // count refresh), so a one-time snapshot would go stale.
   const boxes = () => [...panel.querySelectorAll('input[type="checkbox"]')];
   const placeholder = root.dataset.placeholder || "Any";
+
+  let closeTimer = null;
+  let onCloseTransitionEnd = null;
 
   function values() {
     return boxes()
@@ -180,8 +203,28 @@ function multiSelect(root) {
       toggle.focus();
     }
   }
+
+  // Cancels a pending close-then-hide (its timer and transitionend listener)
+  // without touching `hidden` -- used when a close is interrupted by a
+  // reopen, and at the start of a fresh close so two never overlap.
+  function cancelPendingClose() {
+    if (closeTimer !== null) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+    if (onCloseTransitionEnd) {
+      panel.removeEventListener("transitionend", onCloseTransitionEnd);
+      onCloseTransitionEnd = null;
+    }
+  }
+
   function open() {
     if (!panel.hidden) return;
+    cancelPendingClose();
+    // no JS timing needed here -- style.css's @starting-style gives this its
+    // "just appeared" opacity/transform, so unhiding it is enough to float it
+    // in (and, with no transition under reduced motion, this is already just
+    // a plain instant show)
     panel.hidden = false;
     toggle.setAttribute("aria-expanded", "true");
     document.addEventListener("click", onDocClick, true);
@@ -189,10 +232,25 @@ function multiSelect(root) {
   }
   function close() {
     if (panel.hidden) return;
-    panel.hidden = true;
+    cancelPendingClose();
     toggle.setAttribute("aria-expanded", "false");
     document.removeEventListener("click", onDocClick, true);
     document.removeEventListener("keydown", onKey, true);
+    if (REDUCED_MOTION) {
+      panel.hidden = true;
+      return;
+    }
+    panel.classList.add("ms-panel--from"); // animate to the closed pose
+    const finish = () => {
+      cancelPendingClose();
+      panel.hidden = true;
+      panel.classList.remove("ms-panel--from");
+    };
+    onCloseTransitionEnd = (e) => {
+      if (e.target === panel && e.propertyName === "opacity") finish();
+    };
+    panel.addEventListener("transitionend", onCloseTransitionEnd);
+    closeTimer = setTimeout(finish, MS_CLOSE_FALLBACK_MS);
   }
 
   toggle.addEventListener("click", () => (panel.hidden ? open() : close()));
