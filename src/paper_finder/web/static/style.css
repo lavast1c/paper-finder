@@ -319,7 +319,7 @@ button[type="submit"],
   border-radius: var(--r-sm);
   box-shadow: var(--shadow-sm), var(--edge);
   cursor: pointer;
-  transition: box-shadow 0.15s var(--ease-out);
+  transition: box-shadow 0.15s var(--ease-out), transform 0.1s var(--ease-out);
 }
 button[type="submit"]:hover,
 #send-code:hover,
@@ -327,10 +327,13 @@ button[type="submit"]:hover,
 .reveal-btn:hover {
   box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
 }
+/* a real, easily-noticed "press" -- scale down while held, spring back on
+   release (the 0.1s transition covers both, so it reads even on a quick
+   click, not just a held-down mouse) */
 button[type="submit"]:active,
 #send-code:active,
 #verify-code:active,
-.reveal-btn:active { transform: translateY(1px); }
+.reveal-btn:active { transform: scale(0.95); }
 button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 button[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
@@ -363,9 +366,11 @@ button[disabled] { opacity: 0.55; cursor: default; transform: none; }
   cursor: pointer;
   transition:
     color 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
+    border-color 0.2s var(--ease-out),
+    transform 0.1s var(--ease-out);
 }
 .theme-toggle:hover { color: var(--text); }
+.theme-toggle:active { transform: scale(0.94); }
 .theme-toggle:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -497,6 +502,7 @@ form#search,
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
+  transition: border-color 0.15s var(--ease-out);
 }
 /* theme the native option list so it isn't a bare white box on dark */
 .select-wrap select option {
@@ -519,7 +525,14 @@ form#search,
   padding: 0;
   cursor: pointer;
   text-decoration: underline;
+  /* no box/shadow to lean on for a "pressed" read, unlike the filled buttons
+     -- so this one gets its own short squish transition rather than an
+     instant snap */
+  transform-origin: left center;
+  transition: transform 0.1s var(--ease-out), opacity 0.15s var(--ease-out);
 }
+.linkbtn:hover { opacity: 0.75; }
+.linkbtn:active { transform: scale(0.9); }
 #status,
 #gate-status {
   min-height: 1.2em;
@@ -806,6 +819,7 @@ ol#results li {
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
+  transition: border-color 0.15s var(--ease-out), transform 0.1s var(--ease-out);
 }
 .ms-toggle::after {  /* same chevron as .select-wrap::after */
   content: "";
@@ -819,9 +833,11 @@ ol#results li {
   border-bottom: 2px solid var(--accent-ink);
   transform: rotate(45deg);
   pointer-events: none;
+  transition: transform 0.16s var(--ease-out), margin-top 0.16s var(--ease-out);
 }
 .ms-toggle[aria-expanded="true"]::after { transform: rotate(225deg); margin-top: -0.15rem; }
 .ms-toggle:hover { border-color: var(--accent-ink); }
+.ms-toggle:active { transform: translateY(1px) scale(0.98); }
 .ms-toggle:focus-visible {
   outline: none;
   border-color: var(--primary);
@@ -846,8 +862,40 @@ ol#results li {
   box-shadow: var(--shadow-md), var(--edge);
   max-height: 15rem;
   overflow-y: auto;
+  /* float in/out: fade + drift down from just above its resting spot, scaling
+     up slightly, rather than the old instant hidden/shown snap.
+     - Opening is plain CSS: `@starting-style` below gives the "just appeared"
+       frame its opacity/transform starting point, so a straight
+       `panel.hidden = false` floats it in with no JS timing needed. This
+       direction is inherently reliable -- an element going from unrendered to
+       rendered always gets exactly one starting-style frame.
+     - Closing is JS-driven (`.ms-panel--from`, see multiSelect() in
+       common.js): an earlier version tried to animate `display` itself too
+       (via allow-discrete), deferring `display: none` until the fade-out
+       finished -- that turned out to be unreliable, occasionally getting
+       stuck mid-flight and never reaching `display: none`, which then broke
+       *every later open* too (the element was technically never "unrendered"
+       again, so @starting-style had nothing left to trigger on). Instead, JS
+       adds `--from` (an ordinary, always-reliable opacity/transform
+       transition, since the element is already rendered at that point) and
+       only sets `hidden` -- synchronously, no CSS `display` transition
+       involved -- once that transition actually finishes. */
+  transform-origin: top center;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
 .ms-panel[hidden] { display: none; }  /* class rule above would beat the UA [hidden] */
+.ms-panel.ms-panel--from {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.92);
+}
+@starting-style {
+  .ms-panel:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.92);
+  }
+}
 .ms-opt {
   display: flex;
   align-items: center;
@@ -896,11 +944,12 @@ ol#results li {
   border-radius: var(--r-sm);
   box-shadow: var(--shadow-sm), var(--edge);
   cursor: pointer;
-  transition: box-shadow 0.15s var(--ease-out);
+  transition: box-shadow 0.15s var(--ease-out), transform 0.1s var(--ease-out);
 }
 .card-arrow:hover:not([disabled]) {
   box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
 }
+.card-arrow:active:not([disabled]) { transform: scale(0.9); }
 .card-arrow[disabled] { opacity: 0.4; cursor: default; }
 .card-pos {
   font-family: var(--mono);
@@ -1151,13 +1200,13 @@ ol#results li {
   border-radius: var(--r-sm);
   box-shadow: var(--edge);
   cursor: pointer;
-  transition: box-shadow 0.15s var(--ease-out);
+  transition: box-shadow 0.15s var(--ease-out), transform 0.1s var(--ease-out);
 }
 .card-fs-btn svg { display: block; flex-shrink: 0; }
 .card-fs-btn:hover {
   box-shadow: var(--shadow-md), var(--edge), 0 0 0 3px var(--focus-ring);
 }
-.card-fs-btn:active { transform: translateY(1px); }
+.card-fs-btn:active { transform: scale(0.94); }
 
 /* ---------- flashcard fullscreen ---------- */
 /* #card is the fullscreen element; browsers paint a black backdrop behind it, so
@@ -1294,7 +1343,15 @@ footer {
   .card-fs-btn,
   .crop-resize,
   .crop-resize-grip,
-  .card-arrow { transition: none; }
+  .card-arrow,
+  .ms-toggle,
+  .ms-toggle::after,
+  .theme-toggle,
+  .linkbtn,
+  .select-wrap select { transition: none; }
   button:active { transform: none; }
   header { transition: opacity 0.2s linear; }
+  /* kill the float in/out -- panels just snap open/closed, same as the old
+     plain [hidden] toggle */
+  .ms-panel { transition: none; }
 }
