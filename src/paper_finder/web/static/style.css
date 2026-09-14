@@ -515,6 +515,19 @@ form#search,
   border-color: var(--primary);
   box-shadow: var(--edge), 0 0 0 3px var(--focus-ring);
 }
+/* PF.selectDropdown() (common.js) upgrades Curriculum/Subject in place of the
+   native <select> above -- a native select's own option list is OS-rendered
+   and can't be animated by CSS at all, so this is what actually floats in/out
+   like the multi-select filters. The wrap's own chevron is suppressed (the
+   injected .ms-toggle brings its own, already-animated one); the <select>
+   itself is just display:none, not removed -- it's still the live value. */
+.select-wrap--dd::after { display: none; }
+.select-wrap--inline .ms-toggle {
+  width: auto;
+  max-width: min(22rem, 60vw);
+  padding: 0.4rem 2rem 0.4rem 0.6rem;
+  font-weight: 600;
+}
 
 .whoami { margin: 0 0 1rem; color: var(--text-muted); font-size: 0.85rem; }
 .linkbtn {
@@ -913,6 +926,35 @@ ol#results li {
   height: 0.95rem;
   accent-color: var(--primary);
   cursor: pointer;
+}
+/* PF.selectDropdown()'s rows (Curriculum/Subject) -- a plain single-select
+   pick, not a checkbox, so .ms-opt is a <button> here instead of the
+   checkbox <label> the multi-selects use; the picked row gets a checkmark
+   instead of a ticked box. */
+.ms-opt--btn {
+  width: 100%;
+  background: none;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  transition: transform 0.1s var(--ease-out);
+}
+.ms-opt--btn:active { transform: scale(0.98); }
+.ms-opt[aria-selected="true"] {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.ms-opt[aria-selected="true"]::after {
+  content: "";
+  flex: none;
+  margin-left: auto;
+  width: 0.4rem;
+  height: 0.7rem;
+  border-right: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(45deg);
 }
 
 /* the flashcard is true liquid glass too (like the header/tray/filterbar) --
@@ -1348,6 +1390,7 @@ footer {
   .ms-toggle::after,
   .theme-toggle,
   .linkbtn,
+  .ms-opt--btn,
   .select-wrap select { transition: none; }
   button:active { transform: none; }
   header { transition: opacity 0.2s linear; }

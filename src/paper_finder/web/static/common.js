@@ -273,6 +273,147 @@ function multiSelect(root) {
 }
 PF.multiSelect = multiSelect;
 
+// --- single-select dropdown (Curriculum / Subject) ------------------------
+//
+// Upgrades a plain <select> (inside a .select-wrap) into the same floating
+// custom dropdown as the multi-selects above (.ms-toggle/.ms-panel/.ms-opt,
+// so it shares their float in/out animation and press feedback) -- a native
+// <select>'s own option list is OS-rendered chrome that CSS simply cannot
+// touch, which is exactly why this exists. The <select> itself stays the
+// single source of truth: its `value`, `options` (including `.hidden`
+// toggled directly on an <option>, e.g. the Curriculum filter in app.js/
+// topics.js) and `change` event all keep working exactly as before, so every
+// existing call site that reads/writes them needed no changes. It's just
+// hidden from view and no longer what the user actually clicks.
+//
+// Note: this duplicates multiSelect()'s close-then-hide sequencing (see the
+// .ms-panel comment in style.css for why it has to be this careful) rather
+// than sharing it, deliberately -- that logic took real trial and error to
+// get right, and copying ~20 lines is a smaller risk than refactoring it.
+//
+//   const dd = PF.selectDropdown(document.getElementById("subject"));
+//   dd.refresh();  // re-read <option>s after changing .value/.hidden from
+//                   // outside without dispatching `change` (paints the
+//                   // toggle's label and, if open, the panel's checkmarks)
+function selectDropdown(selectEl) {
+  if (selectEl._dd) return selectEl._dd;
+  const wrap = selectEl.closest(".select-wrap");
+  wrap.classList.add("select-wrap--dd"); // suppress the wrap's own static chevron
+  selectEl.style.display = "none"; // value/options/change stay live; just not rendered
+
+  const toggle = el("button", "ms-toggle");
+  toggle.type = "button";
+  toggle.setAttribute("aria-haspopup", "listbox");
+  toggle.setAttribute("aria-expanded", "false");
+  const ariaLabel = selectEl.getAttribute("aria-label");
+  if (ariaLabel) toggle.setAttribute("aria-label", ariaLabel);
+  const valueEl = el("span", "ms-value");
+  toggle.append(valueEl);
+
+  const panel = el("div", "ms-panel");
+  panel.setAttribute("role", "listbox");
+  panel.hidden = true;
+
+  wrap.append(toggle, panel);
+
+  let closeTimer = null;
+  let onCloseTransitionEnd = null;
+
+  function cancelPendingClose() {
+    if (closeTimer !== null) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+    if (onCloseTransitionEnd) {
+      panel.removeEventListener("transitionend", onCloseTransitionEnd);
+      onCloseTransitionEnd = null;
+    }
+  }
+
+  function paintToggle() {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    valueEl.textContent = opt ? opt.textContent : "";
+  }
+
+  // Rebuilt fresh every open (not kept in sync live) -- cheap for the couple
+  // of options Curriculum/Subject have, and sidesteps needing a
+  // MutationObserver to notice a <option>'s `.hidden` changing elsewhere.
+  function renderPanel() {
+    panel.replaceChildren();
+    for (const opt of selectEl.options) {
+      if (opt.hidden) continue;
+      const row = el("button", "ms-opt ms-opt--btn", opt.textContent);
+      row.type = "button";
+      row.setAttribute("role", "option");
+      row.setAttribute("aria-selected", String(opt.value === selectEl.value));
+      row.addEventListener("click", () => {
+        if (selectEl.value !== opt.value) {
+          selectEl.value = opt.value;
+          selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        close();
+        toggle.focus();
+      });
+      panel.append(row);
+    }
+  }
+
+  function onDocClick(e) {
+    if (!wrap.contains(e.target)) close();
+  }
+  function onKey(e) {
+    if (e.key === "Escape") {
+      close();
+      toggle.focus();
+    }
+  }
+  function open() {
+    if (!panel.hidden) return;
+    cancelPendingClose();
+    renderPanel();
+    panel.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("keydown", onKey, true);
+  }
+  function close() {
+    if (panel.hidden) return;
+    cancelPendingClose();
+    toggle.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", onDocClick, true);
+    document.removeEventListener("keydown", onKey, true);
+    if (REDUCED_MOTION) {
+      panel.hidden = true;
+      return;
+    }
+    panel.classList.add("ms-panel--from");
+    const finish = () => {
+      cancelPendingClose();
+      panel.hidden = true;
+      panel.classList.remove("ms-panel--from");
+    };
+    onCloseTransitionEnd = (e) => {
+      if (e.target === panel && e.propertyName === "opacity") finish();
+    };
+    panel.addEventListener("transitionend", onCloseTransitionEnd);
+    closeTimer = setTimeout(finish, MS_CLOSE_FALLBACK_MS);
+  }
+
+  toggle.addEventListener("click", () => (panel.hidden ? open() : close()));
+
+  const api = {
+    refresh() {
+      paintToggle();
+      if (!panel.hidden) renderPanel();
+    },
+  };
+  selectEl.addEventListener("change", api.refresh);
+  api.refresh();
+  selectEl._dd = api;
+  return api;
+}
+PF.selectDropdown = selectDropdown;
+
 // The "Paper(s)" filter is really the MCQ-vs-theory split: CIE Physics,
 // Chemistry, Biology and Economics Paper 1 are multiple-choice, Paper 2 is
 // structured/theory (there is no Paper 3 or 4 in any of them). Ticked box
