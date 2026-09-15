@@ -363,6 +363,37 @@ def test_health_ok_in_local_mode(client):
     assert client.get("/api/health").json() == {"ok": True}
 
 
+def test_security_headers_on_pages_and_static(client):
+    for path in ("/", "/search", "/static/common.js", "/api/config"):
+        headers = client.get(path).headers
+        csp = headers["content-security-policy"]
+        assert "frame-ancestors 'none'" in csp
+        assert "object-src 'none'" in csp
+        assert "'unsafe-inline'" not in csp and "'unsafe-eval'" not in csp
+        assert headers["x-content-type-options"] == "nosniff"
+        assert headers["x-frame-options"] == "DENY"
+
+
+def test_csp_hashes_the_inline_theme_script(client):
+    import base64
+    import hashlib
+    import re
+
+    html = client.get("/").content.decode("utf-8")
+    body = re.search(r"<script>(.*?)</script>", html, re.DOTALL).group(1)
+    digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
+    assert f"'sha256-{digest}'" in client.get("/").headers["content-security-policy"]
+
+
+def test_csp_allows_supabase_only_in_cloud_mode(client, monkeypatch):
+    assert "supabase" not in client.get("/").headers["content-security-policy"]
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co/")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
+    csp = client.get("/").headers["content-security-policy"]
+    assert "connect-src 'self' https://demo.supabase.co wss://demo.supabase.co" in csp
+    assert "img-src 'self' data: https://demo.supabase.co" in csp
+
+
 # ------------------------------------------------------------------ topic browse
 
 

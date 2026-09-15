@@ -194,10 +194,26 @@ browser the Supabase URL + publishable key, the browser signs in with an
 **emailed 6-digit code** (Supabase Auth OTP) and calls RPCs
 (`search_questions` / `browse_questions` / `topic_counts`) directly with the
 user's JWT. RLS + `EXECUTE` grants restrict everything to `authenticated`;
-anon gets nothing. Local `paper-finder serve` (no Supabase env) is untouched
-— SQLite, no login, PDF deep-links.
+anon gets nothing (except the no-data `ping()` the health cron calls). As of
+migration 0015 `authenticated` holds only `SELECT` on the three tables (no
+write/`TRUNCATE` grant — RLS never governed `TRUNCATE`), and the `postgres`
+role's default privileges in `public` no longer auto-grant new tables,
+sequences or functions to anon/authenticated/PUBLIC: **any future migration
+that adds a table or RPC must `enable row level security` and `grant` exactly
+what it exposes**, or the browser simply can't reach it. Only
+`SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (browser-safe by design) ever
+reach the frontend via `/api/config`; the DB URL and service-role key are read
+only by the `publish`/`publish-figures` CLI, never imported by the web app.
+Every web response carries a strict CSP (`create_app`'s `security_headers`
+middleware: no `'unsafe-inline'` — the inline theme-bootstrap `<script>` is
+allowed by a sha256 computed from the HTML at startup, and Supabase's origin is
+added to `connect-src`/`img-src` only in cloud mode) plus `X-Frame-Options:
+DENY` / `nosniff`. A new external host, inline script, or inline event handler
+must be reflected there or the browser will block it. Local `paper-finder
+serve` (no Supabase env) is otherwise untouched — SQLite, no login, PDF
+deep-links.
 
-Supabase migrations `0001`-`0014` are applied (project
+Supabase migrations `0001`-`0015` are applied (project
 `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`).
 Each subject-addition migration since 0008 is DDL-only: widen the
 `questions_topic_codes_valid` CHECK to include the new taxonomy's codes —

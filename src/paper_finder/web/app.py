@@ -18,6 +18,8 @@ Two modes, chosen by the browser from ``GET /api/config``:
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
 import re
 import urllib.request
@@ -42,6 +44,42 @@ MAX_LIMIT = 50
 # A whitelist, not a sanitiser -- anything else (traversal, other extensions) is
 # a 404.
 _CROP_NAME = re.compile(r"^q\d{2}_p\d\.png$")
+
+
+# The pages' one attribute-less inline <script> (the pre-paint theme bootstrap).
+_INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.DOTALL)
+
+
+def _inline_script_hashes() -> list[str]:
+    """CSP hash-sources for every inline script, so script-src needs no 'unsafe-inline'."""
+    hashes = set()
+    for page in ("index.html", "topics.html"):
+        # raw bytes, not read_text(): the browser hashes CRLF checkouts as-is
+        html = (STATIC_DIR / page).read_bytes().decode("utf-8")
+        for body in _INLINE_SCRIPT.findall(html):
+            digest = hashlib.sha256(body.encode("utf-8")).digest()
+            hashes.add(f"'sha256-{base64.b64encode(digest).decode()}'")
+    return sorted(hashes)
+
+
+def content_security_policy(script_hashes: list[str], supabase_url: str | None) -> str:
+    supabase = ""
+    if supabase_url:
+        supabase = f" {supabase_url} wss://{supabase_url.split('://', 1)[-1]}"
+    return "; ".join(
+        [
+            "default-src 'self'",
+            f"script-src 'self' https://cdn.jsdelivr.net {' '.join(script_hashes)}",
+            "style-src 'self' https://fonts.googleapis.com",
+            "font-src https://fonts.gstatic.com",
+            f"img-src 'self' data:{supabase}",
+            f"connect-src 'self'{supabase}",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        ]
+    )
 
 
 def _supabase_env() -> tuple[str, str] | None:
@@ -176,6 +214,20 @@ def create_app(
 
     app = FastAPI(title="Paper Finder", docs_url=None, redoc_url=None)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    script_hashes = _inline_script_hashes()
+
+    @app.middleware("http")
+    async def security_headers(request, call_next):
+        response = await call_next(request)
+        env = _supabase_env()  # per request: cloud vs local is decided at request time
+        response.headers["Content-Security-Policy"] = content_security_policy(
+            script_hashes, env[0] if env else None
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
 
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
