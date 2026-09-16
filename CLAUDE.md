@@ -242,7 +242,16 @@ URL param — `#curriculum` is derived from and kept in sync with the selected
 switches to the first now-visible subject option. The Paper(s) filter (MCQ
 vs Theory) is hidden for every subject except Physics/Chemistry/Biology/
 Economics (`PF.MCQ_SUBJECTS`
-in `common.js`) since only those have a real MCQ paper. The flashcard reveals a
+in `common.js`) since only those have a real MCQ paper. Every `.ms-panel`
+dropdown floats in/out (plain CSS `@starting-style` on open; a JS-driven
+`.ms-panel--from` opacity/transform transition on close, since animating
+`display` itself via `allow-discrete` proved unreliable) instead of the old
+instant hidden/shown snap — Curriculum and Subject get the same treatment via
+`PF.selectDropdown()`, which wraps their native `<select>` (kept in the DOM,
+hidden, still authoritative for `.value`/`.options`/change events) in the
+same `.ms-toggle`/`.ms-panel` custom-dropdown UI, since a native `<select>`'s
+own OS-rendered popup can't be CSS-animated. Every button also gets a
+scale/translate press reaction on `:active`. The flashcard reveals a
 question/mark-scheme crop pair side-by-side (stacked to one column on MCQs,
 which have no mark-scheme crop, and on narrow screens), each crop pan/zoomable
 and independently resizable, with a fullscreen mode. Default theme follows
