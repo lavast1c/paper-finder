@@ -108,18 +108,19 @@ def search(
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
     subjects: Sequence[str] | None = None,
+    papers: Sequence[int] | None = None,
 ) -> list[SearchHit]:
     """Keyword search. ``kind`` filters by question type: ``all`` (default),
     ``mcq`` (multiple-choice questions only) or ``theory`` (structured only).
-    ``subjects`` / ``years`` / ``sessions`` / ``variants`` narrow to matching
-    papers; an empty or missing axis places no restriction on it."""
+    ``subjects`` / ``years`` / ``sessions`` / ``papers`` / ``variants`` narrow to
+    matching papers; an empty or missing axis places no restriction on it."""
     fts_query = build_fts_query(query)
     if not fts_query:
         return []
     if kind not in KINDS:
         kind = "all"
 
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
     sql = _SEARCH_SELECT
     if scope_where:
         sql += "  AND " + "\n  AND ".join(scope_where) + "\n"
@@ -176,10 +177,13 @@ def _paper_scope(
     sessions: Sequence[str] | None,
     variants: Sequence[int] | None,
     subjects: Sequence[str] | None = None,
+    papers: Sequence[int] | None = None,
 ) -> tuple[list[str], dict]:
     """WHERE clauses + bind params restricting ``p`` (papers) by subject_name /
-    year / session / variant. An empty or missing axis places no restriction on
-    it. ``subjects`` matches ``papers.subject_name`` (the UI's Subject value)."""
+    year / session / paper number / variant. An empty or missing axis places no
+    restriction on it. ``subjects`` matches ``papers.subject_name`` (the UI's
+    Subject value); ``papers`` is the paper number (the 1 of ``_12``), while
+    ``variants`` is only its second digit."""
     where: list[str] = []
     params: dict = {}
     if subjects:
@@ -198,6 +202,10 @@ def _paper_scope(
         sql, p = _in_clause("v", [int(v) for v in variants])
         where.append(f"p.variant IN {sql}")
         params.update(p)
+    if papers:
+        sql, p = _in_clause("pn", [int(n) for n in papers])
+        where.append(f"p.paper IN {sql}")
+        params.update(p)
     return where, params
 
 
@@ -208,6 +216,7 @@ def _browse_filters(
     sessions: Sequence[str] | None,
     variants: Sequence[int] | None,
     subjects: Sequence[str] | None = None,
+    papers: Sequence[int] | None = None,
 ) -> tuple[str, dict]:
     """Shared WHERE fragment + params for ``browse_by_topic`` and its COUNT."""
     codes_sql, params = _in_clause("t", topic_codes)
@@ -217,7 +226,7 @@ def _browse_filters(
         _KIND_FILTER,
     ]
     params["kind"] = kind
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
     where.extend(scope_where)
     params.update(scope_params)
     return " AND ".join(where), params
@@ -231,6 +240,7 @@ def browse_by_topic(
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
     subjects: Sequence[str] | None = None,
+    papers: Sequence[int] | None = None,
     limit: int = 20,
     offset: int = 0,
     db_path: Path | None = None,
@@ -245,7 +255,7 @@ def browse_by_topic(
     if kind not in KINDS:
         kind = "all"
 
-    where, params = _browse_filters(codes, kind, years, sessions, variants, subjects)
+    where, params = _browse_filters(codes, kind, years, sessions, variants, subjects, papers)
     init_db(db_path)
     with connect(db_path) as conn:
         total = conn.execute(
@@ -290,6 +300,7 @@ def topic_counts(
     sessions: Sequence[str] | None = None,
     variants: Sequence[int] | None = None,
     subject: str | None = None,
+    papers: Sequence[int] | None = None,
     db_path: Path | None = None,
 ) -> dict:
     """Per-topic question count under the current filters, every topic present
@@ -316,7 +327,7 @@ def topic_counts(
 
     where = [_KIND_FILTER]
     params: dict = {"kind": kind}
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects)
+    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
     where.extend(scope_where)
     params.update(scope_params)
     filt = " AND ".join(where)

@@ -96,6 +96,18 @@ def parse_labels(path: Path) -> list[LabelRow]:
                     f"{path}:{lineno}: {', '.join(off_taxonomy)} not in the "
                     f"{tax.subject_name} taxonomy (expected {'/'.join(sorted(tax.codes))})"
                 )
+            # ...and to a section the syllabus examines on *this* paper (a 9618
+            # Paper 2 row tagged 'cs03', a Paper 1-only section, is a mislabel).
+            off_paper = [
+                c
+                for c in codes
+                if tax.by_code[c].papers and parsed.paper not in tax.by_code[c].papers
+            ]
+            if off_paper:
+                raise ValueError(
+                    f"{path}:{lineno}: {', '.join(off_paper)} not examined on "
+                    f"{tax.subject_name} Paper {parsed.paper}"
+                )
 
         if source not in SOURCES:
             raise ValueError(f"{path}:{lineno}: source must be one of {SOURCES}, got {source!r}")

@@ -119,6 +119,13 @@ def test_9708_papers_share_one_economics_subject():
     assert parse_filename("9708_w23_ms_21.pdf").subject_name == "Economics"
 
 
+def test_9618_papers_share_one_computer_science_subject():
+    # Computer Science 9618: one subject across Paper 1 (Theory Fundamentals)
+    # and Paper 2 (Problem-solving & Programming), unlike 9231/9709's splits.
+    assert parse_filename("9618_s24_qp_11.pdf").subject_name == "Computer Science"
+    assert parse_filename("9618_w23_ms_22.pdf").subject_name == "Computer Science"
+
+
 def test_label():
     assert parse_filename("9702_s23_qp_12.pdf").label == "9702/s23/qp/12"
     assert parse_filename("9702_s23_gt.pdf").label == "9702/s23/gt"

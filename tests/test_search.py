@@ -301,6 +301,70 @@ def test_topic_counts_variant_filter(variant_db):
     assert result["total"] == 1
 
 
+# ------------------------------------------------------- paper-number axis
+
+
+@pytest.fixture
+def cs_paper_db(tmp_path):
+    """Computer Science s24 Paper 1 and Paper 2 (both variant 1), one question each."""
+    db_path = tmp_path / "papers.db"
+    init_db(db_path)
+    with connect(db_path) as conn:
+        conn.executemany(
+            """INSERT INTO papers (id, subject_code, subject_name, year, session,
+                   paper, variant, paper_type, filename)
+               VALUES (?, '9618', 'Computer Science', 2024, 's', ?, 1, 'qp', ?)""",
+            [(1, 1, "9618_s24_qp_11.pdf"), (2, 2, "9618_s24_qp_21.pdf")],
+        )
+        conn.executemany(
+            """INSERT INTO questions
+               (id, paper_id, question_number, question_text, marks, is_mcq)
+               VALUES (?, ?, 1, ?, 4, 0)""",
+            [
+                (1, 1, "Convert the denary number 200 into binary."),
+                (2, 2, "Write pseudocode that converts a denary number into binary."),
+            ],
+        )
+        conn.executemany(
+            "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
+            [(1, "cs01"), (2, "cs11")],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    return db_path
+
+
+def test_search_papers_filter_is_the_paper_number_not_the_variant(cs_paper_db):
+    q = "denary binary"
+    both = {"9618_s24_qp_11.pdf", "9618_s24_qp_21.pdf"}
+    assert {h.filename for h in search(q, db_path=cs_paper_db)} == both
+    assert {h.filename for h in search(q, db_path=cs_paper_db, papers=[1])} == {
+        "9618_s24_qp_11.pdf"
+    }
+    assert {h.filename for h in search(q, db_path=cs_paper_db, papers=[2])} == {
+        "9618_s24_qp_21.pdf"
+    }
+    # both papers are variant 1 -- the variants axis can't tell them apart
+    assert {h.filename for h in search(q, db_path=cs_paper_db, variants=[1])} == both
+
+
+def test_browse_papers_filter(cs_paper_db):
+    _, total = browse_by_topic(["cs01", "cs11"], db_path=cs_paper_db)
+    assert total == 2
+    page, total = browse_by_topic(["cs01", "cs11"], papers=[2], db_path=cs_paper_db)
+    assert total == 1
+    assert [h.filename for h in page] == ["9618_s24_qp_21.pdf"]
+
+
+def test_topic_counts_papers_filter(cs_paper_db):
+    result = topic_counts(subject="Computer Science", papers=[1], db_path=cs_paper_db)
+    by_code = {t["code"]: t for t in result["topics"]}
+    assert len(by_code) == 12
+    assert by_code["cs01"]["count"] == 1
+    assert by_code["cs11"]["count"] == 0
+    assert result["total"] == 1
+
+
 # ----------------------------------------------------- subject axis (multi-subject)
 
 

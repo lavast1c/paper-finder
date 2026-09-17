@@ -480,6 +480,19 @@ def test_api_search_variant_filter(client):
     assert client.get("/api/search", params={"q": q, "variants": "3"}).json()["count"] == 0
 
 
+def test_api_papers_filter(client):
+    # the fixture corpus is one Paper 1 (s26 qp_11); papers is the paper number
+    base = {"topics": "s01,s02,s03,s04"}
+    assert client.get("/api/browse", params={**base, "papers": "1"}).json()["count"] == 3
+    assert client.get("/api/browse", params={**base, "papers": "2"}).json()["count"] == 0
+    q = "ball thrown horizontally"
+    assert client.get("/api/search", params={"q": q, "papers": "1"}).json()["count"] >= 1
+    assert client.get("/api/search", params={"q": q, "papers": "2"}).json()["count"] == 0
+    assert client.get("/api/topics", params={"papers": "2"}).json()["total"] == 0
+    assert client.get("/api/topics", params={"papers": "1,2"}).json()["total"] > 0
+    assert client.get("/api/browse", params={**base, "papers": "x"}).status_code == 200
+
+
 def test_topic_endpoints_501_in_cloud_mode(client, monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")

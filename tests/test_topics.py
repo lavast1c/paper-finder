@@ -100,6 +100,7 @@ def test_each_taxonomy_numbers_its_topics_from_one():
         "9701": "ch",
         "9700": "bi",
         "9708": "ec",
+        "9618": "cs",
     }
     for tax in TAXONOMIES:
         assert all(t.code.startswith(codes[tax.key]) for t in tax.topics), tax.key
@@ -128,7 +129,19 @@ def test_lookup_tables_are_the_union_of_every_taxonomy():
     assert BY_CODE["pm39"].name == "Complex numbers"
     assert BY_CODE["mc1"].name == "Forces and equilibrium"
     assert BY_CODE["ps24"].name == "Sampling and estimation"
+    assert BY_CODE["cs01"].name == "Information representation"
+    assert BY_CODE["cs12"].name == "Software Development"
     assert all(BY_CODE[t.code] is t for t in ALL_TOPICS)
+
+
+def test_topic_papers_split_computer_science_by_paper_only():
+    # every pre-existing taxonomy's topics apply to all of its papers
+    for tax in TAXONOMIES:
+        if tax.key != "9618":
+            assert all(t.papers == () for t in tax.topics), tax.key
+    cs = taxonomy_by_name("Computer Science")
+    assert [t.code for t in cs.topics if t.papers == (1,)] == [f"cs{n:02d}" for n in range(1, 9)]
+    assert [t.code for t in cs.topics if t.papers == (2,)] == ["cs09", "cs10", "cs11", "cs12"]
 
 
 def test_taxonomy_for_picks_by_subject_code_and_paper():
@@ -149,6 +162,9 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9700", 2).subject_name == "Biology"
     assert taxonomy_for("9708", 1).subject_name == "Economics"
     assert taxonomy_for("9708", 2).subject_name == "Economics"
+    assert taxonomy_for("9618", 1).subject_name == "Computer Science"
+    assert taxonomy_for("9618", 2).subject_name == "Computer Science"
+    assert taxonomy_for("9618", 3) is None
     assert taxonomy_for("0000", 1) is None
     # paper unknown -> first taxonomy for that subject code
     assert taxonomy_for("9231", None).subject_code == "9231"
@@ -274,6 +290,28 @@ def test_parse_labels_rejects_wrong_taxonomy_for_maths_a_level_paper(tmp_path):
     # ps4/ps5 are real codes, just on the wrong taxonomy
     path = _write_labels(tmp_path, "9709_s24_qp_61.pdf\t1\tps4\thand\n")
     with pytest.raises(ValueError, match="Probability & Statistics 2"):
+        parse_labels(path)
+
+
+def test_parse_labels_accepts_computer_science_codes_on_their_own_paper(tmp_path):
+    path = _write_labels(
+        tmp_path,
+        "9618_s24_qp_11.pdf\t1\tcs01,cs03\thand\n9618_s24_qp_21.pdf\t1\tcs09,cs11\thand\n",
+    )
+    assert [(r.filename, r.topic_codes) for r in parse_labels(path)] == [
+        ("9618_s24_qp_11.pdf", ("cs01", "cs03")),
+        ("9618_s24_qp_21.pdf", ("cs09", "cs11")),
+    ]
+
+
+def test_parse_labels_rejects_computer_science_code_from_the_other_paper(tmp_path):
+    # cs03 (Hardware) is a Paper 1 section -- not on a Paper 2 row
+    path = _write_labels(tmp_path, "9618_s24_qp_21.pdf\t1\tcs11,cs03\thand\n")
+    with pytest.raises(ValueError, match="cs03 not examined on Computer Science Paper 2"):
+        parse_labels(path)
+    # and cs11 (Programming) is Paper 2 only
+    path = _write_labels(tmp_path, "9618_s24_qp_12.pdf\t1\tcs11\thand\n")
+    with pytest.raises(ValueError, match="cs11 not examined on Computer Science Paper 1"):
         parse_labels(path)
 
 

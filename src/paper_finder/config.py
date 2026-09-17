@@ -25,6 +25,7 @@ SUBJECTS: dict[str, str] = {
     "9708": "Economics",
     "9709": "Mathematics",
     "9231": "Further Mathematics",
+    "9618": "Computer Science",
 }
 
 # Some CIE codes split into papers that are effectively separate subjects with
@@ -109,10 +110,12 @@ CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cache
 # 9709 (P1 Pure Math 1 / P3 Pure Math 3 / P4 Mechanics / P5 Prob & Stats 1 / P6
 # Prob & Stats 2 -- P1/P5 are AS Level, P3/P4/P6 are A Level), 9701 (P1 MCQ /
 # P2 structured, same split as 9702), 9700 (P1 MCQ / P2 structured, same split
-# again) and 9708 (P1 MCQ / P2 structured, same split again) have nothing in
-# common. years / sessions / types are shared. The candidate cross-product
-# over-generates (e.g. 9702 "m" is variant 2 only); 404s are expected and
-# harmless -- download treats "not on mirror" as a non-event.
+# again), 9708 (P1 MCQ / P2 structured, same split again) and 9618 (P1 Theory
+# Fundamentals / P2 Problem-solving & Programming, both structured) have
+# nothing in common. years / sessions / types are shared. The candidate
+# cross-product over-generates (e.g. 9702 "m" is variant 2 only; 9618 was first
+# examined in 2021 and has no "m" series); 404s are expected and harmless --
+# download treats "not on mirror" as a non-event.
 DOWNLOAD_SCOPE: dict = {
     "subjects": {
         "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
@@ -124,6 +127,7 @@ DOWNLOAD_SCOPE: dict = {
         "9701": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Chemistry: P1 MCQ / P2 structured
         "9700": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Biology: P1 MCQ / P2 structured
         "9708": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Economics: P1 MCQ / P2 structured
+        "9618": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # Computer Science: both structured
     },
     "years": [2020, 2021, 2022, 2023, 2024, 2025, 2026],
     "sessions": ["s", "w", "m"],  # May/June, Oct/Nov, Feb/March

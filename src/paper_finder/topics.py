@@ -4,7 +4,7 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Eleven taxonomies today:
+Twelve taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
@@ -38,6 +38,13 @@ Eleven taxonomies today:
   and 2028" (AS Level content, pp.15-23). Same shape as ``CHEMISTRY``/
   ``BIOLOGY`` -- one taxonomy spans both papers, just a coarser 6-section
   split since that is the syllabus's own top-level section count here.
+* ``COMPUTER_SCIENCE`` -- 9618 Papers 1 & 2, sections ``cs01``..``cs12``, from
+  "Cambridge International AS & A Level Computer Science 9618 syllabus for
+  2027, 2028 and 2029" (AS content, pp.14-31). One taxonomy spans both papers
+  like ``PHYSICS``, but the syllabus splits content by paper: Paper 1 examines
+  sections 1-8 only and Paper 2 sections 9-12 only, recorded per topic in
+  ``Topic.papers`` (and enforced by ``labels.parse_labels``). Both papers are
+  structured.
 
 Codes are namespaced per taxonomy so they never collide in the ``topics`` table,
 ``question_topics``, ``labels/question_topics.tsv`` or the ``?topics=`` URL token.
@@ -61,6 +68,9 @@ class Topic:
     name: str  # 'Waves'
     blurb: str  # what belongs here; goes verbatim into the classifier prompt
     subsections: tuple[str, ...]  # ('7.1 Progressive waves', ...) -- shown in the UI
+    # Papers (of its taxonomy) that examine this section; empty = all of them.
+    # Set only where the syllabus splits content by paper (Computer Science).
+    papers: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2335,6 +2345,257 @@ ECONOMICS = Taxonomy(
     topics=_ECONOMICS_TOPICS,
 )
 
+_COMPUTER_SCIENCE_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="cs01",
+        number=1,
+        name="Information representation",
+        blurb=(
+            "Binary magnitudes and the difference between binary prefixes (kibi, mebi, "
+            "gibi, tebi) and decimal prefixes (kilo, mega, giga, tera). Binary, denary, "
+            "hexadecimal, Binary Coded Decimal (BCD) and one's/two's complement; "
+            "converting between number bases; binary addition and subtraction and "
+            "overflow; uses of BCD and hexadecimal. Character sets: ASCII, extended ASCII "
+            "and Unicode. Bitmap images (pixel, file header, image/screen resolution, "
+            "colour/bit depth, file-size calculations) versus vector graphics (drawing "
+            "object, property, drawing list). Sound: sampling, sampling rate and "
+            "resolution, analogue versus digital. Lossy and lossless compression, "
+            "including run-length encoding (RLE)."
+        ),
+        subsections=(
+            "1.1 Data Representation",
+            "1.2 Multimedia – Graphics, Sound",
+            "1.3 Compression",
+        ),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs02",
+        number=2,
+        name="Communication",
+        blurb=(
+            "Networks and the internet: LAN versus WAN; client-server and peer-to-peer "
+            "models; thin and thick clients; bus, star, mesh and hybrid topologies and how "
+            "packets travel between hosts; public and private cloud computing. Wired "
+            "versus wireless media (copper, fibre-optic, radio/WiFi, microwave, "
+            "satellite). LAN hardware: switch, server, NIC, WNIC, WAP, bridge, repeater, "
+            "router. Ethernet and CSMA/CD collision handling. Real-time and on-demand bit "
+            "streaming and bit rates. The WWW versus the internet and internet hardware "
+            "(modems, PSTN, dedicated lines, cell networks). IPv4 and IPv6 addresses, "
+            "subnetting, public/private and static/dynamic IP addresses; URLs and DNS."
+        ),
+        subsections=("2.1 Networks including the internet",),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs03",
+        number=3,
+        name="Hardware",
+        blurb=(
+            "Input, output, primary memory and secondary storage; embedded systems. How "
+            "devices work: laser and 3D printers, microphone, speakers, magnetic hard "
+            "disk, solid-state (flash) memory, optical discs, touchscreens, VR headsets. "
+            "Buffers. RAM versus ROM, SRAM versus DRAM, PROM/EPROM/EEPROM. Monitoring "
+            "versus control systems with sensors, actuators and feedback. Logic gates "
+            "NOT, AND, OR, NAND, NOR, XOR and their truth tables; constructing a logic "
+            "circuit, a truth table or a logic expression from a problem statement, a "
+            "circuit, an expression or a truth table."
+        ),
+        subsections=(
+            "3.1 Computers and their components",
+            "3.2 Logic Gates and Logic Circuits",
+        ),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs04",
+        number=4,
+        name="Processor Fundamentals",
+        blurb=(
+            "Von Neumann architecture and the stored program concept; general and special "
+            "purpose registers (PC, MDR, MAR, ACC, IX, CIR, status register); ALU, control "
+            "unit, system clock, IAS; address, data and control buses; performance factors "
+            "(cores, bus width, clock speed, cache); USB, HDMI and VGA ports. The "
+            "fetch-execute cycle in register transfer notation; interrupts and interrupt "
+            "service routines. Assembly language versus machine code, the two-pass "
+            "assembler, tracing assembly programs using the given instruction set "
+            "(LDM, LDD, LDI, LDX, STO, ADD, CMP, JPE, JPN, IN, OUT ...), instruction "
+            "groups and addressing modes (immediate, direct, indirect, indexed, "
+            "relative). Binary shifts (logical, arithmetic, cyclic) and bit masking with "
+            "AND, OR, XOR, LSL, LSR to test and set bits."
+        ),
+        subsections=(
+            "4.1 Central Processing Unit (CPU) Architecture",
+            "4.2 Assembly Language",
+            "4.3 Bit manipulation",
+        ),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs05",
+        number=5,
+        name="System Software",
+        blurb=(
+            "Why a computer needs an operating system and its management tasks (memory, "
+            "file, security, hardware/peripheral and process management); utility software "
+            "(disk formatter, virus checker, defragmenter, disk repair, compression, "
+            "back-up); program libraries and DLL files. Language translators: assembler, "
+            "compiler and interpreter, their benefits and drawbacks, and partially "
+            "compiled/interpreted languages such as Java. IDE features for coding "
+            "(context-sensitive prompts), error detection (dynamic syntax checks), "
+            "presentation (prettyprint, collapsing blocks) and debugging (single "
+            "stepping, breakpoints, variable watch/report windows)."
+        ),
+        subsections=("5.1 Operating Systems", "5.2 Language Translators"),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs06",
+        number=6,
+        name="Security, privacy and data integrity",
+        blurb=(
+            "The difference between security, privacy and integrity of data. Security "
+            "measures for systems and networks: user accounts, passwords, digital "
+            "signatures, biometrics, firewalls, anti-virus and anti-spyware, encryption, "
+            "access rights. Threats such as malware (viruses, spyware), hackers, "
+            "phishing and pharming, and ways to reduce the risk. Data validation (range, "
+            "format, length, presence, existence, limit checks, check digits) and "
+            "verification during entry (visual check, double entry) and transfer (parity "
+            "check by byte and block, checksum)."
+        ),
+        subsections=("6.1 Data Security", "6.2 Data Integrity"),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs07",
+        number=7,
+        name="Ethics and Ownership",
+        blurb=(
+            "Ethics for computing professionals and professional bodies such as the BCS "
+            "and IEEE; acting ethically or unethically in a given situation and its "
+            "impact. Copyright legislation. Software licensing -- Free Software "
+            "Foundation, Open Source Initiative, shareware, commercial -- and justifying a "
+            "licence for a situation. Artificial Intelligence: its applications and its "
+            "social, economic and environmental impact."
+        ),
+        subsections=("7.1 Ethics and Ownership",),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs08",
+        number=8,
+        name="Databases",
+        blurb=(
+            "Limitations of a file-based approach and how relational databases address "
+            "them. Relational terminology: entity, table, record, field, tuple, attribute, "
+            "primary/candidate/secondary/foreign keys, one-to-one/one-to-many/many-to-many "
+            "relationships, referential integrity, indexing; E-R diagrams. Normalisation "
+            "to 1NF, 2NF and 3NF. DBMS features (data dictionary, data modelling, logical "
+            "schema, integrity, security, backups, access rights), developer interface "
+            "and query processor. SQL: DDL (CREATE DATABASE, CREATE TABLE with data types, "
+            "ALTER TABLE, PRIMARY KEY, FOREIGN KEY) and DML queries (SELECT, WHERE, ORDER "
+            "BY, GROUP BY, INNER JOIN, SUM, COUNT, AVG) and maintenance (INSERT INTO, "
+            "DELETE FROM, UPDATE)."
+        ),
+        subsections=(
+            "8.1 Database Concepts",
+            "8.2 Database Management Systems (DBMS)",
+            "8.3 Data Definition Language (DDL) and Data Manipulation Language (DML)",
+        ),
+        papers=(1,),
+    ),
+    Topic(
+        code="cs09",
+        number=9,
+        name="Algorithm Design and Problem-solving",
+        blurb=(
+            "Computational thinking: abstraction (producing an abstract model with only "
+            "the essential details) and decomposition into sub-problems and program "
+            "modules. Algorithms as sequences of defined steps; identifier tables; "
+            "pseudocode with input, process and output using sequence, selection and "
+            "iteration; documenting an algorithm as structured English, a flowchart or "
+            "pseudocode and converting between them; stepwise refinement; logic "
+            "statements that define parts of a solution. Typically: describe or complete "
+            "an algorithm, draw or interpret a program flowchart."
+        ),
+        subsections=("9.1 Computational Thinking Skills", "9.2 Algorithms"),
+        papers=(2,),
+    ),
+    Topic(
+        code="cs10",
+        number=10,
+        name="Data Types and Structures",
+        blurb=(
+            "Choosing data types (INTEGER, REAL, CHAR, STRING, BOOLEAN, DATE); record "
+            "structures and reading/writing their fields. 1D and 2D arrays: index, upper "
+            "and lower bound, processing array data, bubble sort and linear search. Text "
+            "files: why files are needed and pseudocode to read and write lines. Abstract "
+            "data types -- stack, queue and linked list -- their features and uses, adding, "
+            "editing and deleting data, and implementing them with arrays and pointers."
+        ),
+        subsections=(
+            "10.1 Data Types and Records",
+            "10.2 Arrays",
+            "10.3 Files",
+            "10.4 Introduction to Abstract Data Types (ADT)",
+        ),
+        papers=(2,),
+    ),
+    Topic(
+        code="cs11",
+        number=11,
+        name="Programming",
+        blurb=(
+            "Writing pseudocode from a flowchart or structured English: constants, "
+            "variable declarations, assignment, arithmetic and logical expressions, input "
+            "and output; built-in functions and string manipulation. Constructs: IF/ELSE "
+            "and nested IF, CASE, count-controlled, pre-condition and post-condition "
+            "loops, and justifying the choice of loop. Structured programming: defining "
+            "and calling procedures and functions, parameters passed by value or by "
+            "reference, headers, interfaces, arguments and return values; writing "
+            "efficient pseudocode. Typically: write or complete a pseudocode module."
+        ),
+        subsections=(
+            "11.1 Programming Basics",
+            "11.2 Constructs",
+            "11.3 Structured Programming",
+        ),
+        papers=(2,),
+    ),
+    Topic(
+        code="cs12",
+        number=12,
+        name="Software Development",
+        blurb=(
+            "Program development life cycles (waterfall, iterative, RAD) with their "
+            "benefits and drawbacks, and the analysis, design, coding, testing and "
+            "maintenance stages. Program design with structure charts (modules and the "
+            "parameters passed between them, deriving pseudocode from a chart) and "
+            "state-transition diagrams. Syntax, logic and run-time errors and correcting "
+            "them; testing methods (dry run and trace tables, walkthrough, white-box, "
+            "black-box, integration, alpha, beta, acceptance, stub testing); test "
+            "strategies, test plans and normal/abnormal/extreme/boundary test data; "
+            "perfective, adaptive and corrective maintenance."
+        ),
+        subsections=(
+            "12.1 Program Development Life cycle",
+            "12.2 Program Design",
+            "12.3 Program Testing and Maintenance",
+        ),
+        papers=(2,),
+    ),
+)
+
+# Same shape as PHYSICS -- one taxonomy spans both papers -- but each topic's
+# `papers` restricts it to the one paper the syllabus says examines it.
+COMPUTER_SCIENCE = Taxonomy(
+    key="9618",
+    subject_code="9618",
+    papers=(1, 2),
+    subject_name="Computer Science",
+    topics=_COMPUTER_SCIENCE_TOPICS,
+)
+
 TAXONOMIES: tuple[Taxonomy, ...] = (
     PHYSICS,
     FURTHER_PURE_1,
@@ -2347,6 +2608,7 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     CHEMISTRY,
     BIOLOGY,
     ECONOMICS,
+    COMPUTER_SCIENCE,
 )
 
 # Backwards-compat: several modules still ``from paper_finder.topics import TOPICS``
