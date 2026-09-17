@@ -118,12 +118,19 @@ function currentSubject() {
   return subjectEl ? subjectEl.value : DEFAULT_SUBJECT;
 }
 
-// The "Paper(s)" filter is the MCQ-vs-theory split, which only applies to
-// subjects with a real MCQ paper (PF.MCQ_SUBJECTS in common.js -- 9231 and
-// 9709 each split into several subjects that are all structured). Off those
-// subjects the field is hidden and `kind` is forced to "all".
+// The "Paper(s)" filter is the MCQ-vs-theory split for subjects with a real
+// MCQ paper, the paper number itself for PF.PAPER_SUBJECTS (Computer Science),
+// and hidden otherwise (see PF.paperMode in common.js). Returns whether the
+// mode changed, i.e. whether an existing Paper(s) pick now means something else.
+let paperMode = null;
 function syncPaperFieldVisibility() {
-  if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(currentSubject());
+  const subject = currentSubject();
+  const mode = PF.paperMode(subject);
+  const changed = paperMode !== null && mode !== paperMode;
+  paperMode = mode;
+  if (fbPaperEl) fbPaperEl.hidden = mode === null;
+  if (paperEl) PF.labelPaperOptions(paperEl, subject);
+  return changed;
 }
 
 // Curriculum is derived from the selected subject (PF.curriculumOf in
@@ -152,10 +159,10 @@ function syncCurriculum() {
 // wasn't already selected.
 function onSubjectChanged() {
   syncCurriculum();
-  syncPaperFieldVisibility();
-  // a Paper(s) pick left over from switching off an MCQ subject would be
-  // stale (the field is now hidden and `kind` forced to "all") — drop it
-  if (!PF.hasMcqPapers(currentSubject()) && paperEl && paperEl._ms) {
+  const modeChanged = syncPaperFieldVisibility();
+  // a Paper(s) pick is stale once the field is hidden, or once it means
+  // something else ("1" = MCQ for Physics, Theory Fundamentals for CS) — drop it
+  if ((modeChanged || !PF.showsPaperField(currentSubject())) && paperEl && paperEl._ms) {
     paperEl._ms.setValues([]);
   }
   if (input.value.trim()) run();
@@ -164,9 +171,11 @@ function onSubjectChanged() {
 
 function scope() {
   const subject = currentSubject();
+  const { kind, papers } = PF.paperFilter(subject, picked(paperEl));
   return {
     subject,
-    kind: PF.hasMcqPapers(subject) ? PF.paperKind(picked(paperEl)) : "all",
+    kind,
+    papers,
     years: picked(yearEl),
     sessions: picked(seasonEl),
   };
@@ -177,6 +186,7 @@ async function localSearch(q) {
   const params = new URLSearchParams({ q, limit: "10" });
   if (s.subject) params.set("subject", s.subject);
   if (s.kind !== "all") params.set("kind", s.kind);
+  if (s.papers.length) params.set("papers", s.papers.join(","));
   if (s.years.length) params.set("years", s.years.join(","));
   if (s.sessions.length) params.set("sessions", s.sessions.join(","));
   const res = await fetch("/api/search?" + params.toString(), { signal: controller.signal });
@@ -193,6 +203,7 @@ async function cloudSearch(q) {
     years: s.years.map(Number),
     sessions: s.sessions,
     subjects: s.subject ? [s.subject] : [],
+    papers: s.papers,
   });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(PF.cloudRow) };

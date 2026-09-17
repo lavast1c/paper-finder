@@ -142,16 +142,27 @@ function yearsParam() {
 function sessionsParam() {
   return filters.seasons.slice();
 }
+// Paper(s) is MCQ-vs-theory (`kind`) for MCQ subjects, the paper number
+// (`papers`) for PF.PAPER_SUBJECTS, and ignored otherwise -- PF.paperFilter.
 function kindParam() {
-  // the MCQ-vs-theory split only applies to subjects with a real MCQ paper
-  // (PF.MCQ_SUBJECTS in common.js); off those the field is hidden.
-  return PF.hasMcqPapers(subject) ? PF.paperKind(filters.papers) : "all";
+  return PF.paperFilter(subject, filters.papers).kind;
+}
+function papersParam() {
+  return PF.paperFilter(subject, filters.papers).papers;
+}
+// The topic list under the current Paper(s) pick: a paper that doesn't examine
+// a section hides it outright rather than listing it at zero.
+function visibleTopics() {
+  const allowed = PF.paperTopicCodes(subject, filters.papers);
+  return allowed ? topicList.filter((t) => allowed.has(t.code)) : topicList;
 }
 // local /api/* query string for the current scope filters
 function scopeQuery(extra) {
   const p = new URLSearchParams(extra || {});
   const kind = kindParam();
   if (kind !== "all") p.set("kind", kind);
+  const papers = papersParam();
+  if (papers.length) p.set("papers", papers.join(","));
   if (filters.years.length) p.set("years", filters.years.join(","));
   if (filters.seasons.length) p.set("sessions", filters.seasons.join(","));
   p.set("subject", subject);
@@ -162,6 +173,7 @@ async function fetchCounts() {
   if (sb) {
     const { data, error } = await sb.rpc("topic_counts", {
       kind: kindParam(),
+      papers: papersParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
       subjects: [subject],
@@ -191,6 +203,7 @@ async function fetchDeckPage(offset) {
     const { data, error } = await sb.rpc("browse_questions", {
       codes,
       kind: kindParam(),
+      papers: papersParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
       subjects: [subject],
@@ -247,7 +260,7 @@ async function loadCorpusLine() {
 function renderTopicOptions() {
   const panel = topicEl.querySelector(".ms-panel");
   panel.replaceChildren();
-  for (const t of topicList) {
+  for (const t of visibleTopics()) {
     const label = document.createElement("label");
     label.className = "ms-opt";
     const box = document.createElement("input");
@@ -819,8 +832,9 @@ async function refresh() {
     if (token !== deckToken) return;
     topicList = counts.topics;
     // the server's topic list is the authority on valid codes: a hand-edited
-    // ?topics= can never reach the DOM or an RPC
-    const valid = new Set(topicList.map((t) => t.code));
+    // ?topics= can never reach the DOM or an RPC. A topic the picked paper(s)
+    // don't examine is dropped too, since it's no longer listed.
+    const valid = new Set(visibleTopics().map((t) => t.code));
     for (const code of [...selected]) if (!valid.has(code)) selected.delete(code);
     renderTopicOptions();
   } catch {
@@ -963,8 +977,16 @@ function wireScopeGroup(groupEl, key) {
 }
 for (const [group, key] of SCOPE_GROUPS) wireScopeGroup(group, key);
 
+// Shows/relabels Paper(s) for the subject (PF.paperMode in common.js). Returns
+// whether the mode changed, i.e. whether an existing pick now means something else.
+let paperMode = null;
 function syncPaperFieldVisibility() {
-  if (fbPaperEl) fbPaperEl.hidden = !PF.hasMcqPapers(subject);
+  const mode = PF.paperMode(subject);
+  const changed = paperMode !== null && mode !== paperMode;
+  paperMode = mode;
+  if (fbPaperEl) fbPaperEl.hidden = mode === null;
+  if (paperEl) PF.labelPaperOptions(paperEl, subject);
+  return changed;
 }
 
 // Curriculum is derived from the selected subject (PF.curriculumOf in
@@ -993,11 +1015,13 @@ function syncCurriculum() {
 // wasn't already selected.
 function onSubjectChanged() {
   syncCurriculum();
-  syncPaperFieldVisibility();
-  // the picked topics and any Paper(s) pick belong to the old subject
+  const modeChanged = syncPaperFieldVisibility();
+  // the picked topics belong to the old subject, and a Paper(s) pick is stale
+  // once the field is hidden or means something else ("1" = MCQ for Physics,
+  // Theory Fundamentals for Computer Science)
   selected.clear();
   if (topicEl._ms) topicEl._ms.setValues([]);
-  if (!PF.hasMcqPapers(subject)) {
+  if (modeChanged || !PF.showsPaperField(subject)) {
     filters.papers = [];
     if (paperEl && paperEl._ms) paperEl._ms.setValues([]);
   }

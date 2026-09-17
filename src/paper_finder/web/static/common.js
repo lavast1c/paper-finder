@@ -434,6 +434,53 @@ PF.paperKind = function paperKind(values) {
 PF.MCQ_SUBJECTS = new Set(["Physics", "Chemistry", "Biology", "Economics"]);
 PF.hasMcqPapers = (subject) => PF.MCQ_SUBJECTS.has(subject);
 
+// Subjects whose papers are all structured but examine *different* syllabus
+// sections -- there the Paper(s) filter is the paper number itself (sent as
+// `papers`, `kind` stays "all"), relabelled per subject, and picking a paper
+// also narrows the Topic(s) list to the sections that paper examines. Mirrors
+// Topic.papers in topics.py.
+PF.PAPER_SUBJECTS = {
+  "Computer Science": {
+    labels: { 1: "Paper 1 · Theory Fundamentals", 2: "Paper 2 · Problem-solving & Programming" },
+    topics: {
+      1: ["cs01", "cs02", "cs03", "cs04", "cs05", "cs06", "cs07", "cs08"],
+      2: ["cs09", "cs10", "cs11", "cs12"],
+    },
+  },
+};
+const MCQ_PAPER_LABELS = { 1: "Paper 1 · MCQ", 2: "Paper 2 · Theory" };
+
+// "number" (PAPER_SUBJECTS), "mcq" (MCQ_SUBJECTS) or null (field hidden). A
+// ticked "1" means different things in the two modes, so pages drop Paper(s)
+// picks whenever a subject switch changes the mode.
+PF.paperMode = (subject) =>
+  Object.hasOwn(PF.PAPER_SUBJECTS, subject) ? "number" : PF.hasMcqPapers(subject) ? "mcq" : null;
+PF.showsPaperField = (subject) => PF.paperMode(subject) !== null;
+
+// Ticked Paper(s) values -> the { kind, papers } pair every search/browse call takes.
+PF.paperFilter = function paperFilter(subject, values) {
+  const mode = PF.paperMode(subject);
+  if (mode === "number") return { kind: "all", papers: (values || []).map(Number) };
+  return { kind: mode === "mcq" ? PF.paperKind(values) : "all", papers: [] };
+};
+
+// Rewrite the Paper(s) option labels (not the short P1/P2 chips) for a subject.
+PF.labelPaperOptions = function labelPaperOptions(root, subject) {
+  const labels =
+    PF.paperMode(subject) === "number" ? PF.PAPER_SUBJECTS[subject].labels : MCQ_PAPER_LABELS;
+  for (const box of root.querySelectorAll('input[type="checkbox"]')) {
+    const text = labels[box.value];
+    if (text && box.nextElementSibling) box.nextElementSibling.textContent = text;
+  }
+};
+
+// Topic codes the ticked papers examine, or null for "no restriction".
+PF.paperTopicCodes = function paperTopicCodes(subject, values) {
+  const cfg = PF.PAPER_SUBJECTS[subject];
+  if (!cfg || !values || !values.length) return null;
+  return new Set(values.flatMap((v) => cfg.topics[v] || []));
+};
+
 // The "Curriculum" filter groups Subject values under CIE AS Level (every
 // subject below) or CIE A Level (9709's three A Level papers). Unlike
 // MCQ_SUBJECTS this isn't sent to any API -- it only decides which <option>s
