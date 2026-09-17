@@ -21,11 +21,13 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done. Stage 6 (semantic search) open.
 
-**Corpus: six syllabus codes / eleven subjects / eleven topic taxonomies**,
+**Corpus: seven syllabus codes / twelve subjects / twelve topic taxonomies**,
 distinguished by `papers.subject_name`. Sessions across all subjects:
 `s20`-`s26` (May/June), `w20`-`w25` (Oct/Nov), and Feb/March `m20`-`m26`
 (variant 2 only) for 9702/9709/9701/9700/9708 (9231 has no `m` series or
-`w26`). 9709 is now split into five per-paper subjects (P1/P3/P4/P5/P6), the
+`w26`). Computer Science 9618 was first examined in 2021 (2020 was the old
+9608 syllabus, not included), has no `m` series, and the mirror has no `s22`
+9618 papers at all — so 60 papers across `s21`/`s23`-`s26` + `w21`-`w25`. 9709 is now split into five per-paper subjects (P1/P3/P4/P5/P6), the
 same disjoint-subject pattern as 9231's P1/P4 — not the one-taxonomy-spans-
 both-papers pattern used for the MCQ+structured subjects below.
 
@@ -34,7 +36,7 @@ both-papers pattern used for the MCQ+structured subjects below.
 | Physics | 9702 P1+P2 | 97 | 2285 | 2285 | `s01`-`s11` (11) |
 | Further Pure Maths | 9231 P1 | 39 | 273 | 273 | `fp1`-`fp7` (7) |
 | Further Prob & Stats | 9231 P4 | 39 | 237 | 237 | `fs1`-`fs5` (5) |
-| Pure Mathematics 1 | 9709 P1 | 46 | 502 | 501 | `pm1`-`pm8` (8) |
+| Pure Mathematics 1 | 9709 P1 | 46 | 502 | 502 | `pm1`-`pm8` (8) |
 | Probability & Stats 1 | 9709 P5 | 46 | 307 | 307 | `ps1`-`ps5` (5) |
 | Pure Mathematics 3 | 9709 P3 | 45 | 479 | 478 | `pm31`-`pm39` (9) |
 | Mechanics | 9709 P4 | 46 | 321 | 321 | `mc1`-`mc5` (5) |
@@ -42,13 +44,19 @@ both-papers pattern used for the MCQ+structured subjects below.
 | Chemistry | 9701 P1+P2 | 98 | 2186 | 2185 | `ch01`-`ch22` (22) |
 | Biology | 9700 P1+P2 | 96 | 2208 | 2208 | `bi01`-`bi11` (11) |
 | Economics | 9708 P1+P2 | 98 | 1694 | 1694 | `ec01`-`ec06` (6) |
+| Computer Science | 9618 P1+P2 | 60 | 473 | 473 | `cs01`-`cs12` (12) |
 
 Physics/Chemistry/Biology/Economics Paper 1 is MCQ, Paper 2 structured — the
 only four subjects where `is_mcq` varies within a subject; 9231/9709 papers
 are all structured. Taxonomies for Physics/Chemistry/Biology/Economics each
 span both papers (one taxonomy, not split by paper) — Economics is coarser
 than the others (6 topics, not 11-22) since that's the AS syllabus's own
-top-level section count there. `pm3`/`ps2` extend the existing `pm`/`ps`
+top-level section count there. Computer Science 9618 is one subject with
+one taxonomy too, but both its papers are structured and the syllabus splits
+content by paper (P1 = sections 1-8 -> `cs01`-`cs08`, P2 = sections 9-12 ->
+`cs09`-`cs12`). `Topic.papers` records that (empty tuple = every paper, so no
+other taxonomy sets it) and `labels.parse_labels` rejects a code on a paper
+that doesn't examine it. `pm3`/`ps2` extend the existing `pm`/`ps`
 (Pure Maths / Prob & Stats) code family without colliding as strings with
 9709 P1/P5's `pm1`-`pm8`/`ps1`-`ps5`; `mc` (Mechanics) was unclaimed.
 
@@ -60,8 +68,8 @@ questions short), and `9709_s24_qp_33.pdf` question 11 (its mark scheme's
 answer table stops at question 10) each have one missing answer/paper but
 stay in the corpus.
 
-Taxonomies live in `src/paper_finder/topics.py` as eleven `Taxonomy` instances
-(`TAXONOMIES`, 94 topics total); `taxonomy_for(subject_code, paper)` /
+Taxonomies live in `src/paper_finder/topics.py` as twelve `Taxonomy` instances
+(`TAXONOMIES`, 106 topics total); `taxonomy_for(subject_code, paper)` /
 `taxonomy_by_name(subject_name)` resolve one. Labels live in
 `labels/question_topics.tsv` (hand-committable TSV, no CIE text — just
 `filename<TAB>qnum<TAB>codes<TAB>source`), loaded by `paper-finder topics`
@@ -74,7 +82,7 @@ labelled without a key: MCQ papers (9702/9701/9700/9708 Paper 1) via a fixed
 position-in-paper heuristic weighting each topic's typical share of the paper
 — applied identically to every P1 file in a subject, not a per-paper read, so
 treat it as ~80-85% accurate; every structured paper (9702 P2, all 9231, all
-9709 including the newly-added P3/P4/P6, 9701 P2, 9700 P2, 9708 P2) was
+9709 including the newly-added P3/P4/P6, 9701 P2, 9700 P2, 9708 P2, all 9618) was
 hand-labelled by reading each question. Refine any `llm` row later with
 `classify --relabel` once a key is set (`classify.py` is not yet
 taxonomy-aware).
@@ -213,15 +221,19 @@ must be reflected there or the browser will block it. Local `paper-finder
 serve` (no Supabase env) is otherwise untouched — SQLite, no login, PDF
 deep-links.
 
-Supabase migrations `0001`-`0015` are applied (project
+Supabase migrations `0001`-`0016` are applied (project
 `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`).
 Each subject-addition migration since 0008 is DDL-only: widen the
 `questions_topic_codes_valid` CHECK to include the new taxonomy's codes —
 `questions.is_mcq`, `topics.subject`, and the RPCs' `subjects`/`topic_subject`
 params are already generic (added in 0008/0009) and don't need touching.
-`publish` re-upserts `public.topics` from `topics.py` every run.
+`publish` re-upserts `public.topics` from `topics.py` every run. 0016
+(Computer Science) is the exception: besides widening the CHECK it added a
+trailing `papers integer[]` filter (on `papers.paper`) to all three RPCs,
+re-granting EXECUTE to `authenticated` explicitly (0015 removed default
+grants).
 
-Cloud is live: **696 qp papers, 10805 questions, 10803 answered**; crop PNGs
+Cloud is live: **756 qp papers, 11278 questions, 11276 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
 `list`/`sign` both fail — genuinely private). Deployed at
 `pastpaperanalyser.vercel.app`.
@@ -239,10 +251,13 @@ option): `PF.curriculumOf(subject)` in `common.js` maps
 Mathematics 3) to `"A"` and everything else to `"AS"`; there's no separate
 URL param — `#curriculum` is derived from and kept in sync with the selected
 `#subject`, and picking a curriculum that doesn't contain the current subject
-switches to the first now-visible subject option. The Paper(s) filter (MCQ
-vs Theory) is hidden for every subject except Physics/Chemistry/Biology/
-Economics (`PF.MCQ_SUBJECTS`
-in `common.js`) since only those have a real MCQ paper. The flashcard reveals a
+switches to the first now-visible subject option. The Paper(s) filter has two modes
+(`PF.paperMode(subject)` in `common.js`): for Physics/Chemistry/Biology/
+Economics (`PF.MCQ_SUBJECTS`) it means MCQ vs Theory and sends `kind`; for
+Computer Science (`PF.PAPER_SUBJECTS`, which also holds per-paper option
+labels and topic lists) it means the paper number and sends `papers`, and the
+browse page hides topics the picked paper(s) don't examine. It is hidden for
+every other subject, and a pick is cleared whenever the mode changes. The flashcard reveals a
 question/mark-scheme crop pair side-by-side (stacked to one column on MCQs,
 which have no mark-scheme crop, and on narrow screens), each crop pan/zoomable
 and independently resizable, with a fullscreen mode. Default theme follows
@@ -287,13 +302,14 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 - Tests: `.venv\Scripts\python -m pytest`   Lint: `.venv\Scripts\ruff check .`
   Format: `.venv\Scripts\ruff format .`
 - Fetch more papers: `paper-finder download [--dry-run] [--limit N]
-  [--subject 9702,9231,9709,9701,9700,9708] [--years 2024-2026] [--sessions s,w,m]
+  [--subject 9702,9231,9709,9701,9700,9708,9618] [--years 2024-2026] [--sessions s,w,m]
   [--papers 1,2] [--variants 1,2,3,4]` — scope defaults in
   `config.DOWNLOAD_SCOPE`, which is **per-subject** (`{"subjects": {"9702":
   {papers, variants}, "9231": {...}, "9709": {papers: [1, 3, 4, 5, 6],
   variants: [1, 2, 3, 4]}, "9701": {papers: [1, 2], variants: [1, 2, 3, 4]},
   "9700": {papers: [1, 2], variants: [1, 2, 3, 4]}, "9708": {papers: [1, 2],
-  variants: [1, 2, 3, 4]}}}` — the 4th variant is a harmless 404 for
+  variants: [1, 2, 3, 4]}, "9618": {papers: [1, 2], variants: [1, 2, 3, 4]}}}`
+  — the 4th variant is a harmless 404 for
   subjects/papers that don't have one); `--papers`/`--variants` apply to
   every selected subject, `--subject` picks which. NOT part of `build`
   (network side effect). Idempotent (skips files already in `data/raw/`).
@@ -380,7 +396,7 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   (renders both `questions.crop_rects` and `answers.answer_crop_rects` into
   greyscale PNGs). `classify` (LLM labeller, injectable `Labeller`) and
   `publish`/`publish_figures` (push to Supabase) are network side effects,
-  outside `build`. `search` (FTS5 + BM25; `kind`/year/session/variant/subject
+  outside `build`. `search` (FTS5 + BM25; `kind`/year/session/variant/subject/paper
   filters; `browse_by_topic` + `topic_counts` for the browse page) and `web`
   (FastAPI app in `web/app.py` + hand-written static frontend in
   `web/static/`, local JSON mode or cloud Supabase-RPC mode picked by
