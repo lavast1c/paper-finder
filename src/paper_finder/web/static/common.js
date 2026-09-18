@@ -427,7 +427,7 @@ PF.paperKind = function paperKind(values) {
 
 // Which subjects actually have an MCQ paper -- the Paper(s) filter is the
 // MCQ-vs-theory split above, so it is shown (and `kind` honoured) only for
-// these. 9231 splits into two subjects and 9709 into five, all of them
+// these. 9231 splits into four subjects and 9709 into five, all of them
 // structured, so none of those per-paper subjects has an MCQ paper. Separate
 // from DEFAULT_SUBJECT (app.js / topics.js), which is only "which subject is
 // preselected".
@@ -482,12 +482,19 @@ PF.paperTopicCodes = function paperTopicCodes(subject, values) {
 };
 
 // The "Curriculum" filter groups Subject values under CIE AS Level (every
-// subject below) or CIE A Level (9709's three A Level papers). Unlike
-// MCQ_SUBJECTS this isn't sent to any API -- it only decides which <option>s
-// in #subject are shown, and its own <select> value is always derived back
-// from the current subject rather than tracked as separate state (see
-// app.js / topics.js's syncCurriculum()).
-PF.A_LEVEL_SUBJECTS = new Set(["Mechanics", "Probability & Statistics 2", "Pure Mathematics 3"]);
+// subject below) or CIE A Level (9709's three A Level papers, plus 9231's
+// Further Pure Mathematics 2 / Further Mechanics). Unlike MCQ_SUBJECTS this
+// isn't sent to any API -- it only decides which <option>s in #subject are
+// shown, and its own <select> value is always derived back from the current
+// subject rather than tracked as separate state (see app.js / topics.js's
+// syncCurriculum()).
+PF.A_LEVEL_SUBJECTS = new Set([
+  "Mechanics",
+  "Probability & Statistics 2",
+  "Pure Mathematics 3",
+  "Further Pure Mathematics 2",
+  "Further Mechanics",
+]);
 PF.curriculumOf = (subject) => (PF.A_LEVEL_SUBJECTS.has(subject) ? "A" : "AS");
 
 // --- query-term highlighting -----------------------------------------
