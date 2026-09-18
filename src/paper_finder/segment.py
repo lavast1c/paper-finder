@@ -490,9 +490,7 @@ def _is_axis_tick_column(content: list[dict], i: int) -> bool:
     while lo > 0 and column[lo]["y0"] - column[lo - 1]["y0"] <= _AXIS_TICK_MAX_GAP:
         lo -= 1
     hi = pos
-    while (
-        hi < len(column) - 1 and column[hi + 1]["y0"] - column[hi]["y0"] <= _AXIS_TICK_MAX_GAP
-    ):
+    while hi < len(column) - 1 and column[hi + 1]["y0"] - column[hi]["y0"] <= _AXIS_TICK_MAX_GAP:
         hi += 1
     return hi - lo + 1 >= _AXIS_TICK_MIN_RUN
 

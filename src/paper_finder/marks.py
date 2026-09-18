@@ -210,9 +210,10 @@ def parse_mcq_answers(lines: list[dict]) -> list[Answer]:
             has_marks_digit = i + 2 < len(texts) and _SMALL_INT.match(texts[i + 2])
             is_next_question = i + 2 < len(texts) and texts[i + 2] == str(expected)
             i += 3 if (has_marks_digit and not is_next_question) else 2
-        elif texts[i] == str(expected) and (
-            end := _voided_question_end(texts, i, expected)
-        ) is not None:
+        elif (
+            texts[i] == str(expected)
+            and (end := _voided_question_end(texts, i, expected)) is not None
+        ):
             answers.append(Answer(expected, "Question voided", 1))
             expected += 1
             i = end
