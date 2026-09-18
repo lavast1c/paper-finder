@@ -21,20 +21,26 @@ tech stack, data reference, and database schema.
 
 Stages 1-5 + 7 + 7b (Vercel/Supabase deploy) done. Stage 6 (semantic search) open.
 
-**Corpus: seven syllabus codes / twelve subjects / twelve topic taxonomies**,
-distinguished by `papers.subject_name`. Sessions across all subjects:
-`s20`-`s26` (May/June), `w20`-`w25` (Oct/Nov), and Feb/March `m20`-`m26`
-(variant 2 only) for 9702/9709/9701/9700/9708 (9231 has no `m` series or
-`w26`). Computer Science 9618 was first examined in 2021 (2020 was the old
-9608 syllabus, not included), has no `m` series, and the mirror has no `s22`
-9618 papers at all — so 60 papers across `s21`/`s23`-`s26` + `w21`-`w25`. 9709 is now split into five per-paper subjects (P1/P3/P4/P5/P6), the
-same disjoint-subject pattern as 9231's P1/P4 — not the one-taxonomy-spans-
-both-papers pattern used for the MCQ+structured subjects below.
+**Corpus: seven syllabus codes / fourteen subjects / fourteen topic
+taxonomies**, distinguished by `papers.subject_name`. Sessions across all
+subjects: `s20`-`s26` (May/June), `w20`-`w25` (Oct/Nov), and Feb/March
+`m20`-`m26` (variant 2 only) for 9702/9709/9701/9700/9708 (9231 has no `m`
+series or `w26`). Computer Science 9618 was first examined in 2021 (2020 was
+the old 9608 syllabus, not included), has no `m` series, and the mirror has
+no `s22` 9618 papers at all — so 60 papers across `s21`/`s23`-`s26` +
+`w21`-`w25`. 9709 is split into five per-paper subjects (P1/P3/P4/P5/P6) and
+9231 into all four of its papers (P1/P2/P3/P4), the same disjoint-subject
+pattern — not the one-taxonomy-spans-both-papers pattern used for the
+MCQ+structured subjects below. 9231 also gained a genuine 4th variant on the
+mirror from 2025 onward (confirmed for all four papers, mirroring 9702's own
+2025 variant-4 expansion) — `DOWNLOAD_SCOPE`'s `"9231"` entry now tries it too.
 
 | Subject | Code/paper | QP papers | Questions | Answered | Taxonomy |
 |---|---|---|---|---|---|
 | Physics | 9702 P1+P2 | 97 | 2285 | 2285 | `s01`-`s11` (11) |
 | Further Pure Maths | 9231 P1 | 39 | 273 | 273 | `fp1`-`fp7` (7) |
+| Further Pure Maths 2 | 9231 P2 | 42 | 333 | 333 | `fp21`-`fp26` (6) |
+| Further Mechanics | 9231 P3 | 42 | 292 | 292 | `fm1`-`fm6` (6) |
 | Further Prob & Stats | 9231 P4 | 39 | 237 | 237 | `fs1`-`fs5` (5) |
 | Pure Mathematics 1 | 9709 P1 | 46 | 502 | 502 | `pm1`-`pm8` (8) |
 | Probability & Stats 1 | 9709 P5 | 46 | 307 | 307 | `ps1`-`ps5` (5) |
@@ -59,6 +65,9 @@ other taxonomy sets it) and `labels.parse_labels` rejects a code on a paper
 that doesn't examine it. `pm3`/`ps2` extend the existing `pm`/`ps`
 (Pure Maths / Prob & Stats) code family without colliding as strings with
 9709 P1/P5's `pm1`-`pm8`/`ps1`-`ps5`; `mc` (Mechanics) was unclaimed.
+`fp2` (Further Pure Maths 2) extends `fp` (Further Pure Maths 1) the same
+way; `fm` (Further Mechanics) was unclaimed, since it's a new content family
+within 9231 rather than an extension of an existing 9231 paper's syllabus.
 
 Known gaps (all confirmed as real source-document issues, not pipeline bugs):
 `9702_s26_qp_21` is excluded entirely via `config.EXCLUDE_FILENAMES` (its mark
@@ -66,11 +75,19 @@ scheme was never published — every question would show unanswered);
 `9701_s24_qp_22.pdf` question 5, `9709_s26_qp_12` (a 4-page preview PDF, 9
 questions short), and `9709_s24_qp_33.pdf` question 11 (its mark scheme's
 answer table stops at question 10) each have one missing answer/paper but
-stay in the corpus.
+stay in the corpus. `9231_s26_qp_24.pdf` (Further Pure Maths 2, the newest
+May/June 2026 variant 4) is a watermarked "PapaCambridge" re-upload rather
+than a clean official scan — its repeating left-margin watermark text broke
+`segment.py`'s question-number tracking after Q4, merging real questions 4-8
+into one DB row (question 4). Every other watermarked s26 paper (all of 9231
+P1/P4, and every other P2/P3 variant) segmented correctly, so this looks like
+a one-off interaction with that paper's own layout rather than a general
+regression; the merged row is multi-labelled with every topic it actually
+covers (`fp24`, `fp25`, `fp26`) so it stays findable by topic.
 
-Taxonomies live in `src/paper_finder/topics.py` as twelve `Taxonomy` instances
-(`TAXONOMIES`, 106 topics total); `taxonomy_for(subject_code, paper)` /
-`taxonomy_by_name(subject_name)` resolve one. Labels live in
+Taxonomies live in `src/paper_finder/topics.py` as fourteen `Taxonomy`
+instances (`TAXONOMIES`, 118 topics total); `taxonomy_for(subject_code,
+paper)` / `taxonomy_by_name(subject_name)` resolve one. Labels live in
 `labels/question_topics.tsv` (hand-committable TSV, no CIE text — just
 `filename<TAB>qnum<TAB>codes<TAB>source`), loaded by `paper-finder topics`
 (part of `build` — `segment` cascades the join table to zero every run, so
@@ -81,11 +98,11 @@ labelled by `paper-finder classify` (the LLM labeller). Everything else was
 labelled without a key: MCQ papers (9702/9701/9700/9708 Paper 1) via a fixed
 position-in-paper heuristic weighting each topic's typical share of the paper
 — applied identically to every P1 file in a subject, not a per-paper read, so
-treat it as ~80-85% accurate; every structured paper (9702 P2, all 9231, all
-9709 including the newly-added P3/P4/P6, 9701 P2, 9700 P2, 9708 P2, all 9618) was
-hand-labelled by reading each question. Refine any `llm` row later with
-`classify --relabel` once a key is set (`classify.py` is not yet
-taxonomy-aware).
+treat it as ~80-85% accurate; every structured paper (9702 P2, all 9231
+including the newly-added P2/P3, all 9709 including P3/P4/P6, 9701 P2, 9700
+P2, 9708 P2, all 9618) was hand-labelled by reading each question. Refine
+any `llm` row later with `classify --relabel` once a key is set
+(`classify.py` is not yet taxonomy-aware).
 
 Every question has a rendered **image crop** of itself
 (`questions.crop_rects`/`crop_count`, set by `segment`), and structured
@@ -221,19 +238,22 @@ must be reflected there or the browser will block it. Local `paper-finder
 serve` (no Supabase env) is otherwise untouched — SQLite, no login, PDF
 deep-links.
 
-Supabase migrations `0001`-`0016` are applied (project
-`gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`).
-Each subject-addition migration since 0008 is DDL-only: widen the
-`questions_topic_codes_valid` CHECK to include the new taxonomy's codes —
-`questions.is_mcq`, `topics.subject`, and the RPCs' `subjects`/`topic_subject`
-params are already generic (added in 0008/0009) and don't need touching.
-`publish` re-upserts `public.topics` from `topics.py` every run. 0016
-(Computer Science) is the exception: besides widening the CHECK it added a
-trailing `papers integer[]` filter (on `papers.paper`) to all three RPCs,
-re-granting EXECUTE to `authenticated` explicitly (0015 removed default
-grants).
+Supabase migrations `0001`-`0016` and `0018` are applied in this branch's
+history (project `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in
+`supabase/migrations/`) — `0017` (an account-deletion RPC) was applied on the
+not-yet-merged `compliance-legal-a11y` branch, live on the project but not
+yet in this branch's file history. Each subject-addition migration since
+0008 is DDL-only: widen the `questions_topic_codes_valid` CHECK to include
+the new taxonomy's codes — `questions.is_mcq`, `topics.subject`, and the
+RPCs' `subjects`/`topic_subject` params are already generic (added in
+0008/0009) and don't need touching. `publish` re-upserts `public.topics`
+from `topics.py` every run. 0016 (Computer Science) is the exception:
+besides widening the CHECK it added a trailing `papers integer[]` filter (on
+`papers.paper`) to all three RPCs, re-granting EXECUTE to `authenticated`
+explicitly (0015 removed default grants). 0018 (Further Pure Maths 2 /
+Further Mechanics) is back to CHECK-only, like 0010-0014.
 
-Cloud is live: **756 qp papers, 11278 questions, 11276 answered**; crop PNGs
+Cloud is live: **840 qp papers, 11903 questions, 11901 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
 `list`/`sign` both fail — genuinely private). Deployed at
 `pastpaperanalyser.vercel.app`.
