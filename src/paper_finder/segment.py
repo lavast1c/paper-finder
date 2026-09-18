@@ -578,10 +578,13 @@ def _is_structured_question_start(content: list[dict], i: int, expected: int) ->
     # The first prose/part line usually follows immediately, but a figure or a
     # displayed formula (e.g. an "f(x)" axis label) can sit in between -- scan a
     # few lines ahead, stopping if another bare margin number appears first (a
-    # column of numbers is a table, not a run of question starts).
+    # column of numbers is a table, not a run of question starts). A *smaller*
+    # number is no rival -- no later question can have it -- and is typically
+    # the "0" origin label of a graph that opens the question.
     for j in range(i + 1, min(i + 1 + _STRUCTURED_BODY_LOOKAHEAD, len(content))):
         nxt = content[j]["text"].strip()
-        if _BARE_NUMBER.match(nxt) and content[j]["x0"] < _MARGIN_X:
+        rival = _BARE_NUMBER.match(nxt)
+        if rival and content[j]["x0"] < _MARGIN_X and int(rival.group(1)) >= expected:
             return False
         if _looks_like_question_body(nxt):
             return True

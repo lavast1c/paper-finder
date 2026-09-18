@@ -250,6 +250,25 @@ def test_structured_start_rejected_when_only_a_bare_number_follows():
     assert [q.number for q in segment_structured(lines)] == [1]
 
 
+def test_structured_start_survives_a_graph_origin_label_in_the_margin():
+    # A graph opening the question can put its "0" origin label in the left
+    # margin right under the number (9231_s26_qp_24 Q5). A smaller number can't
+    # be a later question, so it must not veto the start -- or every question
+    # after it is lost too.
+    lines = [
+        _line("1", x0=49.6, page=2, y_frac=0.075),
+        _line("Find the particular solution of the differential equation.", page=2),
+        _line("2", x0=49.6, page=4, y_frac=0.075),
+        _line("y", x0=50.6, page=4, y_frac=0.104),
+        _line("0", x0=54.8, page=4, y_frac=0.295),
+        _line("x", x0=500.0, page=4, y_frac=0.295),
+        _line("The diagram shows the curve y = 1/x.", page=4, y_frac=0.35),
+        _line("3", x0=49.6, page=6, y_frac=0.075),
+        _line("Use de Moivre's theorem to show that...", page=6),
+    ]
+    assert [q.number for q in segment_structured(lines)] == [1, 2, 3]
+
+
 def test_split_stem_uses_last_valid_option_block():
     texts = ["A", "V", "stem text?", "A", "one", "B", "two", "C", "three", "D", "four"]
     stem, options = _split_stem_and_options(texts)
