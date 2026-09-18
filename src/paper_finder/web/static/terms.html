@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Analyser — Terms of service</title>
+  <meta name="description"
+        content="Terms for using Paper Analyser: a free, non-commercial index of Cambridge International (CIE) AS &amp; A Level past exam questions for private study.">
+  <script>
+    // Apply a saved theme choice before first paint (no flash). Absent =
+    // time-of-day default: light 06:00-18:59, dark otherwise (not OS).
+    try {
+      var t = localStorage.getItem("paper-finder.theme");
+      if (t === "dark" || t === "light") {
+        document.documentElement.dataset.theme = t;
+      } else {
+        var h = new Date().getHours();
+        document.documentElement.dataset.theme = h >= 6 && h < 19 ? "light" : "dark";
+      }
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <canvas id="bg-dither" aria-hidden="true"></canvas>
+  <svg class="glass-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="glass-refraction" x="-25%" y="-25%" width="150%" height="150%"
+              color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.006 0.011" numOctaves="2"
+                      seed="17" result="noise"/>
+        <feGaussianBlur in="noise" stdDeviation="1.1" result="soft"/>
+        <feDisplacementMap in="SourceGraphic" in2="soft" scale="28"
+                           xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+  <header>
+    <div class="bar-inner">
+      <h1>Paper Analyser</h1>
+      <button type="button" id="theme-toggle" class="theme-toggle"
+              aria-label="Switch to light mode" aria-pressed="false">
+        <svg class="ic-sun" viewBox="0 0 24 24" width="20" height="20" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        </svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" width="20" height="20" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+        <span id="theme-toggle-label">Dark mode</span>
+      </button>
+      <nav class="topnav" aria-label="Site">
+        <a href="/">Browse by topic</a>
+        <a href="/search">Search</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <article class="legal">
+      <h2>Terms of service</h2>
+      <p class="legal-updated">Last updated 18 September 2026</p>
+
+      <h3>What this is</h3>
+      <p>
+        Paper Analyser is a personal, non-commercial study tool that indexes
+        Cambridge International (CIE) AS &amp; A Level past exam questions so
+        you can find and revise from them by topic or keyword. It is
+        provided as-is, free of charge, with no guarantee of uptime,
+        accuracy, or continued availability — it may be changed, restricted,
+        or shut down at any time without notice.
+      </p>
+
+      <h3>Payments and refunds</h3>
+      <p>
+        Paper Analyser is free. There is no paid tier, no subscription, no
+        in-app purchase, and no fee of any kind, and there never has been.
+        Because no charge can ever arise, there is nothing to refund.
+      </p>
+
+      <h3>Accuracy — please read this</h3>
+      <p>
+        The topic label on a question is <strong>best-effort, not
+        guaranteed</strong>. Some subjects were labelled question-by-question
+        by hand; others (the multiple-choice papers in a few subjects) were
+        labelled by an automated heuristic that is typically only about
+        80&ndash;85% accurate. A small number of questions have no published
+        mark-scheme answer at all, because the original exam board document
+        was missing or incomplete for that question. Don't treat any single
+        result as authoritative — cross-check against the original paper
+        when it matters.
+      </p>
+
+      <h3>Acceptable use</h3>
+      <ul>
+        <li>Use it for your own private study, the way you'd use a folder of past papers.</li>
+        <li>Don't bulk-scrape, re-crawl, or systematically download the question bank, images, or mark schemes.</li>
+        <li>Don't redistribute, republish, or resell any question text, mark-scheme text, or image crop you get from it.</li>
+        <li>Don't try to circumvent sign-in, rate limits, or access controls.</li>
+      </ul>
+      <p>
+        We may suspend or remove access for anyone who doesn't follow these,
+        without prior notice.
+      </p>
+
+      <h3>Copyright</h3>
+      <p>
+        Cambridge International (CIE) past papers, mark schemes, and any
+        text or image taken from them are &copy; Cambridge Assessment.
+        Paper Analyser reproduces question and mark-scheme excerpts for
+        private study use only; the source PDFs are never redistributed.
+        Paper Analyser is an independent index and is not affiliated with,
+        endorsed by, or sponsored by Cambridge University Press &amp;
+        Assessment or any other examination board.
+      </p>
+
+      <h3>Credits and licensing</h3>
+      <ul>
+        <li>IBM Plex Sans and IBM Plex Mono are &copy; IBM Corp., used under the SIL Open Font License 1.1.</li>
+        <li><code>@supabase/supabase-js</code> is used under the MIT License.</li>
+        <li>All icons on this site are original inline SVG — no icon font or stock imagery is used.</li>
+        <li>The animated background is generated by this project's own code, not a third-party asset.</li>
+        <li>Question and mark-scheme image crops are &copy; Cambridge Assessment, reproduced for private study only, as above.</li>
+      </ul>
+
+      <h3>Changes</h3>
+      <p>
+        We may update these terms as the project changes; the "last updated"
+        date above will change too. Continuing to use the service after an
+        update means you accept the current version.
+      </p>
+    </article>
+  </main>
+
+  <footer>
+    <p class="footer-note">
+      Paper Analyser is an independent index to help students organize revision
+      papers. It is not affiliated with, endorsed by, or sponsored by Cambridge
+      University Press &amp; Assessment or any other examination board.
+    </p>
+    <p class="footer-note">
+      Past papers are &copy; Cambridge Assessment &mdash; for private study use,
+      not redistribution.
+    </p>
+    <nav class="legal-nav" aria-label="Legal">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms" aria-current="page">Terms</a>
+      <a href="/cookies">Cookies</a>
+      <a href="/accessibility">Accessibility</a>
+    </nav>
+  </footer>
+
+  <script src="/static/dither.js" defer></script>
+  <script src="/static/common.js" defer></script>
+</body>
+</html>

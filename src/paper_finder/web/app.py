@@ -51,11 +51,18 @@ _INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.DOTALL)
 
 
 def _inline_script_hashes() -> list[str]:
-    """CSP hash-sources for every inline script, so script-src needs no 'unsafe-inline'."""
+    """CSP hash-sources for every inline script, so script-src needs no 'unsafe-inline'.
+
+    Globs every ``*.html`` in ``STATIC_DIR`` rather than naming pages one by
+    one -- the legal pages (privacy/terms/cookies/accessibility) share the
+    same inline theme-bootstrap script and would otherwise be silently
+    CSP-blocked (loading unthemed) the moment a new page is added and this
+    list is forgotten.
+    """
     hashes = set()
-    for page in ("index.html", "topics.html"):
+    for page in sorted(STATIC_DIR.glob("*.html")):
         # raw bytes, not read_text(): the browser hashes CRLF checkouts as-is
-        html = (STATIC_DIR / page).read_bytes().decode("utf-8")
+        html = page.read_bytes().decode("utf-8")
         for body in _INLINE_SCRIPT.findall(html):
             digest = hashlib.sha256(body.encode("utf-8")).digest()
             hashes.add(f"'sha256-{base64.b64encode(digest).decode()}'")
@@ -70,8 +77,8 @@ def content_security_policy(script_hashes: list[str], supabase_url: str | None) 
         [
             "default-src 'self'",
             f"script-src 'self' https://cdn.jsdelivr.net {' '.join(script_hashes)}",
-            "style-src 'self' https://fonts.googleapis.com",
-            "font-src https://fonts.gstatic.com",
+            "style-src 'self'",
+            "font-src 'self'",
             f"img-src 'self' data:{supabase}",
             f"connect-src 'self'{supabase}",
             "object-src 'none'",
@@ -241,6 +248,31 @@ def create_app(
     @app.get("/topics", include_in_schema=False)
     def topics_page() -> RedirectResponse:
         return RedirectResponse("/", status_code=308)  # old bookmarks/links
+
+    # Legal pages: static prose, no auth gate (they load neither supabase-js
+    # nor app.js/topics.js, so PF.initAuth is never invoked on them) -- they
+    # must stay readable by a signed-out visitor.
+    @app.get("/privacy", include_in_schema=False)
+    def privacy_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "privacy.html")
+
+    @app.get("/terms", include_in_schema=False)
+    def terms_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "terms.html")
+
+    @app.get("/cookies", include_in_schema=False)
+    def cookies_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "cookies.html")
+
+    @app.get("/accessibility", include_in_schema=False)
+    def accessibility_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "accessibility.html")
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots_txt() -> FileResponse:
+        # The corpus is copyrighted CIE material behind a login -- the site
+        # is not meant to be indexed.
+        return FileResponse(STATIC_DIR / "robots.txt", media_type="text/plain")
 
     @app.get("/api/config", include_in_schema=False)
     def api_config() -> dict:
