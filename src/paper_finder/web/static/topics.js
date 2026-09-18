@@ -355,7 +355,13 @@ async function renderCropImages(r) {
     // Eager, not lazy: the crop *is* the card, and the card is often below the
     // fold on load -- a lazy image there stays 0-height and never enters view.
     img.decoding = "async";
-    img.alt = `${r.title} — image ${i + 1} of ${urls.length}`;
+    // Names the image and points at the real text alternative -- a
+    // positional "image 1 of 3" says nothing about content a screen reader
+    // could act on, and this crop *is* the whole question.
+    img.alt =
+      urls.length > 1
+        ? `${r.title}, page ${i + 1} of ${urls.length}. Use "Show text" for the extracted wording.`
+        : `${r.title}. Use "Show text" for the extracted wording.`;
     img.addEventListener("error", () => {
       if (renderedImagesKey === key) fallbackToText(r);
     });
@@ -406,7 +412,10 @@ async function renderAnswerImages(r) {
   urls.forEach((u, i) => {
     const img = el("img", "card-image");
     img.decoding = "async";
-    img.alt = `${r.title} — mark scheme ${i + 1} of ${urls.length}`;
+    img.alt =
+      urls.length > 1
+        ? `Mark scheme for ${r.title}, page ${i + 1} of ${urls.length}. Use "Show text" for the extracted wording.`
+        : `Mark scheme for ${r.title}. Use "Show text" for the extracted wording.`;
     img.addEventListener("error", () => {
       if (renderedAnswerKey === key) answerFallbackToText(r);
     });
@@ -519,8 +528,16 @@ function toggleAnswer() {
 // container inline style, which survives the `replaceChildren()` on each card,
 // so a new card keeps the chosen magnification. Question and mark scheme are
 // independent (their own container, their own localStorage key).
-function makeCropViewer(imagesEl, storeKey) {
+function makeCropViewer(imagesEl, storeKey, label) {
   let z = readZoom(storeKey);
+  // Was a bare, unfocusable <div> -- mouse/touch only, with no way for a
+  // keyboard user to reach or operate it at all. `role="img"` (not "group":
+  // it's one visual object, even when a multi-page question stacks several
+  // <img>s) plus a static instructional label; the individual <img>s still
+  // carry their own descriptive alt text for anyone who reads into them.
+  imagesEl.tabIndex = 0;
+  imagesEl.setAttribute("role", "img");
+  imagesEl.setAttribute("aria-label", label);
 
   // the element that actually scrolls: `.card-images` itself in normal mode
   // (`overflow: auto`), or its scrolling ancestor (the column / `.card-body`)
@@ -691,11 +708,61 @@ function makeCropViewer(imagesEl, storeKey) {
   imagesEl.addEventListener("pointerup", endPinchPointer);
   imagesEl.addEventListener("pointercancel", endPinchPointer);
 
+  // Keyboard equivalent of drag-to-pan / wheel-to-zoom, for when this viewer
+  // itself has focus (see the document-level shortcut handler below, which
+  // steps aside for these same keys once a viewer is focused).
+  const PAN_STEP = 60;
+  imagesEl.addEventListener("keydown", (e) => {
+    const sc = scroller();
+    switch (e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        sc.scrollLeft -= PAN_STEP;
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        sc.scrollLeft += PAN_STEP;
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        sc.scrollTop -= PAN_STEP;
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        sc.scrollTop += PAN_STEP;
+        break;
+      case "+":
+      case "=":
+        e.preventDefault();
+        zoomBy(ZOOM_STEP);
+        break;
+      case "-":
+      case "_":
+        e.preventDefault();
+        zoomBy(1 / ZOOM_STEP);
+        break;
+      case "0":
+        e.preventDefault();
+        reset();
+        break;
+      default:
+        return;
+    }
+  });
+
   apply();
   return { zoomBy, reset };
 }
-const qCrop = makeCropViewer(cardImagesEl, QZOOM_KEY);
-const aCrop = makeCropViewer(answerImagesEl, AZOOM_KEY);
+const qCrop = makeCropViewer(
+  cardImagesEl,
+  QZOOM_KEY,
+  "Question image. Focus and use arrow keys to pan, plus and minus to zoom, 0 to reset.",
+);
+const aCrop = makeCropViewer(
+  answerImagesEl,
+  AZOOM_KEY,
+  "Mark scheme image. Focus and use arrow keys to pan, plus and minus to zoom, 0 to reset.",
+);
 
 // --- resize handle: a large drag bar under each crop box (replaces the native
 // `resize: vertical` corner grip, which was too small to find reliably). Sets
@@ -755,6 +822,22 @@ function makeResizeHandle(handleEl, imagesEl, storeKey) {
   }
   handleEl.addEventListener("pointerup", endDrag);
   handleEl.addEventListener("pointercancel", endDrag);
+
+  // Keyboard equivalent of the drag (the handle is a real <button> now, not
+  // an unfocusable <div>): Up grows the box, Down shrinks it, both clamped
+  // and persisted exactly as a drag would be.
+  const KEY_STEP = 24;
+  handleEl.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const delta = e.key === "ArrowUp" ? KEY_STEP : -KEY_STEP;
+    const h = setHeight(imagesEl.getBoundingClientRect().height + delta);
+    try {
+      localStorage.setItem(storeKey, String(h));
+    } catch {
+      /* private mode / storage blocked */
+    }
+  });
 }
 makeResizeHandle(qResizeEl, cardImagesEl, QHEIGHT_KEY);
 makeResizeHandle(aResizeEl, answerImagesEl, AHEIGHT_KEY);
@@ -1100,12 +1183,19 @@ answerShowTextBtn.addEventListener("click", () => {
 document.addEventListener("keydown", (e) => {
   const tag = (e.target && e.target.tagName) || "";
   if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;
+  // WCAG 2.1.4 (Character Key Shortcuts): these single-key shortcuts must not
+  // fire while the user is typing into anything else editable.
+  if (e.target && (e.target.isContentEditable || e.target.closest?.('[role="textbox"]'))) return;
   if (cardEl.hidden) return;
   // A focused button normally swallows these (it runs its own click on
   // Space/Enter). Let them through when the focus is on one of the card's own
   // controls -- that is the usual state in fullscreen, where ← → must still
   // page the deck after a Prev/Next click.
   if (tag === "BUTTON" && !cardEl.contains(e.target)) return;
+  // A focused crop viewer handles its own arrow-key pan and +/-/0 zoom (see
+  // makeCropViewer) -- step aside instead of also paging the deck or zooming
+  // only the question crop underneath it.
+  if (e.target === cardImagesEl || e.target === answerImagesEl) return;
   if (e.key === "ArrowLeft") {
     e.preventDefault();
     go(-1);

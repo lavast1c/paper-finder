@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Paper Analyser — Browse by topic</title>
+  <meta name="description"
+        content="Browse past Cambridge International (CIE) AS &amp; A Level exam questions by topic, revealing the question and mark-scheme answer as flashcards.">
   <script>
     // Apply a saved theme choice before first paint (no flash). Absent =
     // time-of-day default: light 06:00-18:59, dark otherwise (not OS).
@@ -20,13 +22,10 @@
     }
   </script>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <canvas id="bg-dither" aria-hidden="true"></canvas>
   <svg class="glass-defs" aria-hidden="true" focusable="false">
     <defs>
@@ -57,30 +56,37 @@
         <span id="theme-toggle-label">Dark mode</span>
       </button>
       <p id="corpus" class="corpus"></p>
-      <nav class="topnav">
+      <nav class="topnav" aria-label="Site">
         <a href="/" aria-current="page">Browse by topic</a>
         <a href="/search">Search</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <section id="gate" hidden>
       <form id="email-form" autocomplete="off">
-        <p>Enter your email and we&rsquo;ll send you a sign-in code.</p>
+        <p id="email-instructions">Enter your email and we&rsquo;ll send you a sign-in code.</p>
         <div class="gate-row">
+          <label for="email" class="sr-only">Email address</label>
           <input id="email" name="email" type="email" required
-                 placeholder="you@example.com" autocomplete="email">
+                 placeholder="you@example.com" autocomplete="email"
+                 aria-describedby="email-instructions email-privacy-note">
           <button id="send-code" type="submit">Send code</button>
         </div>
+        <p id="email-privacy-note" class="gate-note">
+          We use your email only to send the sign-in code. See the
+          <a href="/privacy">privacy policy</a>.
+        </p>
       </form>
 
       <form id="code-form" hidden autocomplete="off">
-        <p>Enter the 6-digit code sent to <span id="code-email"></span>.</p>
+        <p id="code-instructions">Enter the 6-digit code sent to <span id="code-email"></span>.</p>
         <div class="gate-row">
+          <label for="code" class="sr-only">6-digit sign-in code</label>
           <input id="code" name="code" inputmode="numeric" pattern="[0-9]{6}"
                  maxlength="6" required placeholder="123456"
-                 autocomplete="one-time-code">
+                 autocomplete="one-time-code" aria-describedby="code-instructions">
           <button id="verify-code" type="submit">Verify</button>
         </div>
         <button id="code-back" type="button" class="linkbtn">Use a different email</button>
@@ -133,11 +139,11 @@
           <div class="fb-field fb-field--ms" id="fb-paper">
             <span class="fb-label" id="lbl-paper">Paper(s)</span>
             <div class="multiselect" id="f-paper" data-placeholder="Any paper">
-              <button type="button" class="ms-toggle" aria-haspopup="listbox"
-                      aria-expanded="false" aria-labelledby="lbl-paper ms-val-paper">
+              <button type="button" class="ms-toggle" aria-haspopup="true"
+                      aria-expanded="false" aria-controls="panel-paper" aria-labelledby="lbl-paper ms-val-paper">
                 <span class="ms-value" id="ms-val-paper">Any paper</span>
               </button>
-              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+              <div class="ms-panel" id="panel-paper" role="group" aria-labelledby="lbl-paper" hidden>
                 <label class="ms-opt"><input type="checkbox" value="1" data-short="P1"><span>Paper 1 &middot; MCQ</span></label>
                 <label class="ms-opt"><input type="checkbox" value="2" data-short="P2"><span>Paper 2 &middot; Theory</span></label>
               </div>
@@ -146,11 +152,11 @@
           <div class="fb-field fb-field--ms">
             <span class="fb-label" id="lbl-year">Year(s)</span>
             <div class="multiselect" id="f-year" data-placeholder="Any year">
-              <button type="button" class="ms-toggle" aria-haspopup="listbox"
-                      aria-expanded="false" aria-labelledby="lbl-year ms-val-year">
+              <button type="button" class="ms-toggle" aria-haspopup="true"
+                      aria-expanded="false" aria-controls="panel-year" aria-labelledby="lbl-year ms-val-year">
                 <span class="ms-value" id="ms-val-year">Any year</span>
               </button>
-              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+              <div class="ms-panel" id="panel-year" role="group" aria-labelledby="lbl-year" hidden>
                 <label class="ms-opt"><input type="checkbox" value="2026"><span>2026</span></label>
                 <label class="ms-opt"><input type="checkbox" value="2025"><span>2025</span></label>
                 <label class="ms-opt"><input type="checkbox" value="2024"><span>2024</span></label>
@@ -164,11 +170,11 @@
           <div class="fb-field fb-field--ms">
             <span class="fb-label" id="lbl-season">Season(s)</span>
             <div class="multiselect" id="f-season" data-placeholder="Any season">
-              <button type="button" class="ms-toggle" aria-haspopup="listbox"
-                      aria-expanded="false" aria-labelledby="lbl-season ms-val-season">
+              <button type="button" class="ms-toggle" aria-haspopup="true"
+                      aria-expanded="false" aria-controls="panel-season" aria-labelledby="lbl-season ms-val-season">
                 <span class="ms-value" id="ms-val-season">Any season</span>
               </button>
-              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+              <div class="ms-panel" id="panel-season" role="group" aria-labelledby="lbl-season" hidden>
                 <label class="ms-opt"><input type="checkbox" value="s"><span>May/June</span></label>
                 <label class="ms-opt"><input type="checkbox" value="m"><span>Feb/March</span></label>
                 <label class="ms-opt"><input type="checkbox" value="w"><span>Oct/Nov</span></label>
@@ -178,11 +184,11 @@
           <div class="fb-field fb-field--ms fb-field--topic">
             <span class="fb-label" id="lbl-topic">Topic(s)</span>
             <div class="multiselect" id="f-topic" data-placeholder="Choose topics&hellip;">
-              <button type="button" class="ms-toggle" aria-haspopup="listbox"
-                      aria-expanded="false" aria-labelledby="lbl-topic ms-val-topic">
+              <button type="button" class="ms-toggle" aria-haspopup="true"
+                      aria-expanded="false" aria-controls="panel-topic" aria-labelledby="lbl-topic ms-val-topic">
                 <span class="ms-value" id="ms-val-topic">Choose topics&hellip;</span>
               </button>
-              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden></div>
+              <div class="ms-panel" id="panel-topic" role="group" aria-labelledby="lbl-topic" hidden></div>
             </div>
           </div>
         </div>
@@ -218,9 +224,10 @@
           <div id="card-stage" class="card-stage">
             <p class="crop-hint" id="q-crop-hint" hidden>Drag to pan &middot; scroll to zoom &middot; double-click to reset</p>
             <div id="card-images" class="card-images" hidden></div>
-            <div class="crop-resize" id="q-resize" hidden title="Drag to resize">
-              <span class="crop-resize-grip">Resize</span>
-            </div>
+            <button type="button" class="crop-resize" id="q-resize" hidden
+                    aria-label="Resize the question image box. Drag, or press the up/down arrow keys.">
+              <span class="crop-resize-grip" aria-hidden="true">Resize</span>
+            </button>
             <button type="button" id="show-text" class="linkbtn" hidden>Show text</button>
             <div id="card-question"></div>
             <p id="card-figure" class="figure-note" hidden>◧ Has a diagram, graph or table — see the original paper</p>
@@ -228,9 +235,10 @@
           <div id="card-answer" class="card-answer" hidden>
             <p class="crop-hint" id="a-crop-hint" hidden>Drag to pan &middot; scroll to zoom &middot; double-click to reset</p>
             <div id="answer-images" class="card-images" hidden></div>
-            <div class="crop-resize" id="a-resize" hidden title="Drag to resize">
-              <span class="crop-resize-grip">Resize</span>
-            </div>
+            <button type="button" class="crop-resize" id="a-resize" hidden
+                    aria-label="Resize the mark scheme image box. Drag, or press the up/down arrow keys.">
+              <span class="crop-resize-grip" aria-hidden="true">Resize</span>
+            </button>
             <button type="button" id="answer-show-text" class="linkbtn" hidden>Show text</button>
             <div id="answer-body"></div>
           </div>
@@ -249,6 +257,12 @@
       Past papers are &copy; Cambridge Assessment &mdash; for private study use,
       not redistribution.
     </p>
+    <nav class="legal-nav" aria-label="Legal">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/cookies">Cookies</a>
+      <a href="/accessibility">Accessibility</a>
+    </nav>
   </footer>
 
   <script

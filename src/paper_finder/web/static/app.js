@@ -46,10 +46,31 @@ function saveHistory(items) {
 
 let historyItems = loadHistory();
 
+// -1 = no option "virtually focused". Real DOM focus stays on `input` the
+// whole time (moving it to a history <button> would blur the input and
+// closeHistory() would yank the panel out from under that same Tab press) --
+// this is the standard ARIA combobox pattern: aria-activedescendant plus a
+// matching visual highlight stand in for focus instead.
+let activeHistoryIndex = -1;
+
+function historyOptionEls() {
+  return historyEl ? [...historyEl.querySelectorAll(".history-item")] : [];
+}
+
+function setActiveHistoryIndex(i) {
+  const opts = historyOptionEls();
+  activeHistoryIndex = i;
+  opts.forEach((o, idx) => o.classList.toggle("is-active", idx === i));
+  if (i >= 0 && opts[i]) input.setAttribute("aria-activedescendant", opts[i].id);
+  else input.removeAttribute("aria-activedescendant");
+}
+
 function closeHistory() {
   if (!historyEl) return;
   historyEl.hidden = true;
   input.setAttribute("aria-expanded", "false");
+  activeHistoryIndex = -1;
+  input.removeAttribute("aria-activedescendant");
 }
 
 function openHistory() {
@@ -58,9 +79,10 @@ function openHistory() {
     return;
   }
   historyEl.replaceChildren();
-  historyItems.forEach((q) => {
+  historyItems.forEach((q, i) => {
     const item = el("button", "history-item", q);
     item.type = "button";
+    item.id = `history-item-${i}`;
     item.setAttribute("role", "option");
     item.addEventListener("mousedown", (e) => {
       e.preventDefault(); // keep focus on the input; don't fire blur first
@@ -81,6 +103,8 @@ function openHistory() {
   historyEl.append(clear);
   historyEl.hidden = false;
   input.setAttribute("aria-expanded", "true");
+  activeHistoryIndex = -1;
+  input.removeAttribute("aria-activedescendant");
 }
 
 function rememberQuery(q) {
@@ -312,6 +336,22 @@ input.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !historyEl.hidden) {
     e.stopPropagation();
     closeHistory();
+    return;
+  }
+  if (historyEl.hidden) return;
+  const opts = historyOptionEls();
+  if (!opts.length) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    setActiveHistoryIndex(activeHistoryIndex >= opts.length - 1 ? 0 : activeHistoryIndex + 1);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    setActiveHistoryIndex(activeHistoryIndex <= 0 ? opts.length - 1 : activeHistoryIndex - 1);
+  } else if (e.key === "Enter" && activeHistoryIndex >= 0) {
+    e.preventDefault();
+    input.value = opts[activeHistoryIndex].textContent;
+    closeHistory();
+    run();
   }
 });
 

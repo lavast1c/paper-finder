@@ -132,6 +132,58 @@ PF.SESSION_NAMES = { s: "May/June", w: "Oct/Nov", m: "Feb/March" };
   setInterval(syncAuto, 5 * 60 * 1000);
 })();
 
+// --- storage notice: one-time, dismiss-only ------------------------------
+//
+// The site sets no cookies and runs no analytics/tracking, so an
+// Accept/Reject pair would be a fake choice with nothing real behind
+// "Reject" -- that's a dark pattern, not consent. This is a plain disclosure
+// instead: shown once (per browser) on every page that loads this file
+// (including the legal pages, so it's honest everywhere, not just where it's
+// convenient), dismissed permanently once the visitor acknowledges it.
+// `role="region"`, not "dialog" -- it must not trap focus or block the page.
+function storageNotice() {
+  const KEY = "paper-finder.notice";
+  try {
+    if (localStorage.getItem(KEY) === "1") return;
+  } catch (e) {
+    /* private mode - just show it every load; nothing to persist anyway */
+  }
+  const main = document.querySelector("main");
+  if (!main) return;
+
+  const box = el("div", "storage-notice");
+  box.setAttribute("role", "region");
+  box.setAttribute("aria-label", "Storage notice");
+  const inner = el("div", "storage-notice-inner");
+  const p = el("p");
+  p.append(
+    document.createTextNode(
+      "This site stores a sign-in token and your display preferences in your " +
+        "browser. No tracking, no analytics, no advertising. ",
+    ),
+  );
+  const link = el("a", null, "Cookie policy");
+  link.href = "/cookies";
+  p.append(link, document.createTextNode("."));
+
+  const btn = el("button", "linkbtn", "Got it");
+  btn.type = "button";
+  btn.addEventListener("click", () => {
+    try {
+      localStorage.setItem(KEY, "1");
+    } catch (e) {
+      /* private mode - it'll just show again next visit, harmless */
+    }
+    box.remove();
+  });
+
+  inner.append(p, btn);
+  box.append(inner);
+  main.insertAdjacentElement("afterend", box);
+}
+PF.storageNotice = storageNotice;
+storageNotice();
+
 // --- multi-select dropdown ----------------------------------------------
 //
 // Upgrades <div class="multiselect"> (a .ms-toggle button + a hidden .ms-panel
@@ -203,6 +255,21 @@ function multiSelect(root) {
       toggle.focus();
     }
   }
+  // Arrow-key roving focus among the checkboxes -- Tab still works (they're
+  // real, natively focusable inputs), this just adds Up/Down/Home/End so the
+  // panel behaves like a keyboard-operable group, not just a click target.
+  function onPanelKey(e) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    const list = boxes();
+    if (!list.length) return;
+    const idx = list.indexOf(document.activeElement);
+    e.preventDefault();
+    if (e.key === "ArrowDown") list[idx < 0 ? 0 : (idx + 1) % list.length].focus();
+    else if (e.key === "ArrowUp") list[idx < 0 ? list.length - 1 : (idx - 1 + list.length) % list.length].focus();
+    else if (e.key === "Home") list[0].focus();
+    else if (e.key === "End") list[list.length - 1].focus();
+  }
+  panel.addEventListener("keydown", onPanelKey);
 
   // Cancels a pending close-then-hide (its timer and transitionend listener)
   // without touching `hidden` -- used when a close is interrupted by a
@@ -229,6 +296,14 @@ function multiSelect(root) {
     toggle.setAttribute("aria-expanded", "true");
     document.addEventListener("click", onDocClick, true);
     document.addEventListener("keydown", onKey, true);
+    // move focus into the panel when opened via keyboard (a mouse click on
+    // the toggle leaves focus there instead, which is the expected mouse
+    // behaviour -- :focus-visible on the toggle tells the two apart)
+    if (toggle.matches(":focus-visible")) {
+      const list = boxes();
+      const checked = list.find((b) => b.checked);
+      (checked || list[0])?.focus();
+    }
   }
   function close() {
     if (panel.hidden) return;
@@ -311,8 +386,10 @@ function selectDropdown(selectEl) {
   toggle.append(valueEl);
 
   const panel = el("div", "ms-panel");
+  panel.id = `dd-panel-${selectEl.id}`;
   panel.setAttribute("role", "listbox");
   panel.hidden = true;
+  toggle.setAttribute("aria-controls", panel.id);
 
   wrap.append(toggle, panel);
 
@@ -367,14 +444,37 @@ function selectDropdown(selectEl) {
       toggle.focus();
     }
   }
+  // Arrow-key roving focus among the option buttons -- they're real <button>s
+  // so Tab and a plain click already work; this adds Up/Down/Home/End.
+  function onPanelKey(e) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    const rows = [...panel.querySelectorAll(".ms-opt--btn")];
+    if (!rows.length) return;
+    const idx = rows.indexOf(document.activeElement);
+    e.preventDefault();
+    if (e.key === "ArrowDown") rows[idx < 0 ? 0 : (idx + 1) % rows.length].focus();
+    else if (e.key === "ArrowUp") rows[idx < 0 ? rows.length - 1 : (idx - 1 + rows.length) % rows.length].focus();
+    else if (e.key === "Home") rows[0].focus();
+    else if (e.key === "End") rows[rows.length - 1].focus();
+  }
+  panel.addEventListener("keydown", onPanelKey);
   function open() {
     if (!panel.hidden) return;
     cancelPendingClose();
+    const openedViaKeyboard = toggle.matches(":focus-visible");
     renderPanel();
     panel.hidden = false;
     toggle.setAttribute("aria-expanded", "true");
     document.addEventListener("click", onDocClick, true);
     document.addEventListener("keydown", onKey, true);
+    // move focus into the panel when opened via keyboard, landing on the
+    // currently-selected option (a mouse click on the toggle leaves focus
+    // there instead, matching normal mouse behaviour)
+    if (openedViaKeyboard) {
+      const rows = [...panel.querySelectorAll(".ms-opt--btn")];
+      const selected = rows.find((r) => r.getAttribute("aria-selected") === "true");
+      (selected || rows[0])?.focus();
+    }
   }
   function close() {
     if (panel.hidden) return;
@@ -728,7 +828,46 @@ PF.initAuth = function initAuth({ onReady, onSignedOut }) {
       const out = el("button", "linkbtn", "Sign out");
       out.type = "button";
       out.addEventListener("click", () => sb.auth.signOut());
-      g.whoami.append(out);
+      g.whoami.append(out, document.createTextNode(" · "));
+
+      // Erasure without a published contact address (see the privacy policy):
+      // a second click on a button that changes its own label, rather than
+      // window.confirm() -- a native dialog blocks all page events and would
+      // be a new kind of interruption this page otherwise never uses.
+      const del = el("button", "linkbtn", "Delete account");
+      del.type = "button";
+      const delStatus = el("span", null, "");
+      delStatus.setAttribute("role", "status");
+      delStatus.setAttribute("aria-live", "polite");
+      let confirming = false;
+      let revertTimer = null;
+      const CONFIRM_WINDOW_MS = 5000;
+      function resetDel() {
+        confirming = false;
+        clearTimeout(revertTimer);
+        revertTimer = null;
+        del.disabled = false;
+        del.textContent = "Delete account";
+      }
+      del.addEventListener("click", async () => {
+        if (!confirming) {
+          confirming = true;
+          del.textContent = "Confirm delete?";
+          revertTimer = setTimeout(resetDel, CONFIRM_WINDOW_MS);
+          return;
+        }
+        clearTimeout(revertTimer);
+        del.disabled = true;
+        del.textContent = "Deleting…";
+        const { error } = await sb.rpc("delete_my_account");
+        if (error) {
+          resetDel();
+          delStatus.textContent = error.message;
+          return;
+        }
+        await sb.auth.signOut();
+      });
+      g.whoami.append(del, delStatus);
     } else {
       g.whoami.hidden = true;
     }
