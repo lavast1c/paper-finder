@@ -34,6 +34,8 @@ SUBJECTS: dict[str, str] = {
 # offers and paper_finder.topics.taxonomy_by_name() keys on.
 SUBJECT_PAPER_NAMES: dict[tuple[str, int], str] = {
     ("9231", 1): "Further Pure Mathematics",  # 9231 Paper 1
+    ("9231", 2): "Further Pure Mathematics 2",  # 9231 Paper 2 (A Level)
+    ("9231", 3): "Further Mechanics",  # 9231 Paper 3 (A Level)
     ("9231", 4): "Further Probability & Statistics",  # 9231 Paper 4
     ("9709", 1): "Pure Mathematics 1",  # 9709 Paper 1
     ("9709", 3): "Pure Mathematics 3",  # 9709 Paper 3 (A Level)
@@ -106,20 +108,25 @@ CLASSIFY_BATCH_SIZE = 20  # questions per API call; the taxonomy prompt is cache
 
 # Default scope for `paper-finder download`; override per-run with CLI flags.
 # `subjects` is per-code: each subject carries its own papers + variants, since
-# 9702 (P1 MCQ / P2 structured), 9231 (P1 Further Pure / P4 Further Stats),
-# 9709 (P1 Pure Math 1 / P3 Pure Math 3 / P4 Mechanics / P5 Prob & Stats 1 / P6
-# Prob & Stats 2 -- P1/P5 are AS Level, P3/P4/P6 are A Level), 9701 (P1 MCQ /
-# P2 structured, same split as 9702), 9700 (P1 MCQ / P2 structured, same split
-# again), 9708 (P1 MCQ / P2 structured, same split again) and 9618 (P1 Theory
-# Fundamentals / P2 Problem-solving & Programming, both structured) have
-# nothing in common. years / sessions / types are shared. The candidate
-# cross-product over-generates (e.g. 9702 "m" is variant 2 only; 9618 was first
-# examined in 2021 and has no "m" series); 404s are expected and harmless --
-# download treats "not on mirror" as a non-event.
+# 9702 (P1 MCQ / P2 structured), 9231 (P1 Further Pure / P2 Further Pure 2 /
+# P3 Further Mechanics / P4 Further Stats -- P1/P4 are AS Level, P2/P3 are A
+# Level), 9709 (P1 Pure Math 1 / P3 Pure Math 3 / P4 Mechanics / P5 Prob &
+# Stats 1 / P6 Prob & Stats 2 -- P1/P5 are AS Level, P3/P4/P6 are A Level),
+# 9701 (P1 MCQ / P2 structured, same split as 9702), 9700 (P1 MCQ / P2
+# structured, same split again), 9708 (P1 MCQ / P2 structured, same split
+# again) and 9618 (P1 Theory Fundamentals / P2 Problem-solving & Programming,
+# both structured) have nothing in common. years / sessions / types are
+# shared. The candidate cross-product over-generates (e.g. 9702 "m" is variant
+# 2 only; 9618 was first examined in 2021 and has no "m" series; 9231 has no
+# "m" series or w26 at all); 404s are expected and harmless -- download treats
+# "not on mirror" as a non-event.
 DOWNLOAD_SCOPE: dict = {
     "subjects": {
         "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
-        "9231": {"papers": [1, 4], "variants": [1, 2, 3]},  # Further Maths: Pure 1 + Prob & Stats
+        "9231": {
+            "papers": [1, 2, 3, 4],  # Further Pure 1 + 2, Further Mechanics, Further Prob & Stats
+            "variants": [1, 2, 3],
+        },
         "9709": {
             "papers": [1, 3, 4, 5, 6],  # Pure 1, Pure 3, Mechanics, Prob & Stats 1 + 2
             "variants": [1, 2, 3, 4],  # 4th variant tried too; harmless 404 if it doesn't exist

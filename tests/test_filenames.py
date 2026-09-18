@@ -72,12 +72,14 @@ def test_unknown_subject_code_is_none():
 
 
 def test_9231_paper_splits_into_two_subjects():
-    # Further Mathematics 9231: Paper 1 and Paper 4 are effectively separate
+    # Further Mathematics 9231: all four papers are effectively separate
     # subjects with their own syllabus content.
     assert parse_filename("9231_s24_qp_11.pdf").subject_name == "Further Pure Mathematics"
+    assert parse_filename("9231_s24_qp_21.pdf").subject_name == "Further Pure Mathematics 2"
+    assert parse_filename("9231_s24_qp_31.pdf").subject_name == "Further Mechanics"
     assert parse_filename("9231_w23_ms_43.pdf").subject_name == "Further Probability & Statistics"
     # a paper without an override falls back to the plain subject name
-    assert parse_filename("9231_s24_qp_21.pdf").subject_name == "Further Mathematics"
+    assert parse_filename("9231_s24_qp_51.pdf").subject_name == "Further Mathematics"
 
 
 def test_9709_paper_splits_into_two_subjects():

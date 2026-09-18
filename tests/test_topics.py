@@ -92,6 +92,8 @@ def test_each_taxonomy_numbers_its_topics_from_one():
         "9702": "s",
         "9231p1": "fp",
         "9231p4": "fs",
+        "9231p2": "fp2",
+        "9231p3": "fm",
         "9709p1": "pm",
         "9709p5": "ps",
         "9709p3": "pm3",
@@ -123,6 +125,10 @@ def test_lookup_tables_are_the_union_of_every_taxonomy():
     assert BY_CODE["s07"].name == "Waves"
     assert BY_CODE["fp4"].name == "Matrices"
     assert BY_CODE["fs3"].name == "Chi-squared tests"
+    assert BY_CODE["fp22"].name == "Matrices"
+    assert BY_CODE["fp25"].name == "Complex numbers"
+    assert BY_CODE["fm1"].name == "Motion of a projectile"
+    assert BY_CODE["fm6"].name == "Momentum"
     assert BY_CODE["ch07"].name == "Equilibria"
     assert BY_CODE["bi06"].name == "Nucleic acids and protein synthesis"
     assert BY_CODE["ec04"].name == "The Macroeconomy"
@@ -149,7 +155,9 @@ def test_taxonomy_for_picks_by_subject_code_and_paper():
     assert taxonomy_for("9702", 2).subject_name == "Physics"
     assert taxonomy_for("9231", 1).subject_name == "Further Pure Mathematics"
     assert taxonomy_for("9231", 4).subject_name == "Further Probability & Statistics"
-    assert taxonomy_for("9231", 2) is None
+    assert taxonomy_for("9231", 2).subject_name == "Further Pure Mathematics 2"
+    assert taxonomy_for("9231", 3).subject_name == "Further Mechanics"
+    assert taxonomy_for("9231", 5) is None
     assert taxonomy_for("9709", 1).subject_name == "Pure Mathematics 1"
     assert taxonomy_for("9709", 5).subject_name == "Probability & Statistics 1"
     assert taxonomy_for("9709", 3).subject_name == "Pure Mathematics 3"

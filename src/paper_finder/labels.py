@@ -12,7 +12,8 @@ Row format (tab-separated, no quoting -- no field may contain a tab)::
 
 ``topic_codes`` is a comma-separated list of syllabus section codes, drawn from
 the taxonomy the row's subject + paper uses (``s01``..``s11`` for a 9702 paper,
-``fp1``..``fp7`` for 9231 Paper 1, ``fs1``..``fs5`` for 9231 Paper 4);
+``fp1``..``fp7`` for 9231 Paper 1, ``fp21``..``fp26`` for 9231 Paper 2,
+``fm1``..``fm6`` for 9231 Paper 3, ``fs1``..``fs5`` for 9231 Paper 4);
 ``source`` is ``hand`` or ``llm``. Blank lines and ``#`` comments are skipped,
 matching ``evaluate.load_validation``.
 """

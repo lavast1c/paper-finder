@@ -4,13 +4,25 @@ Single source of truth for topic codes, display names, and the blurbs the
 classifier prompt is built from. Multi-label: a question may belong to several
 sections (a "define force, then check homogeneity" question is both s01 and s03).
 
-Twelve taxonomies today:
+Fourteen taxonomies today:
 
 * ``PHYSICS`` -- 9702 Papers 1 & 2, sections ``s01``..``s11``, from "Cambridge
   International AS & A Level Physics 9702 syllabus for 2025, 2026 and 2027".
 * ``FURTHER_PURE_1`` -- 9231 Paper 1 (Further Pure Mathematics 1), ``fp1``..``fp7``.
 * ``FURTHER_PROB_STATS`` -- 9231 Paper 4 (Further Probability & Statistics),
   ``fs1``..``fs5``.
+* ``FURTHER_PURE_2`` -- 9231 Paper 2 (Further Pure Mathematics 2),
+  ``fp21``..``fp26``, from "Cambridge International AS & A Level Further
+  Mathematics 9231 syllabus for 2028, 2029 and 2030" (pp.20-23). Builds on
+  ``FURTHER_PURE_1``. An A Level paper, not AS Level like ``FURTHER_PURE_1``/
+  ``FURTHER_PROB_STATS`` above it; its own single-paper subject, same
+  disjoint-content shape as those two -- ``fp2x`` extends the ``fp`` family
+  the same way ``pm3x`` extends ``pm`` below, without colliding with ``fp1``..
+  ``fp7`` as strings.
+* ``FURTHER_MECHANICS`` -- 9231 Paper 3 (Further Mechanics), ``fm1``..``fm6``,
+  same syllabus (pp.24-26). Builds on 9709 Paper 4 (``MECHANICS``). A Level.
+  A new content family within 9231, so it takes the unclaimed ``fm`` prefix
+  rather than extending an existing one.
 * ``PURE_MATH_1`` -- 9709 Paper 1 (Pure Mathematics 1), ``pm1``..``pm8``.
 * ``PROB_STATS_1`` -- 9709 Paper 5 (Probability & Statistics 1), ``ps1``..``ps5``.
 * ``PURE_MATH_3`` -- 9709 Paper 3 (Pure Mathematics 3), ``pm31``..``pm39``, from
@@ -514,6 +526,223 @@ _FURTHER_PROB_STATS_TOPICS: tuple[Topic, ...] = (
             "independent random variables is the product of their PGFs."
         ),
         subsections=("4.5 Probability generating functions",),
+    ),
+)
+
+# --- 9231 Paper 2: Further Pure Mathematics 2 (syllabus section 2) ------------
+# Builds on Paper 1 (FURTHER_PURE_1). An A Level paper -- see PURE_MATH_3 for
+# the same disjoint-content, single-paper-subject shape.
+
+_FURTHER_PURE_2_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="fp21",
+        number=1,
+        name="Hyperbolic functions",
+        blurb=(
+            "Understanding the definitions of the hyperbolic functions sinh x, cosh x, "
+            "tanh x, sech x, cosech x, coth x in terms of the exponential function, and "
+            "sketching their graphs. Proving and using identities involving hyperbolic "
+            "functions, e.g. cosh^2 x - sinh^2 x = 1, sinh 2x = 2 sinh x cosh x, and "
+            "similar results corresponding to standard trigonometric identities. "
+            "Understanding and using the definitions of the inverse hyperbolic functions "
+            "and deriving and using their logarithmic forms."
+        ),
+        subsections=("2.1 Hyperbolic functions",),
+    ),
+    Topic(
+        code="fp22",
+        number=2,
+        name="Matrices",
+        blurb=(
+            "Formulating a problem involving the solution of 3 linear simultaneous "
+            "equations in 3 unknowns as a matrix equation, or vice versa, understanding "
+            "the cases of consistency or inconsistency, relating them to the singularity "
+            "or otherwise of the corresponding matrix, solving consistent systems and "
+            "interpreting geometrically (e.g. three planes meeting in a common point or "
+            "line, or having no common points). Understanding the terms 'characteristic "
+            "equation', 'eigenvalue' and 'eigenvector' for square matrices, including use "
+            "of Ae = lambda e to prove simple properties. Finding eigenvalues and "
+            "eigenvectors of 2x2 and 3x3 matrices (real and distinct only). Expressing a "
+            "square matrix as QDQ^-1, where D is diagonal and Q's columns are "
+            "eigenvectors, and using this e.g. to find powers of a matrix. Using the fact "
+            "that a square matrix satisfies its own characteristic equation, e.g. in "
+            "finding successive powers of a matrix or an inverse matrix (2x2 or 3x3 only)."
+        ),
+        subsections=("2.2 Matrices",),
+    ),
+    Topic(
+        code="fp23",
+        number=3,
+        name="Differentiation",
+        blurb=(
+            "Differentiating hyperbolic functions and sin^-1 x, cos^-1 x, sinh^-1 x, "
+            "cosh^-1 x and tanh^-1 x. Obtaining an expression for d^2y/dx^2 where the "
+            "relation between x and y is defined implicitly or parametrically, including "
+            "successive implicit differentiation steps. Deriving and using the first few "
+            "terms of a Maclaurin's series for a function (derivation of a general term "
+            "is not included)."
+        ),
+        subsections=("2.3 Differentiation",),
+    ),
+    Topic(
+        code="fp24",
+        number=4,
+        name="Integration",
+        blurb=(
+            "Integrating hyperbolic functions and recognising integrals of the forms "
+            "1/sqrt(a^2 - x^2), 1/(a^2 + x^2) and 1/sqrt(a^2 + x^2), integrating "
+            "associated functions using trigonometric or hyperbolic substitutions "
+            "(including completing the square where necessary). Deriving and using "
+            "reduction formulae for the evaluation of definite integrals. Understanding "
+            "how the area under a curve may be approximated by areas of rectangles, and "
+            "using rectangles to estimate or set bounds for the area under a curve or to "
+            "derive inequalities or limits concerning sums. Using integration to find arc "
+            "lengths (Cartesian, including a parameter, or polar coordinates) and surface "
+            "areas of revolution about an axis for curves in Cartesian coordinates, "
+            "including the use of a parameter (polar surface areas are not required)."
+        ),
+        subsections=("2.4 Integration",),
+    ),
+    Topic(
+        code="fp25",
+        number=5,
+        name="Complex numbers",
+        blurb=(
+            "Understanding de Moivre's theorem for a positive or negative integer "
+            "exponent in terms of the geometrical effect of multiplication and division "
+            "of complex numbers, and proving it for a positive integer exponent (e.g. by "
+            "induction). Using de Moivre's theorem for a positive or negative rational "
+            "exponent to express trigonometric ratios of multiple angles in terms of "
+            "powers of trigonometric ratios of the fundamental angle, to express powers "
+            "of sin theta and cos theta in terms of multiple angles, in the summation of "
+            "series, and in finding and using the nth roots of unity."
+        ),
+        subsections=("2.5 Complex numbers",),
+    ),
+    Topic(
+        code="fp26",
+        number=6,
+        name="Differential equations",
+        blurb=(
+            "Finding an integrating factor for a first order linear differential equation "
+            "and using it to find the general solution. Recalling the meaning of "
+            "'complementary function' and 'particular integral' and that the general "
+            "solution is their sum. Finding the complementary function for a first or "
+            "second order linear differential equation with constant coefficients, "
+            "including auxiliary equations with distinct real roots, a repeated real "
+            "root, or conjugate complex roots. Recalling the form of, and finding, a "
+            "particular integral where a polynomial, a e^(bx) or a cos px + b sin px is a "
+            "suitable form. Using a given substitution to reduce a differential equation "
+            "to first or second order linear with constant coefficients, or to a first "
+            "order equation with separable variables. Using initial conditions to find a "
+            "particular solution and interpreting a solution in terms of a modelled "
+            "problem."
+        ),
+        subsections=("2.6 Differential equations",),
+    ),
+)
+
+# --- 9231 Paper 3: Further Mechanics (syllabus section 3) ---------------------
+# Builds on 9709 Paper 4 (MECHANICS). A new content family within 9231, so it
+# takes the unclaimed "fm" prefix rather than extending an existing one.
+
+_FURTHER_MECHANICS_TOPICS: tuple[Topic, ...] = (
+    Topic(
+        code="fm1",
+        number=1,
+        name="Motion of a projectile",
+        blurb=(
+            "Modelling the motion of a projectile as a particle moving with constant "
+            "acceleration and understanding limitations of the model (vector methods are "
+            "not required). Using horizontal and vertical equations of motion to solve "
+            "problems on the motion of projectiles, including finding the magnitude and "
+            "direction of the velocity at a given time or position, the range on a "
+            "horizontal plane and the greatest height reached. Deriving and using the "
+            "Cartesian equation of the trajectory of a projectile, including problems "
+            "where the initial speed and/or angle of projection may be unknown."
+        ),
+        subsections=("3.1 Motion of a projectile",),
+    ),
+    Topic(
+        code="fm2",
+        number=2,
+        name="Equilibrium of a rigid body",
+        blurb=(
+            "Calculating the moment of a force about a point (coplanar forces only). "
+            "Using the result that the effect of gravity on a rigid body is equivalent to "
+            "a single force acting at the centre of mass, and identifying the centre of "
+            "mass of a uniform body by symmetry, or from given information for a "
+            "triangular lamina or other simple shape. Determining the position of the "
+            "centre of mass of a composite body by considering an equivalent system of "
+            "particles (simple cases, e.g. a uniform L-shaped lamina, or a uniform cone "
+            "joined to a uniform hemisphere of the same radius). Using the principle that "
+            "a rigid body in equilibrium under coplanar forces has zero vector sum of "
+            "forces and zero sum of moments about any point (and the converse), and "
+            "solving equilibrium problems for a single rigid body under coplanar forces, "
+            "including those involving toppling or sliding."
+        ),
+        subsections=("3.2 Equilibrium of a rigid body",),
+    ),
+    Topic(
+        code="fm3",
+        number=3,
+        name="Circular motion",
+        blurb=(
+            "Understanding the concept of angular speed for a particle moving in a "
+            "circle and using v = r*omega. Understanding that the acceleration of a "
+            "particle moving in a circle with constant speed is directed towards the "
+            "centre, and using the formulae r*omega^2 and v^2/r (proof not required). "
+            "Solving problems modelled by a particle moving in a horizontal circle with "
+            "constant speed, and problems modelled by a particle moving in a vertical "
+            "circle without loss of energy, including finding a normal contact force or "
+            "the tension in a string, locating points where these are zero, and "
+            "conditions for complete circular motion."
+        ),
+        subsections=("3.3 Circular motion",),
+    ),
+    Topic(
+        code="fm4",
+        number=4,
+        name="Hooke's law",
+        blurb=(
+            "Using Hooke's law as a model relating the force in an elastic string or "
+            "spring to the extension or compression, and understanding the term modulus "
+            "of elasticity. Using the formula for the elastic potential energy stored in "
+            "a string or spring (proof not required). Solving problems involving forces "
+            "due to elastic strings or springs, including those where considerations of "
+            "work and energy are needed, e.g. a particle moving horizontally, vertically "
+            "or on an inclined plane while attached to one or more strings or springs, or "
+            "attached to an elastic string acting as a 'conical pendulum'."
+        ),
+        subsections=("3.4 Hooke's law",),
+    ),
+    Topic(
+        code="fm5",
+        number=5,
+        name="Linear motion under a variable force",
+        blurb=(
+            "Solving problems which can be modelled as the linear motion of a particle "
+            "under the action of a variable force, by setting up and solving an "
+            "appropriate differential equation, including use of v dv/dx for "
+            "acceleration where appropriate. Calculus required is restricted to content "
+            "from Pure Mathematics 3; only differential equations in which the variables "
+            "are separable are included."
+        ),
+        subsections=("3.5 Linear motion under a variable force",),
+    ),
+    Topic(
+        code="fm6",
+        number=6,
+        name="Momentum",
+        blurb=(
+            "Recalling Newton's experimental law and the definition of the coefficient "
+            "of restitution e (0 <= e <= 1), and the meaning of 'perfectly elastic' "
+            "(e = 1) and 'inelastic' (e = 0). Using conservation of linear momentum "
+            "and/or Newton's experimental law to solve problems modelled as the direct or "
+            "oblique impact of two smooth spheres, or the direct or oblique impact of a "
+            "smooth sphere with a fixed surface."
+        ),
+        subsections=("3.6 Momentum",),
     ),
 )
 
@@ -2279,6 +2508,23 @@ FURTHER_PROB_STATS = Taxonomy(
     subject_name="Further Probability & Statistics",
     topics=_FURTHER_PROB_STATS_TOPICS,
 )
+# A Level papers (P1/P4 above are AS Level). Each is its own single-paper
+# subject, same shape as FURTHER_PURE_1/FURTHER_PROB_STATS -- disjoint
+# syllabus content, not one taxonomy spanning several papers.
+FURTHER_PURE_2 = Taxonomy(
+    key="9231p2",
+    subject_code="9231",
+    papers=(2,),
+    subject_name="Further Pure Mathematics 2",
+    topics=_FURTHER_PURE_2_TOPICS,
+)
+FURTHER_MECHANICS = Taxonomy(
+    key="9231p3",
+    subject_code="9231",
+    papers=(3,),
+    subject_name="Further Mechanics",
+    topics=_FURTHER_MECHANICS_TOPICS,
+)
 PURE_MATH_1 = Taxonomy(
     key="9709p1",
     subject_code="9709",
@@ -2600,6 +2846,8 @@ TAXONOMIES: tuple[Taxonomy, ...] = (
     PHYSICS,
     FURTHER_PURE_1,
     FURTHER_PROB_STATS,
+    FURTHER_PURE_2,
+    FURTHER_MECHANICS,
     PURE_MATH_1,
     PROB_STATS_1,
     PURE_MATH_3,
