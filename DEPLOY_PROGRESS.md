@@ -151,7 +151,14 @@ first, brand-new emails get the second) — set each body to:
 <p>Enter this code to sign in:</p>
 <p style="font-size:24px;letter-spacing:3px;"><strong>{{ .Token }}</strong></p>
 <p>It expires in 1 hour. If you didn't request it, ignore this email.</p>
+<p>You received this because someone entered this address at
+pastpaperanalyser.vercel.app. We only ever send sign-in codes — no
+newsletters, no marketing. Privacy: pastpaperanalyser.vercel.app/privacy</p>
 ```
+(That last paragraph was added 2026-09-18 alongside the site's `/privacy`
+page — **this is documentation of the template text, not the live template
+itself; it still needs pasting into both templates in the Supabase dashboard
+by hand.**)
 Code length = **Authentication → Sign In / Providers → Email → Email OTP Length**.
 The `#code` input is fixed at 6 digits (matches the current setting) — if you
 change the length there, also change `maxlength` / `pattern` on `#code` in

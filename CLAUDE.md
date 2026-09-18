@@ -221,7 +221,7 @@ must be reflected there or the browser will block it. Local `paper-finder
 serve` (no Supabase env) is otherwise untouched — SQLite, no login, PDF
 deep-links.
 
-Supabase migrations `0001`-`0016` are applied (project
+Supabase migrations `0001`-`0017` are applied (project
 `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`).
 Each subject-addition migration since 0008 is DDL-only: widen the
 `questions_topic_codes_valid` CHECK to include the new taxonomy's codes —
@@ -231,7 +231,11 @@ params are already generic (added in 0008/0009) and don't need touching.
 (Computer Science) is the exception: besides widening the CHECK it added a
 trailing `papers integer[]` filter (on `papers.paper`) to all three RPCs,
 re-granting EXECUTE to `authenticated` explicitly (0015 removed default
-grants).
+grants). 0017 adds `delete_my_account()` for the privacy policy's
+no-contact-address erasure path (see above) — confirmed via the Supabase MCP
+that `public.papers`/`questions`/`topics` remain the only three tables in
+`public`, so `auth.users` (deleted by this function, scoped to the caller's
+own `auth.uid()`) is the only place any personal data lives at all.
 
 Cloud is live: **756 qp papers, 11278 questions, 11276 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
@@ -287,6 +291,54 @@ missing — dark mode had silently only worked when the OS *also* preferred
 dark) so the clock-based default renders correctly regardless of OS theme. See
 the files directly for exact values/constants — this file only needs to flag
 that these are deliberate, tuned choices, not arbitrary numbers to "clean up".
+
+**Legal, privacy and accessibility pass (2026-09-18):** four static pages —
+`privacy.html` / `terms.html` / `cookies.html` / `accessibility.html`, at
+`/privacy` `/terms` `/cookies` `/accessibility` — carry the site's only legal
+text (the old two-paragraph footer disclaimer moved into `terms.html`'s
+copyright section and stays in every footer too, now alongside a
+`<nav aria-label="Legal">` linking all four). They deliberately load neither
+`app.js`/`topics.js` nor `supabase-js`, so they render with no auth gate and
+are readable signed out — `PF.initAuth` is only ever invoked by the two app
+pages. `_inline_script_hashes()` in `web/app.py` globs `STATIC_DIR/*.html`
+rather than naming pages one by one, specifically so a new page here is never
+silently CSP-blocked. Per an explicit decision, the pages publish **no
+contact details of any kind** — no email, name or address — so the privacy
+policy's erasure path is a self-service `delete_my_account()` RPC (migration
+`0017_delete_own_account.sql`; `security definer`, scoped to `auth.uid()`,
+with the same explicit `authenticated`-only grant every RPC needs post-0015)
+wired to a "Delete account" control next to "Sign out" in `common.js`'s
+`PF.initAuth` (`common.js:773-816` region) — a same-button label-changes-to-
+"Confirm delete?" pattern, not `window.confirm()`, to avoid a blocking native
+dialog. IBM Plex Sans/Mono are now self-hosted (`static/fonts/*.woff2` + an
+`@font-face` block at the top of `style.css`, same family names/weights as
+before) instead of loaded from `fonts.googleapis.com`/`fonts.gstatic.com`,
+which sent every visitor's IP/UA/Referer to Google on every page load; the
+CSP's `style-src`/`font-src` were tightened to `'self'` to match. The storage
+notice (`PF.storageNotice` in `common.js`, self-invoking like the theme
+toggle) is dismiss-only by design — with no tracking or analytics anywhere in
+the app, an Accept/Reject pair would offer a fake choice with nothing real
+behind "Reject", which is itself the kind of dark pattern being removed, not
+added. Accessibility fixes worth knowing the reasoning for: `PF.multiSelect`'s
+panel was `role="listbox"` wrapping `<label><input type=checkbox>` children,
+an invalid ARIA structure (a listbox's children must be options) — it's now
+`role="group"` labelled by the existing filter-label `<span>`, with the same
+checkboxes now also reachable by Up/Down/Home/End inside the panel and
+`PF.selectDropdown`'s option rows gaining the same; the crop pan/zoom surface
+in `topics.js` (`makeCropViewer`) was a bare unfocusable `<div>` -- it's now
+`tabindex="0" role="img"` with its own arrow-key pan and `+`/`-`/`0` zoom,
+which also fixed the pre-existing gap where those keys only ever zoomed the
+question crop, never the mark-scheme one; the resize handles became real
+`<button>`s (arrow-key resize) instead of draggable-only `<div>`s. Only two
+colour tokens changed, both measured WCAG AA failures and nothing else in the
+palette: light-theme `--primary` (`#60a5fa`, 2.31:1 on `--bg`) was never
+adequate as a *focus-outline* colour even though it's fine as a decorative
+accent, so a separate `--focus-outline` token (`#2563eb` light / `#60a5fa`
+dark, matching `--primary` exactly in dark mode) now drives the two plain
+`outline: 2px solid` rules and the checkbox `accent-color`; light-theme
+`--text-muted` moved one step darker (`#586e75` → `#53686f`) because it
+measured 4.39:1 against `--field-bg` (the dropdown-panel fill), just under
+the 4.5:1 body-text floor.
 
 Next: Stage 6 (semantic search) — see `PLAN.md`.
 

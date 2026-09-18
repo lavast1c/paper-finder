@@ -40,6 +40,13 @@ paper-finder publish          # push the question bank to Supabase (needs SUPABA
 `search_questions` RPC). Full deploy runbook and the one-time Supabase / SMTP /
 Vercel setup: [`DEPLOY_PROGRESS.md`](DEPLOY_PROGRESS.md).
 
+`/privacy`, `/terms`, `/cookies` and `/accessibility` are plain, unauthenticated
+pages linked from every footer. No analytics or third-party tracking runs
+anywhere in the app; fonts are self-hosted rather than loaded from Google.
+A signed-in user can permanently delete their own account (email + session)
+from a "Delete account" link next to "Sign out" — there's no support contact
+address, so this is the only erasure path, and it needs none.
+
 ## Notes
 
 Personal / extracurricular project. CIE past papers are copyright of Cambridge
