@@ -109,6 +109,40 @@ def test_topics_path_redirects_to_root(client):
     assert str(r.url).endswith("/")  # 308 -> "/"
 
 
+@pytest.mark.parametrize(
+    ("path", "heading"),
+    [
+        ("/privacy", "Privacy policy"),
+        ("/terms", "Terms of service"),
+        ("/cookies", "Cookie policy"),
+        ("/accessibility", "Accessibility statement"),
+    ],
+)
+def test_legal_pages_served(client, path, heading):
+    r = client.get(path)
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert heading in r.text
+    # readable signed out: no supabase-js <script> or auth gate on these pages
+    # (terms.html's credits section names "@supabase/supabase-js" in prose,
+    # so check for the actual script tag, not the bare library name)
+    assert "cdn.jsdelivr.net/npm/@supabase/supabase-js" not in r.text
+    assert 'id="gate"' not in r.text
+
+
+def test_legal_pages_link_to_each_other(client):
+    r = client.get("/privacy").text
+    for path in ("/privacy", "/terms", "/cookies", "/accessibility"):
+        assert f'href="{path}"' in r
+
+
+def test_robots_txt_disallows_everything(client):
+    r = client.get("/robots.txt")
+    assert r.status_code == 200
+    assert "text/plain" in r.headers["content-type"]
+    assert "Disallow: /" in r.text
+
+
 def test_static_assets_served(client):
     for asset in (
         "/static/app.js",
@@ -364,7 +398,16 @@ def test_health_ok_in_local_mode(client):
 
 
 def test_security_headers_on_pages_and_static(client):
-    for path in ("/", "/search", "/static/common.js", "/api/config"):
+    for path in (
+        "/",
+        "/search",
+        "/privacy",
+        "/terms",
+        "/cookies",
+        "/accessibility",
+        "/static/common.js",
+        "/api/config",
+    ):
         headers = client.get(path).headers
         csp = headers["content-security-policy"]
         assert "frame-ancestors 'none'" in csp
@@ -372,6 +415,20 @@ def test_security_headers_on_pages_and_static(client):
         assert "'unsafe-inline'" not in csp and "'unsafe-eval'" not in csp
         assert headers["x-content-type-options"] == "nosniff"
         assert headers["x-frame-options"] == "DENY"
+
+
+def test_csp_has_no_google_fonts(client):
+    # Fonts are self-hosted (static/fonts/) -- no visitor IP/UA/Referer should
+    # ever reach fonts.googleapis.com / fonts.gstatic.com.
+    csp = client.get("/").headers["content-security-policy"]
+    assert "googleapis" not in csp
+    assert "gstatic" not in csp
+    assert "style-src 'self'" in csp
+    assert "font-src 'self'" in csp
+    for path in ("/", "/search", "/privacy", "/terms", "/cookies", "/accessibility"):
+        html = client.get(path).text
+        assert "fonts.googleapis.com" not in html
+        assert "fonts.gstatic.com" not in html
 
 
 def test_csp_hashes_the_inline_theme_script(client):
@@ -382,7 +439,17 @@ def test_csp_hashes_the_inline_theme_script(client):
     html = client.get("/").content.decode("utf-8")
     body = re.search(r"<script>(.*?)</script>", html, re.DOTALL).group(1)
     digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
-    assert f"'sha256-{digest}'" in client.get("/").headers["content-security-policy"]
+    csp = client.get("/").headers["content-security-policy"]
+    assert f"'sha256-{digest}'" in csp
+
+    # Every page shares the same inline theme-bootstrap script, so the same
+    # hash must satisfy every one of them -- the legal pages carry it too,
+    # and _inline_script_hashes() globs *.html precisely so none get missed.
+    for path in ("/search", "/privacy", "/terms", "/cookies", "/accessibility"):
+        other_html = client.get(path).content.decode("utf-8")
+        other_body = re.search(r"<script>(.*?)</script>", other_html, re.DOTALL).group(1)
+        assert other_body == body
+        assert f"'sha256-{digest}'" in client.get(path).headers["content-security-policy"]
 
 
 def test_csp_allows_supabase_only_in_cloud_mode(client, monkeypatch):
