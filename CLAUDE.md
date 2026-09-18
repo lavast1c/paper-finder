@@ -33,15 +33,17 @@ no `s22` 9618 papers at all — so 60 papers across `s21`/`s23`-`s26` +
 pattern — not the one-taxonomy-spans-both-papers pattern used for the
 MCQ+structured subjects below. 9231 also gained a genuine 4th variant on the
 mirror from 2025 onward (confirmed for all four papers, mirroring 9702's own
-2025 variant-4 expansion) — `DOWNLOAD_SCOPE`'s `"9231"` entry now tries it too.
+2025 variant-4 expansion) — `DOWNLOAD_SCOPE`'s `"9231"` entry now downloads
+it for every paper; the s25/w25/s26 variant-4 P1/P4 papers are in the corpus
+below alongside the P2/P3 ones added at the same time.
 
 | Subject | Code/paper | QP papers | Questions | Answered | Taxonomy |
 |---|---|---|---|---|---|
 | Physics | 9702 P1+P2 | 97 | 2285 | 2285 | `s01`-`s11` (11) |
-| Further Pure Maths | 9231 P1 | 39 | 273 | 273 | `fp1`-`fp7` (7) |
-| Further Pure Maths 2 | 9231 P2 | 42 | 333 | 333 | `fp21`-`fp26` (6) |
+| Further Pure Maths | 9231 P1 | 42 | 294 | 294 | `fp1`-`fp7` (7) |
+| Further Pure Maths 2 | 9231 P2 | 42 | 337 | 337 | `fp21`-`fp26` (6) |
 | Further Mechanics | 9231 P3 | 42 | 292 | 292 | `fm1`-`fm6` (6) |
-| Further Prob & Stats | 9231 P4 | 39 | 237 | 237 | `fs1`-`fs5` (5) |
+| Further Prob & Stats | 9231 P4 | 42 | 255 | 255 | `fs1`-`fs5` (5) |
 | Pure Mathematics 1 | 9709 P1 | 46 | 502 | 502 | `pm1`-`pm8` (8) |
 | Probability & Stats 1 | 9709 P5 | 46 | 307 | 307 | `ps1`-`ps5` (5) |
 | Pure Mathematics 3 | 9709 P3 | 45 | 479 | 478 | `pm31`-`pm39` (9) |
@@ -75,15 +77,10 @@ scheme was never published — every question would show unanswered);
 `9701_s24_qp_22.pdf` question 5, `9709_s26_qp_12` (a 4-page preview PDF, 9
 questions short), and `9709_s24_qp_33.pdf` question 11 (its mark scheme's
 answer table stops at question 10) each have one missing answer/paper but
-stay in the corpus. `9231_s26_qp_24.pdf` (Further Pure Maths 2, the newest
-May/June 2026 variant 4) is a watermarked "PapaCambridge" re-upload rather
-than a clean official scan — its repeating left-margin watermark text broke
-`segment.py`'s question-number tracking after Q4, merging real questions 4-8
-into one DB row (question 4). Every other watermarked s26 paper (all of 9231
-P1/P4, and every other P2/P3 variant) segmented correctly, so this looks like
-a one-off interaction with that paper's own layout rather than a general
-regression; the merged row is multi-labelled with every topic it actually
-covers (`fp24`, `fp25`, `fp26`) so it stays findable by topic.
+stay in the corpus; `9709_s26_qp_32.pdf` is the same 4-page mirror-preview
+issue as `9709_s26_qp_12` (`"This document has 4 pages"` — a placeholder, not
+the real paper), so it segments to zero questions and stays excluded from
+`publish`'s per-paper count until the mirror replaces it with the real scan.
 
 Taxonomies live in `src/paper_finder/topics.py` as fourteen `Taxonomy`
 instances (`TAXONOMIES`, 118 topics total); `taxonomy_for(subject_code,
@@ -207,6 +204,20 @@ patches), each verified against a full cross-subject rebuild when made —
   `_answer_table_first_page()` depends on to find a mark scheme's real Q1,
   breaking answer parsing corpus-wide. The kept fix never inspects a line's
   y1/height, only x0/text, so it carries none of the first approach's risk.
+- **Graph origin label mistaken for a rival question number, found via
+  Further Pure Mathematics 2** (2026-09-19): `_is_structured_question_start`'s
+  body-lookahead rejected a candidate number whenever *any* other bare margin
+  number appeared before the first prose line, treating it as a table column.
+  A question that opens with a graph can put its "0" origin label in that
+  same margin column right under its own number — a genuine, common layout,
+  not a table — so `9231_s26_qp_24.pdf` (a watermarked "PapaCambridge"
+  re-upload, though the watermark itself was a red herring) rejected Q5 and
+  merged real questions 4-8 into one DB row. A smaller number can never be a
+  *later* question in the 1, 2, 3 ... sequence the segmenter is already
+  tracking, so the veto now only fires for a number `>= expected` — a
+  same-or-later margin number is still evidence of a table, but a smaller
+  one never is. Full-corpus re-segment changed only this one paper (4 ->
+  correctly 8 questions).
 
 **Deployed** to Vercel + Supabase (see `DEPLOY_PROGRESS.md`). The local build
 pipeline is unchanged (still SQLite). `paper-finder publish` pushes `qp`
@@ -253,7 +264,7 @@ besides widening the CHECK it added a trailing `papers integer[]` filter (on
 explicitly (0015 removed default grants). 0018 (Further Pure Maths 2 /
 Further Mechanics) is back to CHECK-only, like 0010-0014.
 
-Cloud is live: **840 qp papers, 11903 questions, 11901 answered**; crop PNGs
+Cloud is live: **846 qp papers, 11946 questions, 11944 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
 `list`/`sign` both fail — genuinely private). Deployed at
 `pastpaperanalyser.vercel.app`.
