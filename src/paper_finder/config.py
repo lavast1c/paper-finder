@@ -125,7 +125,7 @@ DOWNLOAD_SCOPE: dict = {
         "9702": {"papers": [1, 2], "variants": [1, 2, 3, 4]},  # a 4th variant was added from 2025
         "9231": {
             "papers": [1, 2, 3, 4],  # Further Pure 1 + 2, Further Mechanics, Further Prob & Stats
-            "variants": [1, 2, 3],
+            "variants": [1, 2, 3, 4],  # a 4th variant confirmed on the mirror from 2025 too
         },
         "9709": {
             "papers": [1, 3, 4, 5, 6],  # Pure 1, Pure 3, Mechanics, Prob & Stats 1 + 2
