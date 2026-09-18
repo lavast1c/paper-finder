@@ -1,0 +1,25 @@
+Copyright (c) 2026 the paper-finder repository owner. All rights reserved.
+
+This repository's own source code (everything except third-party content
+noted below) is provided for private use by those the owner has given
+access to this private repository. No permission is granted to copy,
+modify, publish, distribute, sublicense, or otherwise use this code outside
+that private repository access, except as required for personal, private
+study use of the deployed tool.
+
+Third-party content used by this project carries its own licence and is not
+covered by the above:
+
+- Cambridge International (CIE) past exam papers, mark schemes, and any text
+  or image extracted from them (question text, answer text, and the
+  `data/crops/` image crops) are (c) Cambridge Assessment. They are used here
+  under private-study fair-use expectations only; they are never committed to
+  this repository and never redistributed. See CLAUDE.md and README.md.
+- IBM Plex Sans and IBM Plex Mono (`src/paper_finder/web/static/fonts/`) are
+  (c) IBM Corp., licensed under the SIL Open Font License, Version 1.1 (see
+  `src/paper_finder/web/static/fonts/OFL.txt`).
+- `@supabase/supabase-js`, loaded at runtime from jsDelivr, is licensed under
+  the MIT License by Supabase, Inc. and contributors.
+
+This project is an independent tool and is not affiliated with, endorsed by,
+or sponsored by Cambridge University Press & Assessment, IBM, or Supabase.
