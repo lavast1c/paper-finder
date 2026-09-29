@@ -8,9 +8,7 @@ number) together with the mark-scheme answer. You can also browse every
 question by syllabus topic as flashcards. The web UI is branded
 **Paper Analyser**.
 
-![Paper Analyser: browse-by-topic flashcard](docs/screenshot.png)
-
-<!-- Placeholder: save a screenshot of the browse page at docs/screenshot.png -->
+![Paper Analyser search page](docs/screenshot.jpg)
 
 ## How it works
 
