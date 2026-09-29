@@ -1,3 +1,5 @@
-# Normalise line endings: store as LF in the repo, check out native on each OS.
+# Normalise line endings: text files are stored AND checked out as LF on every
+# OS (`eol=lf` overrides core.autocrlf). A tool that writes CRLF on Windows
+# (e.g. Python text-mode writes) still commits as LF -- git converts on add.
 * text=auto eol=lf
 *.pdf binary
