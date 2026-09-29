@@ -42,9 +42,17 @@ dist/
 .DS_Store
 Thumbs.db
 
-# --- Claude Code ---
+# --- AI coding tools (per-machine installs and config) ---
 CLAUDE.local.md
 .claude/settings.local.json
+# Third-party agent skills installed by `npx skills add` (restorable from the
+# lock file, which is local too): the skill sources, Claude Code's symlinks to
+# them, and the lock file itself.
+.agents/
+.claude/skills/
+skills-lock.json
+# Codex CLI config (MCP server list)
+.codex/
 
 # --- Reference syllabus material (copyright CIE / textbook publishers) ---
 Required Syllabuses/
