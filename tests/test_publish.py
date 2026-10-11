@@ -41,6 +41,7 @@ def local_db(tmp_path):
             "INSERT INTO question_topics (question_id, topic_code) VALUES (?, ?)",
             [(1, "s02"), (2, "s04"), (2, "s03")],
         )
+        conn.execute("INSERT INTO question_difficulty (question_id, difficulty) VALUES (2, 4)")
         conn.commit()
     return db_path
 
@@ -146,9 +147,11 @@ def test_publish_statement_order_and_commit(local_db):
     assert by_code["ps21"][4] == "Probability & Statistics 2"
     assert by_code["cs01"][4] == "Computer Science"
 
-    # every question row carries the is_mcq bool as its last value
+    # every question row ends with the is_mcq bool, then the 1-5 difficulty
+    # (None when the question isn't rated)
     question_rows = log[3][2]
-    assert [r[-1] for r in question_rows] == [True, False]
+    assert [r[-2] for r in question_rows] == [True, False]
+    assert [r[-1] for r in question_rows] == [None, 4]
 
 
 def test_publish_rolls_back_on_failure(local_db):

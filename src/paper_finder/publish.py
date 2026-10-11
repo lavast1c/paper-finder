@@ -40,7 +40,8 @@ SELECT q.id, q.paper_id, q.question_number, q.question_text, q.marks, q.has_figu
        (SELECT group_concat(qt.topic_code) FROM question_topics qt WHERE qt.question_id = q.id),
        q.crop_count,
        (SELECT a.answer_crop_count FROM answers a WHERE a.question_id = q.id LIMIT 1),
-       COALESCE(q.is_mcq, 0)
+       COALESCE(q.is_mcq, 0),
+       (SELECT d.difficulty FROM question_difficulty d WHERE d.question_id = q.id)
 FROM questions q
 JOIN papers p ON p.id = q.paper_id
 WHERE p.paper_type = 'qp'
@@ -55,8 +56,8 @@ _INSERT_PAPERS = (
 _INSERT_QUESTIONS = (
     "INSERT INTO public.questions "
     "(id, paper_id, question_number, question_text, marks, has_figure, answer_text, "
-    "topic_codes, crop_count, answer_crop_count, is_mcq) "
-    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    "topic_codes, crop_count, answer_crop_count, is_mcq, difficulty) "
+    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 )
 # public.topics has no FK from public.papers, so `DELETE FROM public.papers` does
 # not cascade to it -- re-upsert it from the taxonomies on every publish so it
@@ -102,7 +103,8 @@ def _question_row(row: tuple) -> tuple:
     topic codes (col 7, ``"s02,s09"`` or ``None``) to a sorted ``list`` --
     psycopg3 adapts a list to a Postgres array. Col 8 (``crop_count``) is already
     an int and rides along untouched. Col 9 (``answer_crop_count``) is NULL when
-    the question has no answer row -- send 0."""
+    the question has no answer row -- send 0. Col 11 (``difficulty``, 1-5) is
+    NULL for an unrated question and rides along as-is."""
     values = list(row)
     values[5] = bool(values[5])
     values[7] = sorted(values[7].split(",")) if values[7] else []
