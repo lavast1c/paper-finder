@@ -249,7 +249,15 @@ must be reflected there or the browser will block it. Local `paper-finder
 serve` (no Supabase env) is otherwise untouched — SQLite, no login, PDF
 deep-links.
 
-Supabase migrations `0001`-`0016` and `0018` are applied in this branch's
+**Difficulty (1-5, relative to the question's own subject)** lives in
+`labels/question_difficulty.tsv` (`filename<TAB>qnum<TAB>level<TAB>source`),
+loaded by `paper-finder difficulty` (a `build` step after `topics`, same
+cascade-repair reason) into `question_difficulty`, and published as
+`questions.difficulty`. Only Pure Mathematics 1 is rated so far (502, hand-read).
+The Difficulty(s) filter + "Difficulty n/5" badge only show for subjects in
+`PF.DIFFICULTY_SUBJECTS` (`common.js`) — add a subject there once it's rated.
+
+Supabase migrations `0001`-`0016`, `0018` and `0019` are applied in this branch's
 history (project `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in
 `supabase/migrations/`) — `0017` (an account-deletion RPC) was applied on the
 not-yet-merged `compliance-legal-a11y` branch, live on the project but not
@@ -345,7 +353,7 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
   every selected subject, `--subject` picks which. NOT part of `build`
   (network side effect). Idempotent (skips files already in `data/raw/`).
 - Rebuild the whole question bank from `data/raw/`: `paper-finder build`
-  (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics` -> `figures`,
+  (= `ingest` -> `extract` -> `segment` -> `answers` -> `topics` -> `difficulty` -> `figures`,
   each idempotent). A `db.py` schema change = delete `papers.db` first, then
   `build`.
 - Then: `paper-finder search "<a few words>"`, `paper-finder evaluate`,
