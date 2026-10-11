@@ -512,6 +512,7 @@ PF.DIFFICULTY_SUBJECTS = new Set([
   "Probability & Statistics 1",
   "Probability & Statistics 2",
   "Economics",
+  "Chemistry",
 ]);
 PF.hasDifficulty = (subject) => PF.DIFFICULTY_SUBJECTS.has(subject);
 
