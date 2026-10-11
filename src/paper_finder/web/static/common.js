@@ -500,7 +500,12 @@ PF.curriculumOf = (subject) => (PF.A_LEVEL_SUBJECTS.has(subject) ? "A" : "AS");
 // Subjects with difficulty ratings (labels/question_difficulty.tsv). The
 // Difficulty(s) filter is shown only for these -- on any other subject every
 // pick would match nothing -- so add a subject here once its rows are loaded.
-PF.DIFFICULTY_SUBJECTS = new Set(["Pure Mathematics 1"]);
+PF.DIFFICULTY_SUBJECTS = new Set([
+  "Pure Mathematics 1",
+  "Further Mechanics",
+  "Further Probability & Statistics",
+  "Computer Science",
+]);
 PF.hasDifficulty = (subject) => PF.DIFFICULTY_SUBJECTS.has(subject);
 
 // A question's 1-5 rating as a small badge, or null when it isn't rated.
