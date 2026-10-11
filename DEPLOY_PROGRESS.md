@@ -58,7 +58,7 @@ Fixed values you'll reuse:
 |---|---|
 | Supabase project ref | `gfigwnbkzkgwxcdoqxtz` |
 | Supabase project URL | `https://gfigwnbkzkgwxcdoqxtz.supabase.co` |
-| GitHub repo | `Lavastic-Gaming/paper-finder` |
+| GitHub repo | `lavast1c/paper-finder` |
 | Expected publish counts | 34 papers / 790 questions / 765 answered |
 
 ---
@@ -182,7 +182,7 @@ keep-warm cron. You don't configure a framework or build command — Vercel dete
 it.
 
 1. <https://vercel.com> → sign in with GitHub.
-2. **Add New… → Project** → import `Lavastic-Gaming/paper-finder`. If it's not
+2. **Add New… → Project** → import `lavast1c/paper-finder`. If it's not
    listed, "Adjust GitHub App Permissions" and grant access to the repo.
 3. On the configure screen:
    - **Framework Preset:** it should auto-detect **FastAPI**. If it shows "Other",

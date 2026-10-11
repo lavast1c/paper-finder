@@ -386,7 +386,7 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 
 ## Version control
 
-- Repo: `github.com/Lavastic-Gaming/paper-finder` (private), remote `origin`,
+- Repo: `github.com/lavast1c/paper-finder` (private), remote `origin`,
   default branch `main`.
 - Commit identity is set locally on this repo (`Lavastic-Gaming` /
   `vihaantalluri@gmail.com`) — do not rely on global git config.
