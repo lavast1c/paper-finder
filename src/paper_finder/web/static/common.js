@@ -514,6 +514,7 @@ PF.DIFFICULTY_SUBJECTS = new Set([
   "Economics",
   "Chemistry",
   "Physics",
+  "Biology",
 ]);
 PF.hasDifficulty = (subject) => PF.DIFFICULTY_SUBJECTS.has(subject);
 

@@ -253,9 +253,14 @@ deep-links.
 `labels/question_difficulty.tsv` (`filename<TAB>qnum<TAB>level<TAB>source`),
 loaded by `paper-finder difficulty` (a `build` step after `topics`, same
 cascade-repair reason) into `question_difficulty`, and published as
-`questions.difficulty`. Only Pure Mathematics 1 is rated so far (502, hand-read).
-The Difficulty(s) filter + "Difficulty n/5" badge only show for subjects in
-`PF.DIFFICULTY_SUBJECTS` (`common.js`) — add a subject there once it's rated.
+`questions.difficulty`. All 11946 questions in all fourteen subjects are rated
+(hand-read, `source=hand`), targeting roughly 5-12% / 25-30% / 35-42% / 18-22% /
+3-6% across levels 1-5 per scale. Physics/Chemistry/Biology/Economics use two
+separate scales — Paper 1 (MCQ) and Paper 2 (written) are each rated relative
+to themselves, so an MCQ "5" is one of that subject's hardest MCQs, not
+comparable to a written "5". The Difficulty(s) filter + "Difficulty n/5" badge
+only show for subjects in `PF.DIFFICULTY_SUBJECTS` (`common.js`) — a newly added
+subject must be rated and then added there.
 
 Supabase migrations `0001`-`0016`, `0018` and `0019` are applied in this branch's
 history (project `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in
