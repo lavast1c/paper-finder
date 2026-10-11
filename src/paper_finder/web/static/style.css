@@ -582,7 +582,8 @@ ol#results li {
 .title .rank { color: var(--text-muted); }
 .title .name { font-weight: 600; }
 .title code { font-family: var(--mono); font-size: 0.8em; color: var(--text-muted); }
-.title .marks {
+.title .marks,
+.title .difficulty {
   padding: 0.1rem 0.55rem;
   font-size: 0.72rem;
   color: var(--accent-ink);
@@ -1022,7 +1023,8 @@ ol#results li {
   border-color: var(--border);
   box-shadow: var(--edge);
 }
-.card-head .marks {
+.card-head .marks,
+.card-head .difficulty {
   padding: 0.1rem 0.55rem;
   font-size: 0.72rem;
   color: var(--accent-ink);

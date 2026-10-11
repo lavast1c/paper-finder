@@ -6,9 +6,11 @@ paper-finder extract     pull text out of every recorded PDF into data/processed
 paper-finder segment     split extracted question papers into questions
 paper-finder answers     read answers from mark schemes and link them
 paper-finder topics      load syllabus topic labels from labels/question_topics.tsv
+paper-finder difficulty  load difficulty ratings from labels/question_difficulty.tsv
 paper-finder figures     render a cropped image of every question into data/crops/
 paper-finder classify    label questions with syllabus topics via an LLM (needs "classify")
-paper-finder build       run ingest -> extract -> segment -> answers -> topics -> figures
+paper-finder build       run ingest -> extract -> segment -> answers -> topics ->
+                         difficulty -> figures
 paper-finder download    fetch past-paper PDFs from a mirror into data/raw/
 paper-finder publish     push the question bank to Supabase (needs the "publish" extra)
 paper-finder publish-figures  upload the question crops to Supabase Storage
@@ -26,6 +28,7 @@ import sys
 
 from paper_finder import config
 from paper_finder.db import connect, init_db
+from paper_finder.difficulty import load_difficulty_labels
 from paper_finder.download import download
 from paper_finder.evaluate import evaluate, load_validation
 from paper_finder.extract import extract_all
@@ -141,6 +144,23 @@ def _cmd_topics(_args: argparse.Namespace) -> None:
         print("    (those papers are not in data/raw/ -- run: paper-finder build)")
 
 
+def _cmd_difficulty(_args: argparse.Namespace) -> None:
+    report = load_difficulty_labels()
+    print(f"Difficulty rows read     : {report.rows}")
+    print(f"Questions rated          : {report.rated}")
+    print(f"Questions unrated        : {report.unrated}")
+    for subject, (rated, unrated) in sorted(report.by_subject.items()):
+        if rated:
+            print(f"    {subject:<34} {rated:>5} rated, {unrated:>5} unrated")
+    if report.counts:
+        spread = "  ".join(f"{level}: {report.counts.get(level, 0)}" for level in range(1, 6))
+        print(f"By level                 : {spread}")
+    if report.orphans:
+        print(f"Ratings with no question : {len(report.orphans)}")
+        for ref in report.orphans[:10]:
+            print(f"    - {ref}")
+
+
 def _cmd_figures(args: argparse.Namespace) -> None:
     # `build` calls this with its own namespace, which has none of these flags.
     report = render_all(
@@ -200,7 +220,15 @@ def _cmd_classify(args: argparse.Namespace) -> None:
 
 
 def _cmd_build(_args: argparse.Namespace) -> None:
-    for step in (_cmd_ingest, _cmd_extract, _cmd_segment, _cmd_answers, _cmd_topics, _cmd_figures):
+    for step in (
+        _cmd_ingest,
+        _cmd_extract,
+        _cmd_segment,
+        _cmd_answers,
+        _cmd_topics,
+        _cmd_difficulty,
+        _cmd_figures,
+    ):
         print(f"\n>>> {step.__name__.removeprefix('_cmd_')}")
         step(_args)
 
@@ -464,6 +492,11 @@ def main(argv: list[str] | None = None) -> None:
     p_topics = sub.add_parser("topics", help="load syllabus topic labels into the database")
     p_topics.set_defaults(func=_cmd_topics)
 
+    p_difficulty = sub.add_parser(
+        "difficulty", help="load difficulty ratings (1-5) into the database"
+    )
+    p_difficulty.set_defaults(func=_cmd_difficulty)
+
     p_classify = sub.add_parser(
         "classify", help="label questions with syllabus topics via an LLM (needs 'classify' extra)"
     )
@@ -492,7 +525,7 @@ def main(argv: list[str] | None = None) -> None:
     p_figures.set_defaults(func=_cmd_figures)
 
     p_build = sub.add_parser(
-        "build", help="ingest -> extract -> segment -> answers -> topics -> figures"
+        "build", help="ingest -> extract -> segment -> answers -> topics -> difficulty -> figures"
     )
     p_build.set_defaults(func=_cmd_build)
 

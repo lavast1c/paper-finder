@@ -13,6 +13,8 @@ const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
+const fbDifficultyEl = document.getElementById("fb-difficulty"); // Difficulty(s) wrapper -- hidden off rated subjects
+const difficultyEl = document.getElementById("f-difficulty"); // multi-select dropdown: 1-5 ratings
 const historyEl = document.getElementById("history"); // custom recent-search panel
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
@@ -106,7 +108,8 @@ function clearResults() {
 // --- search sources ------------------------------------------------------
 
 // The filter bar: Paper(s) = MCQ (Paper 1) / Theory (Paper 2), Season(s) =
-// session letter, Year(s) = year. Each is a multi-select dropdown of checkboxes;
+// session letter, Year(s) = year, Difficulty(s) = 1-5 rating (rated subjects
+// only). Each is a multi-select dropdown of checkboxes;
 // nothing ticked = no restriction on that axis.
 function picked(groupEl) {
   return groupEl
@@ -131,6 +134,14 @@ function syncPaperFieldVisibility() {
   if (fbPaperEl) fbPaperEl.hidden = mode === null;
   if (paperEl) PF.labelPaperOptions(paperEl, subject);
   return changed;
+}
+
+// Difficulty(s) only appears for subjects with ratings (PF.hasDifficulty);
+// switching to an unrated subject drops any pick so it can't empty the results.
+function syncDifficultyField() {
+  const shown = PF.hasDifficulty(currentSubject());
+  if (fbDifficultyEl) fbDifficultyEl.hidden = !shown;
+  if (!shown && difficultyEl && difficultyEl._ms) difficultyEl._ms.setValues([]);
 }
 
 // Curriculum is derived from the selected subject (PF.curriculumOf in
@@ -160,6 +171,7 @@ function syncCurriculum() {
 function onSubjectChanged() {
   syncCurriculum();
   const modeChanged = syncPaperFieldVisibility();
+  syncDifficultyField();
   // a Paper(s) pick is stale once the field is hidden, or once it means
   // something else ("1" = MCQ for Physics, Theory Fundamentals for CS) — drop it
   if ((modeChanged || !PF.showsPaperField(currentSubject())) && paperEl && paperEl._ms) {
@@ -178,6 +190,7 @@ function scope() {
     papers,
     years: picked(yearEl),
     sessions: picked(seasonEl),
+    difficulties: PF.hasDifficulty(subject) ? picked(difficultyEl).map(Number) : [],
   };
 }
 
@@ -189,6 +202,7 @@ async function localSearch(q) {
   if (s.papers.length) params.set("papers", s.papers.join(","));
   if (s.years.length) params.set("years", s.years.join(","));
   if (s.sessions.length) params.set("sessions", s.sessions.join(","));
+  if (s.difficulties.length) params.set("difficulties", s.difficulties.join(","));
   const res = await fetch("/api/search?" + params.toString(), { signal: controller.signal });
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json(); // { query, count, results: [result_payload...] }
@@ -204,6 +218,7 @@ async function cloudSearch(q) {
     sessions: s.sessions,
     subjects: s.subject ? [s.subject] : [],
     papers: s.papers,
+    difficulties: s.difficulties,
   });
   if (error) throw new Error(error.message || "search failed");
   return { count: data.length, results: data.map(PF.cloudRow) };
@@ -315,7 +330,7 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-for (const group of [paperEl, yearEl, seasonEl]) {
+for (const group of [paperEl, yearEl, seasonEl, difficultyEl]) {
   if (!group) continue;
   PF.multiSelect(group);
   group.addEventListener("change", () => {
@@ -346,7 +361,7 @@ if (curriculumEl) {
 const clearAllBtn = document.getElementById("clear-all");
 if (clearAllBtn) {
   clearAllBtn.addEventListener("click", () => {
-    for (const group of [paperEl, yearEl, seasonEl]) {
+    for (const group of [paperEl, yearEl, seasonEl, difficultyEl]) {
       if (group && group._ms) group._ms.setValues([]);
     }
     if (input.value.trim()) run();
@@ -368,6 +383,7 @@ function onReady(email, client) {
     }
     syncCurriculum();
     syncPaperFieldVisibility();
+    syncDifficultyField();
     const initial = params.get("q");
     if (initial) {
       input.value = initial;

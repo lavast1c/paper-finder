@@ -37,6 +37,7 @@ class SearchHit:
     topic_codes: tuple[str, ...] = field(default_factory=tuple)
     crop_count: int = 0  # number of question-image crops; 0 = show text only
     answer_crop_count: int = 0  # number of mark-scheme crops; 0 = show answer text only
+    difficulty: int | None = None  # 1-5 relative to its subject; None = not rated
 
     @property
     def paper_variant(self) -> str:
@@ -78,6 +79,8 @@ _ANSWER_CROP_COUNT_SUBQUERY = (
     "(SELECT a.answer_crop_count FROM answers a WHERE a.question_id = q.id LIMIT 1)"
 )
 
+_DIFFICULTY_SUBQUERY = "(SELECT d.difficulty FROM question_difficulty d WHERE d.question_id = q.id)"
+
 _SEARCH_SELECT = f"""
 SELECT
     p.filename, p.subject_code, p.subject_name, p.year, p.session, p.paper, p.variant,
@@ -85,6 +88,7 @@ SELECT
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
     {_TOPIC_CODES_SUBQUERY} AS topic_codes,
+    {_DIFFICULTY_SUBQUERY} AS difficulty,
     bm25(questions_fts) AS score
 FROM questions_fts
 JOIN questions q ON q.id = questions_fts.rowid
@@ -109,18 +113,22 @@ def search(
     variants: Sequence[int] | None = None,
     subjects: Sequence[str] | None = None,
     papers: Sequence[int] | None = None,
+    difficulties: Sequence[int] | None = None,
 ) -> list[SearchHit]:
     """Keyword search. ``kind`` filters by question type: ``all`` (default),
     ``mcq`` (multiple-choice questions only) or ``theory`` (structured only).
     ``subjects`` / ``years`` / ``sessions`` / ``papers`` / ``variants`` narrow to
-    matching papers; an empty or missing axis places no restriction on it."""
+    matching papers and ``difficulties`` to questions rated at those levels; an
+    empty or missing axis places no restriction on it."""
     fts_query = build_fts_query(query)
     if not fts_query:
         return []
     if kind not in KINDS:
         kind = "all"
 
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
+    scope_where, scope_params = _paper_scope(
+        years, sessions, variants, subjects, papers, difficulties
+    )
     sql = _SEARCH_SELECT
     if scope_where:
         sql += "  AND " + "\n  AND ".join(scope_where) + "\n"
@@ -150,6 +158,7 @@ def search(
             topic_codes=_split_codes(row["topic_codes"]),
             crop_count=row["crop_count"],
             answer_crop_count=row["answer_crop_count"] or 0,
+            difficulty=row["difficulty"],
         )
         for row in rows
     ]
@@ -160,7 +169,8 @@ _BROWSE_COLUMNS = f"""
     q.question_number, q.question_text, q.marks, q.page_start, q.has_figure, q.crop_count,
     (SELECT a.answer_text FROM answers a WHERE a.question_id = q.id LIMIT 1) AS answer,
     {_ANSWER_CROP_COUNT_SUBQUERY} AS answer_crop_count,
-    {_TOPIC_CODES_SUBQUERY} AS topic_codes
+    {_TOPIC_CODES_SUBQUERY} AS topic_codes,
+    {_DIFFICULTY_SUBQUERY} AS difficulty
 """
 
 _BROWSE_ORDER = "ORDER BY p.year DESC, p.session DESC, p.paper, p.variant, q.question_number"
@@ -178,12 +188,14 @@ def _paper_scope(
     variants: Sequence[int] | None,
     subjects: Sequence[str] | None = None,
     papers: Sequence[int] | None = None,
+    difficulties: Sequence[int] | None = None,
 ) -> tuple[list[str], dict]:
     """WHERE clauses + bind params restricting ``p`` (papers) by subject_name /
     year / session / paper number / variant. An empty or missing axis places no
     restriction on it. ``subjects`` matches ``papers.subject_name`` (the UI's
     Subject value); ``papers`` is the paper number (the 1 of ``_12``), while
-    ``variants`` is only its second digit."""
+    ``variants`` is only its second digit. ``difficulties`` keeps only questions
+    rated at one of those levels (1-5), so it also drops every unrated question."""
     where: list[str] = []
     params: dict = {}
     if subjects:
@@ -206,6 +218,12 @@ def _paper_scope(
         sql, p = _in_clause("pn", [int(n) for n in papers])
         where.append(f"p.paper IN {sql}")
         params.update(p)
+    if difficulties:
+        sql, p = _in_clause("dl", [int(d) for d in difficulties])
+        where.append(
+            f"q.id IN (SELECT d.question_id FROM question_difficulty d WHERE d.difficulty IN {sql})"
+        )
+        params.update(p)
     return where, params
 
 
@@ -217,6 +235,7 @@ def _browse_filters(
     variants: Sequence[int] | None,
     subjects: Sequence[str] | None = None,
     papers: Sequence[int] | None = None,
+    difficulties: Sequence[int] | None = None,
 ) -> tuple[str, dict]:
     """Shared WHERE fragment + params for ``browse_by_topic`` and its COUNT."""
     codes_sql, params = _in_clause("t", topic_codes)
@@ -226,7 +245,9 @@ def _browse_filters(
         _KIND_FILTER,
     ]
     params["kind"] = kind
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
+    scope_where, scope_params = _paper_scope(
+        years, sessions, variants, subjects, papers, difficulties
+    )
     where.extend(scope_where)
     params.update(scope_params)
     return " AND ".join(where), params
@@ -241,6 +262,7 @@ def browse_by_topic(
     variants: Sequence[int] | None = None,
     subjects: Sequence[str] | None = None,
     papers: Sequence[int] | None = None,
+    difficulties: Sequence[int] | None = None,
     limit: int = 20,
     offset: int = 0,
     db_path: Path | None = None,
@@ -255,7 +277,9 @@ def browse_by_topic(
     if kind not in KINDS:
         kind = "all"
 
-    where, params = _browse_filters(codes, kind, years, sessions, variants, subjects, papers)
+    where, params = _browse_filters(
+        codes, kind, years, sessions, variants, subjects, papers, difficulties
+    )
     init_db(db_path)
     with connect(db_path) as conn:
         total = conn.execute(
@@ -287,6 +311,7 @@ def browse_by_topic(
             topic_codes=_split_codes(row["topic_codes"]),
             crop_count=row["crop_count"],
             answer_crop_count=row["answer_crop_count"] or 0,
+            difficulty=row["difficulty"],
         )
         for row in rows
     ]
@@ -301,6 +326,7 @@ def topic_counts(
     variants: Sequence[int] | None = None,
     subject: str | None = None,
     papers: Sequence[int] | None = None,
+    difficulties: Sequence[int] | None = None,
     db_path: Path | None = None,
 ) -> dict:
     """Per-topic question count under the current filters, every topic present
@@ -327,7 +353,9 @@ def topic_counts(
 
     where = [_KIND_FILTER]
     params: dict = {"kind": kind}
-    scope_where, scope_params = _paper_scope(years, sessions, variants, subjects, papers)
+    scope_where, scope_params = _paper_scope(
+        years, sessions, variants, subjects, papers, difficulties
+    )
     where.extend(scope_where)
     params.update(scope_params)
     filt = " AND ".join(where)

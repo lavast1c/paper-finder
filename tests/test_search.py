@@ -556,3 +556,46 @@ def test_topic_counts_scoped_to_a_subject_returns_only_that_taxonomy(multi_subje
 def test_topic_counts_default_is_physics_only(multi_subject_db):
     result = topic_counts(db_path=multi_subject_db)
     assert {t["code"] for t in result["topics"]} == {f"s{n:02d}" for n in range(1, 12)}
+
+
+@pytest.fixture
+def rated_db(topic_db):
+    """topic_db with questions 1/3/4 rated 2/5/4; 2 and 5 left unrated."""
+    with connect(topic_db) as conn:
+        conn.executemany(
+            "INSERT INTO question_difficulty (question_id, difficulty) VALUES (?, ?)",
+            [(1, 2), (3, 5), (4, 4)],
+        )
+        conn.execute("INSERT INTO questions_fts(questions_fts) VALUES ('rebuild')")
+        conn.commit()
+    return topic_db
+
+
+def test_browse_and_search_carry_difficulty(rated_db):
+    page, _ = browse_by_topic(["s07", "s08"], db_path=rated_db)
+    assert {h.question_number + 10 * (h.year == 2025): h.difficulty for h in page} == {
+        1: 2,
+        2: None,
+        3: 5,
+        11: 4,
+    }
+    hits = search("wavelength progressive wave", db_path=rated_db)
+    assert hits[0].difficulty == 5
+
+
+def test_browse_difficulty_filter_keeps_only_those_levels(rated_db):
+    page, total = browse_by_topic(["s07", "s08"], difficulties=[4, 5], db_path=rated_db)
+    assert total == 2
+    assert sorted(h.difficulty for h in page) == [4, 5]
+
+
+def test_search_difficulty_filter_drops_unrated(rated_db):
+    hits = search("wave", limit=10, difficulties=[2], db_path=rated_db)
+    assert [h.question_text for h in hits] == ["A transverse wave travels along a string."]
+
+
+def test_topic_counts_difficulty_filter(rated_db):
+    counts = topic_counts(subject="Physics", difficulties=[4], db_path=rated_db)
+    by_code = {t["code"]: t["count"] for t in counts["topics"]}
+    assert by_code["s07"] == 1 and by_code["s08"] == 1 and by_code["s09"] == 0
+    assert counts["total"] == 1

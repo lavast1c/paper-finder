@@ -177,6 +177,22 @@
               </div>
             </div>
           </div>
+          <div class="fb-field fb-field--ms" id="fb-difficulty" hidden>
+            <span class="fb-label" id="lbl-difficulty">Difficulty(s)</span>
+            <div class="multiselect" id="f-difficulty" data-placeholder="Any difficulty">
+              <button type="button" class="ms-toggle" aria-haspopup="listbox"
+                      aria-expanded="false" aria-labelledby="lbl-difficulty ms-val-difficulty">
+                <span class="ms-value" id="ms-val-difficulty">Any difficulty</span>
+              </button>
+              <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden>
+                <label class="ms-opt"><input type="checkbox" value="1" data-short="1"><span>1 &middot; Easiest</span></label>
+                <label class="ms-opt"><input type="checkbox" value="2" data-short="2"><span>2</span></label>
+                <label class="ms-opt"><input type="checkbox" value="3" data-short="3"><span>3</span></label>
+                <label class="ms-opt"><input type="checkbox" value="4" data-short="4"><span>4</span></label>
+                <label class="ms-opt"><input type="checkbox" value="5" data-short="5"><span>5 &middot; Hardest</span></label>
+              </div>
+            </div>
+          </div>
           <div class="fb-field fb-field--ms fb-field--topic">
             <span class="fb-label" id="lbl-topic">Topic(s)</span>
             <div class="multiselect" id="f-topic" data-placeholder="Choose topics&hellip;">
@@ -214,6 +230,7 @@
           <span id="card-title" class="name"></span>
           <code id="card-file"></code>
           <span id="card-marks" class="marks" hidden></span>
+          <span id="card-difficulty" class="difficulty" hidden></span>
           <button id="reveal" type="button" class="reveal-btn" aria-expanded="false">Reveal answer</button>
         </div>
         <div id="card-body" class="card-body">

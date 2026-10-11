@@ -81,6 +81,15 @@ CREATE TABLE IF NOT EXISTS question_topics (
 );
 
 CREATE INDEX IF NOT EXISTS question_topics_code_idx ON question_topics (topic_code);
+
+-- Relative difficulty, 1-5 within the question's own subject. Rebuilt from
+-- labels/question_difficulty.tsv by `paper-finder difficulty`, for the same
+-- reason as question_topics: `segment` reassigns questions.id and the cascade
+-- empties this table. Never write to this table from segment.py.
+CREATE TABLE IF NOT EXISTS question_difficulty (
+    question_id INTEGER PRIMARY KEY REFERENCES questions(id) ON DELETE CASCADE,
+    difficulty  INTEGER NOT NULL CHECK (difficulty BETWEEN 1 AND 5)
+);
 """
 
 

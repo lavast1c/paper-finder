@@ -279,6 +279,7 @@ def create_app(
         sessions: str = "",
         variants: str = "",
         papers: str = "",
+        difficulties: str = "",
         subject: str = "",
     ) -> dict:
         if _supabase_env():  # cloud mode: the browser queries Supabase directly
@@ -293,6 +294,7 @@ def create_app(
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
             papers=_int_csv(papers) or None,
+            difficulties=_int_csv(difficulties) or None,
             subjects=[subject] if subject else None,
         )
         return {
@@ -314,6 +316,7 @@ def create_app(
         sessions: str = "",
         variants: str = "",
         papers: str = "",
+        difficulties: str = "",
         subject: str = "",
     ) -> dict:
         """Per-topic counts under the current filters -- feeds the topic chips.
@@ -327,6 +330,7 @@ def create_app(
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
             papers=_int_csv(papers) or None,
+            difficulties=_int_csv(difficulties) or None,
             subject=subject or None,
             db_path=db_path,
         )
@@ -339,6 +343,7 @@ def create_app(
         sessions: str = "",
         variants: str = "",
         papers: str = "",
+        difficulties: str = "",
         subject: str = "",
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
@@ -357,6 +362,7 @@ def create_app(
             sessions=_csv_param(sessions) or None,
             variants=_int_csv(variants) or None,
             papers=_int_csv(papers) or None,
+            difficulties=_int_csv(difficulties) or None,
             subjects=[subject] if subject else None,
             limit=limit,
             offset=offset,

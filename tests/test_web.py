@@ -498,3 +498,24 @@ def test_topic_endpoints_501_in_cloud_mode(client, monkeypatch):
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
     assert client.get("/api/topics").status_code == 501
     assert client.get("/api/browse", params={"topics": "s01"}).status_code == 501
+
+
+def test_api_difficulty_filter_and_payload(corpus, client):
+    db_path, _, _ = corpus
+    with connect(db_path) as conn:
+        conn.execute("INSERT INTO question_difficulty (question_id, difficulty) VALUES (3, 4)")
+        conn.commit()
+    base = {"topics": "s01,s02,s03,s04"}
+    body = client.get("/api/browse", params=base).json()
+    assert {r["question_number"]: r["difficulty"] for r in body["results"]} == {
+        1: None,
+        2: None,
+        3: 4,
+    }
+    picked = client.get("/api/browse", params={**base, "difficulties": "4,5"}).json()
+    assert [r["question_number"] for r in picked["results"]] == [3]
+    assert client.get("/api/browse", params={**base, "difficulties": "1"}).json()["count"] == 0
+    hits = client.get("/api/search", params={"q": "block slope", "difficulties": "4"}).json()
+    assert [r["question_number"] for r in hits["results"]] == [3]
+    counts = client.get("/api/topics", params={"subject": "Physics", "difficulties": "4"}).json()
+    assert counts["total"] == 1

@@ -14,6 +14,8 @@ const fbPaperEl = document.getElementById("fb-paper"); // Paper(s) field wrapper
 const paperEl = document.getElementById("f-paper"); // multi-select dropdown: Paper 1 (MCQ) / Paper 2 (theory)
 const seasonEl = document.getElementById("f-season"); // multi-select dropdown: CIE session letters
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
+const fbDifficultyEl = document.getElementById("fb-difficulty"); // Difficulty(s) wrapper -- hidden off rated subjects
+const difficultyEl = document.getElementById("f-difficulty"); // multi-select dropdown: 1-5 ratings
 const topicEl = document.getElementById("f-topic"); // multi-select dropdown: syllabus sections; deck stays hidden until at least one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
@@ -24,6 +26,7 @@ const posEl = document.getElementById("pos");
 const cardTitleEl = document.getElementById("card-title");
 const cardFileEl = document.getElementById("card-file");
 const cardMarksEl = document.getElementById("card-marks");
+const cardDifficultyEl = document.getElementById("card-difficulty");
 const revealBtn = document.getElementById("reveal");
 const qCropHintEl = document.getElementById("q-crop-hint");
 const aCropHintEl = document.getElementById("a-crop-hint");
@@ -69,8 +72,8 @@ let topicList = []; // [{code, number, name, subsections, count}] — server is 
 let selected = new Set(); // the picked topics (any number of codes) — union'd by browse_by_topic
 // Multi-select scope filters (each a .multiselect dropdown). Paper(s) = paper
 // number ("1" = MCQ, "2" = theory), Season(s) = session letters, Year(s) =
-// years. An empty array = no restriction on that axis.
-const filters = { papers: [], seasons: [], years: [] };
+// years, Difficulty(s) = 1-5 ratings. An empty array = no restriction on that axis.
+const filters = { papers: [], seasons: [], years: [], difficulties: [] };
 
 const csv = (s) => (s || "").split(",").map((x) => x.trim()).filter(Boolean);
 let deck = [];
@@ -118,6 +121,7 @@ function readUrl() {
   filters.papers = csv(p.get("paper"));
   filters.seasons = csv(p.get("season"));
   filters.years = csv(p.get("year"));
+  filters.difficulties = csv(p.get("difficulty"));
   const i = parseInt(p.get("i") || "0", 10);
   return { codes, i: Number.isFinite(i) && i > 0 ? i : 0 };
 }
@@ -129,6 +133,7 @@ function writeUrl() {
   if (filters.papers.length) p.set("paper", filters.papers.join(","));
   if (filters.seasons.length) p.set("season", filters.seasons.join(","));
   if (filters.years.length) p.set("year", filters.years.join(","));
+  if (filters.difficulties.length) p.set("difficulty", filters.difficulties.join(","));
   if (idx > 0) p.set("i", String(idx));
   const qs = p.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
@@ -141,6 +146,11 @@ function yearsParam() {
 }
 function sessionsParam() {
   return filters.seasons.slice();
+}
+// Only rated subjects show Difficulty(s) (PF.hasDifficulty); elsewhere a stale
+// pick from the URL must not silently empty the deck.
+function difficultiesParam() {
+  return PF.hasDifficulty(subject) ? filters.difficulties.map(Number) : [];
 }
 // Paper(s) is MCQ-vs-theory (`kind`) for MCQ subjects, the paper number
 // (`papers`) for PF.PAPER_SUBJECTS, and ignored otherwise -- PF.paperFilter.
@@ -165,6 +175,8 @@ function scopeQuery(extra) {
   if (papers.length) p.set("papers", papers.join(","));
   if (filters.years.length) p.set("years", filters.years.join(","));
   if (filters.seasons.length) p.set("sessions", filters.seasons.join(","));
+  const difficulties = difficultiesParam();
+  if (difficulties.length) p.set("difficulties", difficulties.join(","));
   p.set("subject", subject);
   return p;
 }
@@ -176,6 +188,7 @@ async function fetchCounts() {
       papers: papersParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
+      difficulties: difficultiesParam(),
       subjects: [subject],
       topic_subject: subject, // restricts the returned topic list to this subject's taxonomy
     });
@@ -206,6 +219,7 @@ async function fetchDeckPage(offset) {
       papers: papersParam(),
       years: yearsParam(),
       sessions: sessionsParam(),
+      difficulties: difficultiesParam(),
       subjects: [subject],
       max_results: PAGE,
       skip: offset,
@@ -437,6 +451,11 @@ function renderCard() {
     cardMarksEl.textContent = `${r.marks} mark${r.marks === 1 ? "" : "s"}`;
   } else {
     cardMarksEl.hidden = true;
+  }
+  if (cardDifficultyEl) {
+    cardDifficultyEl.hidden = !r.difficulty;
+    cardDifficultyEl.textContent = r.difficulty ? `Difficulty ${r.difficulty}/5` : "";
+    cardDifficultyEl.title = "Relative to other questions in this subject (1 = easiest, 5 = hardest)";
   }
 
   const hasCrops = r.crop_count > 0;
@@ -953,6 +972,7 @@ const SCOPE_GROUPS = [
   [paperEl, "papers"],
   [yearEl, "years"],
   [seasonEl, "seasons"],
+  [difficultyEl, "difficulties"],
 ];
 
 // Push the current `filters` arrays back into the dropdowns (deep-link restore).
@@ -989,6 +1009,16 @@ function syncPaperFieldVisibility() {
   return changed;
 }
 
+// Difficulty(s) only appears for subjects with ratings; leaving one drops the pick.
+function syncDifficultyField() {
+  const shown = PF.hasDifficulty(subject);
+  if (fbDifficultyEl) fbDifficultyEl.hidden = !shown;
+  if (!shown && filters.difficulties.length) {
+    filters.difficulties = [];
+    if (difficultyEl && difficultyEl._ms) difficultyEl._ms.setValues([]);
+  }
+}
+
 // Curriculum is derived from the selected subject (PF.curriculumOf in
 // common.js), not tracked as separate URL/API state -- this keeps #curriculum
 // showing the right value and hides every #subject <option> that doesn't
@@ -1016,6 +1046,7 @@ function syncCurriculum() {
 function onSubjectChanged() {
   syncCurriculum();
   const modeChanged = syncPaperFieldVisibility();
+  syncDifficultyField();
   // the picked topics belong to the old subject, and a Paper(s) pick is stale
   // once the field is hidden or means something else ("1" = MCQ for Physics,
   // Theory Fundamentals for Computer Science)
@@ -1068,6 +1099,7 @@ clearAllBtn.addEventListener("click", () => {
   filters.papers = [];
   filters.seasons = [];
   filters.years = [];
+  filters.difficulties = [];
   if (topicEl._ms) topicEl._ms.setValues([]);
   syncToggleUI();
   idx = 0;
@@ -1145,6 +1177,7 @@ function onReady(email, client) {
   if (subjectEl) subjectEl.value = subject;
   syncCurriculum();
   syncPaperFieldVisibility();
+  syncDifficultyField();
   syncToggleUI();
   idx = i;
   selected = new Set(codes); // pruned against the server's valid-code list in refresh()

@@ -497,6 +497,21 @@ PF.A_LEVEL_SUBJECTS = new Set([
 ]);
 PF.curriculumOf = (subject) => (PF.A_LEVEL_SUBJECTS.has(subject) ? "A" : "AS");
 
+// Subjects with difficulty ratings (labels/question_difficulty.tsv). The
+// Difficulty(s) filter is shown only for these -- on any other subject every
+// pick would match nothing -- so add a subject here once its rows are loaded.
+PF.DIFFICULTY_SUBJECTS = new Set(["Pure Mathematics 1"]);
+PF.hasDifficulty = (subject) => PF.DIFFICULTY_SUBJECTS.has(subject);
+
+// A question's 1-5 rating as a small badge, or null when it isn't rated.
+PF.difficultyBadge = function difficultyBadge(level) {
+  if (!level) return null;
+  const badge = el("span", "difficulty", `Difficulty ${level}/5`);
+  badge.dataset.level = String(level);
+  badge.title = "Relative to other questions in this subject (1 = easiest, 5 = hardest)";
+  return badge;
+};
+
 // --- query-term highlighting -----------------------------------------
 
 const STOPWORDS = new Set(
@@ -651,6 +666,8 @@ function renderResult(r, rank) {
   if (r.marks) {
     title.append(el("span", "marks", `${r.marks} mark${r.marks === 1 ? "" : "s"}`));
   }
+  const badge = PF.difficultyBadge(r.difficulty);
+  if (badge) title.append(badge);
   li.append(title);
 
   li.append(questionBlock(r.question_text));
@@ -687,6 +704,7 @@ function cloudRow(d) {
     has_figure: d.has_figure,
     crop_count: d.crop_count || 0,
     answer_crop_count: d.answer_crop_count || 0, // mark-scheme crops; topics.js mints their signed URLs
+    difficulty: d.difficulty ?? null, // 1-5, null = not rated
     // no pdf_url — the deployed site has no PDFs; crops come from signed
     // Storage URLs the topic page mints itself
   };
