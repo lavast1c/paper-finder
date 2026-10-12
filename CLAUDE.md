@@ -260,9 +260,13 @@ separate scales — Paper 1 (MCQ) and Paper 2 (written) are each rated relative
 to themselves, so an MCQ "5" is one of that subject's hardest MCQs, not
 comparable to a written "5". The Difficulty(s) filter + "Difficulty n/5" badge
 only show for subjects in `PF.DIFFICULTY_SUBJECTS` (`common.js`) — a newly added
-subject must be rated and then added there.
+subject must be rated and then added there. The browse page (only) also has a
+Sort dropdown for those subjects (`sort` URL param: `newest` default /
+`easiest` / `hardest`) — difficulty first, unrated last, newest paper first
+within a level; local `/api/browse?sort=` and the cloud `browse_questions`
+`sort` param (0020). The browser only sends `sort` when it isn't `newest`.
 
-Supabase migrations `0001`-`0016`, `0018` and `0019` are applied in this branch's
+Supabase migrations `0001`-`0016` and `0018`-`0020` are applied in this branch's
 history (project `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in
 `supabase/migrations/`) — `0017` (an account-deletion RPC) was applied on the
 not-yet-merged `compliance-legal-a11y` branch, live on the project but not
@@ -275,7 +279,9 @@ from `topics.py` every run. 0016 (Computer Science) is the exception:
 besides widening the CHECK it added a trailing `papers integer[]` filter (on
 `papers.paper`) to all three RPCs, re-granting EXECUTE to `authenticated`
 explicitly (0015 removed default grants). 0018 (Further Pure Maths 2 /
-Further Mechanics) is back to CHECK-only, like 0010-0014.
+Further Mechanics) is back to CHECK-only, like 0010-0014. 0019 added
+`questions.difficulty` + a `difficulties integer[]` filter to all three RPCs;
+0020 added a trailing `sort text` to `browse_questions` only.
 
 Cloud is live: **846 qp papers, 11946 questions, 11944 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
