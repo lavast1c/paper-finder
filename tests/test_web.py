@@ -519,3 +519,5 @@ def test_api_difficulty_filter_and_payload(corpus, client):
     assert [r["question_number"] for r in hits["results"]] == [3]
     counts = client.get("/api/topics", params={"subject": "Physics", "difficulties": "4"}).json()
     assert counts["total"] == 1
+    hardest = client.get("/api/browse", params={**base, "sort": "hardest"}).json()
+    assert [r["difficulty"] for r in hardest["results"]][0] == 4

@@ -175,6 +175,19 @@ _BROWSE_COLUMNS = f"""
 
 _BROWSE_ORDER = "ORDER BY p.year DESC, p.session DESC, p.paper, p.variant, q.question_number"
 
+# Browse deck orderings. "easiest"/"hardest" sort by difficulty first (unrated
+# questions last either way), then fall back to the newest-paper-first order.
+SORTS = ("newest", "easiest", "hardest")
+_BROWSE_ORDERS = {
+    "newest": _BROWSE_ORDER,
+    "easiest": _BROWSE_ORDER.replace(
+        "ORDER BY ", f"ORDER BY {_DIFFICULTY_SUBQUERY} IS NULL, {_DIFFICULTY_SUBQUERY} ASC, "
+    ),
+    "hardest": _BROWSE_ORDER.replace(
+        "ORDER BY ", f"ORDER BY {_DIFFICULTY_SUBQUERY} IS NULL, {_DIFFICULTY_SUBQUERY} DESC, "
+    ),
+}
+
 
 def _in_clause(prefix: str, values: Sequence) -> tuple[str, dict]:
     """``('a', ['x', 'y'])`` -> ``('(:a0, :a1)', {'a0': 'x', 'a1': 'y'})``."""
@@ -263,19 +276,23 @@ def browse_by_topic(
     subjects: Sequence[str] | None = None,
     papers: Sequence[int] | None = None,
     difficulties: Sequence[int] | None = None,
+    sort: str = "newest",
     limit: int = 20,
     offset: int = 0,
     db_path: Path | None = None,
 ) -> tuple[list[SearchHit], int]:
     """Every question tagged with *any* of ``topic_codes`` (union), newest paper
-    first. Returns ``(page, total)`` where ``total`` is the full match count
-    ignoring ``limit``/``offset`` -- the flashcard pager renders "12 / 147" from
-    the first call. Unknown codes are dropped; no valid code -> ``([], 0)``."""
+    first -- or, with ``sort`` "easiest"/"hardest", by difficulty (unrated last,
+    newest paper first within a level). Returns ``(page, total)`` where
+    ``total`` is the full match count ignoring ``limit``/``offset`` -- the
+    flashcard pager renders "12 / 147" from the first call. Unknown codes are
+    dropped; no valid code -> ``([], 0)``."""
     codes = tuple(sorted(c for c in dict.fromkeys(topic_codes) if c in CODES))
     if not codes:
         return [], 0
     if kind not in KINDS:
         kind = "all"
+    order = _BROWSE_ORDERS.get(sort, _BROWSE_ORDER)
 
     where, params = _browse_filters(
         codes, kind, years, sessions, variants, subjects, papers, difficulties
@@ -288,7 +305,7 @@ def browse_by_topic(
         ).fetchone()[0]
         rows = conn.execute(
             f"SELECT {_BROWSE_COLUMNS} FROM questions q JOIN papers p ON p.id = q.paper_id "
-            f"WHERE {where} {_BROWSE_ORDER} LIMIT :limit OFFSET :offset",
+            f"WHERE {where} {order} LIMIT :limit OFFSET :offset",
             {**params, "limit": limit, "offset": offset},
         ).fetchall()
 

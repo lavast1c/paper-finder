@@ -16,6 +16,8 @@ const seasonEl = document.getElementById("f-season"); // multi-select dropdown: 
 const yearEl = document.getElementById("f-year"); // multi-select dropdown: years
 const fbDifficultyEl = document.getElementById("fb-difficulty"); // Difficulty(s) wrapper -- hidden off rated subjects
 const difficultyEl = document.getElementById("f-difficulty"); // multi-select dropdown: 1-5 ratings
+const fbSortEl = document.getElementById("fb-sort"); // Sort wrapper -- hidden off rated subjects
+const sortEl = document.getElementById("f-sort"); // single-select: newest / easiest / hardest
 const topicEl = document.getElementById("f-topic"); // multi-select dropdown: syllabus sections; deck stays hidden until at least one is picked
 const clearAllBtn = document.getElementById("clear-all");
 const statusEl = document.getElementById("status");
@@ -66,6 +68,10 @@ const PREFETCH_WITHIN = 5; // fetch the next page when the cursor gets this clos
 
 const DEFAULT_SUBJECT = "Physics";
 let subject = DEFAULT_SUBJECT; // one subject at a time; its taxonomy fills the Topic dropdown
+// Deck order: newest paper first, or by difficulty (unrated last, newest first
+// within a level). Not a filter, so "Clear all" leaves it alone.
+const SORTS = ["newest", "easiest", "hardest"];
+let sort = "newest";
 
 let sb = null; // Supabase client in cloud mode; null in local mode
 let topicList = []; // [{code, number, name, subsections, count}] — server is the source of valid codes
@@ -122,6 +128,7 @@ function readUrl() {
   filters.seasons = csv(p.get("season"));
   filters.years = csv(p.get("year"));
   filters.difficulties = csv(p.get("difficulty"));
+  sort = SORTS.includes(p.get("sort")) ? p.get("sort") : "newest";
   const i = parseInt(p.get("i") || "0", 10);
   return { codes, i: Number.isFinite(i) && i > 0 ? i : 0 };
 }
@@ -134,6 +141,7 @@ function writeUrl() {
   if (filters.seasons.length) p.set("season", filters.seasons.join(","));
   if (filters.years.length) p.set("year", filters.years.join(","));
   if (filters.difficulties.length) p.set("difficulty", filters.difficulties.join(","));
+  if (sort !== "newest") p.set("sort", sort);
   if (idx > 0) p.set("i", String(idx));
   const qs = p.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
@@ -151,6 +159,10 @@ function sessionsParam() {
 // pick from the URL must not silently empty the deck.
 function difficultiesParam() {
   return PF.hasDifficulty(subject) ? filters.difficulties.map(Number) : [];
+}
+// Sorting by difficulty only means something on a rated subject.
+function sortParam() {
+  return PF.hasDifficulty(subject) ? sort : "newest";
 }
 // Paper(s) is MCQ-vs-theory (`kind`) for MCQ subjects, the paper number
 // (`papers`) for PF.PAPER_SUBJECTS, and ignored otherwise -- PF.paperFilter.
@@ -213,7 +225,7 @@ async function fetchCounts() {
 async function fetchDeckPage(offset) {
   const codes = [...selected];
   if (sb) {
-    const { data, error } = await sb.rpc("browse_questions", {
+    const args = {
       codes,
       kind: kindParam(),
       papers: papersParam(),
@@ -223,7 +235,10 @@ async function fetchDeckPage(offset) {
       subjects: [subject],
       max_results: PAGE,
       skip: offset,
-    });
+    };
+    // only sent when set, so the default deck never depends on the 0020 RPC signature
+    if (sortParam() !== "newest") args.sort = sortParam();
+    const { data, error } = await sb.rpc("browse_questions", args);
     if (error) throw new Error(error.message || "browse failed");
     return {
       count: data.length ? Number(data[0].total_count) : 0,
@@ -235,6 +250,7 @@ async function fetchDeckPage(offset) {
     limit: String(PAGE),
     offset: String(offset),
   });
+  if (sortParam() !== "newest") p.set("sort", sortParam());
   const res = await fetch("/api/browse?" + p.toString(), {
     signal: controller ? controller.signal : undefined,
   });
@@ -1013,6 +1029,7 @@ function syncPaperFieldVisibility() {
 function syncDifficultyField() {
   const shown = PF.hasDifficulty(subject);
   if (fbDifficultyEl) fbDifficultyEl.hidden = !shown;
+  if (fbSortEl) fbSortEl.hidden = !shown;
   if (!shown && filters.difficulties.length) {
     filters.difficulties = [];
     if (difficultyEl && difficultyEl._ms) difficultyEl._ms.setValues([]);
@@ -1065,6 +1082,15 @@ if (subjectEl) {
   subjectEl.addEventListener("change", () => {
     subject = subjectEl.value;
     onSubjectChanged();
+  });
+}
+
+if (sortEl) {
+  PF.selectDropdown(sortEl);
+  sortEl.addEventListener("change", () => {
+    sort = sortEl.value;
+    idx = 0;
+    refresh();
   });
 }
 
@@ -1178,6 +1204,10 @@ function onReady(email, client) {
   syncCurriculum();
   syncPaperFieldVisibility();
   syncDifficultyField();
+  if (sortEl) {
+    sortEl.value = sort;
+    sortEl._dd.refresh();
+  }
   syncToggleUI();
   idx = i;
   selected = new Set(codes); // pruned against the server's valid-code list in refresh()

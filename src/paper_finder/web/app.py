@@ -345,12 +345,14 @@ def create_app(
         papers: str = "",
         difficulties: str = "",
         subject: str = "",
+        sort: str = "newest",
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> dict:
         """Flashcard deck: questions tagged with any of ``topics`` (union),
-        newest paper first. ``count`` is the full match total, not the page
-        length, so the pager can render "n / total" from the first request."""
+        newest paper first, or by difficulty with ``sort`` easiest/hardest.
+        ``count`` is the full match total, not the page length, so the pager
+        can render "n / total" from the first request."""
         if _supabase_env():
             raise HTTPException(status_code=501, detail="cloud mode: use the Supabase RPC")
         limit = max(1, min(limit, MAX_LIMIT))
@@ -364,6 +366,7 @@ def create_app(
             papers=_int_csv(papers) or None,
             difficulties=_int_csv(difficulties) or None,
             subjects=[subject] if subject else None,
+            sort=sort,
             limit=limit,
             offset=offset,
             db_path=db_path,

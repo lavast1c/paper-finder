@@ -589,6 +589,16 @@ def test_browse_difficulty_filter_keeps_only_those_levels(rated_db):
     assert sorted(h.difficulty for h in page) == [4, 5]
 
 
+def test_browse_sort_by_difficulty_puts_unrated_last(rated_db):
+    def levels(sort):
+        page, _ = browse_by_topic(["s07", "s08"], sort=sort, db_path=rated_db)
+        return [h.difficulty for h in page]
+
+    assert levels("easiest") == [2, 4, 5, None]
+    assert levels("hardest") == [5, 4, 2, None]
+    assert levels("newest") == levels("bogus")  # unknown sort falls back to newest
+
+
 def test_search_difficulty_filter_drops_unrated(rated_db):
     hits = search("wave", limit=10, difficulties=[2], db_path=rated_db)
     assert [h.question_text for h in hits] == ["A transverse wave travels along a string."]
