@@ -27,7 +27,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from paper_finder import config
@@ -35,6 +35,7 @@ from paper_finder.config import SESSIONS
 from paper_finder.db import connect, init_db
 from paper_finder.filenames import parse_filename
 from paper_finder.search import SearchHit, browse_by_topic, search, topic_counts
+from paper_finder.web import seo
 
 STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_LIMIT = 10
@@ -46,19 +47,28 @@ MAX_LIMIT = 50
 _CROP_NAME = re.compile(r"^q\d{2}_p\d\.png$")
 
 
+# Static legal pages (from the compliance branch), each served at /<name>.
+LEGAL_PAGES = ("privacy", "terms", "cookies", "accessibility")
+
+# Public SEO pages: cached at Vercel's edge for a day, served stale for a week
+# while revalidating -- the data only changes on `paper-finder publish`.
+_PUBLIC_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+_MISS_CACHE = "public, max-age=300, s-maxage=3600"
+
 # The pages' one attribute-less inline <script> (the pre-paint theme bootstrap).
 _INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.DOTALL)
 
 
 def _inline_script_hashes() -> list[str]:
     """CSP hash-sources for every inline script, so script-src needs no 'unsafe-inline'."""
-    hashes = set()
-    for page in ("index.html", "topics.html"):
+    bodies = [seo.THEME_SCRIPT]  # the server-rendered public pages' copy
+    for page in sorted(STATIC_DIR.glob("*.html")):
         # raw bytes, not read_text(): the browser hashes CRLF checkouts as-is
-        html = (STATIC_DIR / page).read_bytes().decode("utf-8")
-        for body in _INLINE_SCRIPT.findall(html):
-            digest = hashlib.sha256(body.encode("utf-8")).digest()
-            hashes.add(f"'sha256-{base64.b64encode(digest).decode()}'")
+        bodies.extend(_INLINE_SCRIPT.findall(page.read_bytes().decode("utf-8")))
+    hashes = set()
+    for body in bodies:
+        digest = hashlib.sha256(body.encode("utf-8")).digest()
+        hashes.add(f"'sha256-{base64.b64encode(digest).decode()}'")
     return sorted(hashes)
 
 
@@ -208,6 +218,7 @@ def create_app(
     raw_dir: Path | None = None,
     crop_dir: Path | None = None,
     serve_pdfs: bool = True,
+    public_reader: seo.Reader | None = None,
 ) -> FastAPI:
     raw_dir = Path(raw_dir) if raw_dir is not None else config.RAW_DIR
     crop_dir = Path(crop_dir) if crop_dir is not None else config.CROP_DIR
@@ -241,6 +252,88 @@ def create_app(
     @app.get("/topics", include_in_schema=False)
     def topics_page() -> RedirectResponse:
         return RedirectResponse("/", status_code=308)  # old bookmarks/links
+
+    # --- public, crawlable pages (cloud mode, or an injected reader in tests) ---
+    public_sites: dict[tuple, seo.PublicSite] = {}
+
+    def public_site() -> seo.PublicSite | None:
+        if public_reader is not None:
+            key: tuple = ("injected",)
+            make = lambda: seo.PublicSite(public_reader)  # noqa: E731
+        else:
+            env = _supabase_env()
+            if env is None:
+                return None  # local `paper-finder serve`: no public index to read
+            key = env
+            make = lambda: seo.PublicSite(seo.supabase_reader(*env))  # noqa: E731
+        if key not in public_sites:
+            public_sites.clear()
+            public_sites[key] = make()
+        return public_sites[key]
+
+    def public_page(render) -> HTMLResponse:
+        site = public_site()
+        if site is None:
+            raise HTTPException(status_code=404)
+        try:
+            page = render(site)
+        except (OSError, ValueError, KeyError):  # Supabase unreachable / odd payload
+            return HTMLResponse(
+                "Temporarily unavailable", status_code=503, headers={"Cache-Control": "no-store"}
+            )
+        cache = _PUBLIC_CACHE if page.status == 200 else _MISS_CACHE
+        return HTMLResponse(page.html, status_code=page.status, headers={"Cache-Control": cache})
+
+    @app.get("/cie/", include_in_schema=False)
+    def cie_hub() -> HTMLResponse:
+        return public_page(lambda site: site.hub())
+
+    @app.get("/cie/{subject}/", include_in_schema=False)
+    def cie_subject(subject: str) -> HTMLResponse:
+        return public_page(lambda site: site.subject(subject))
+
+    @app.get("/cie/{subject}/{topic}/", include_in_schema=False)
+    def cie_topic(subject: str, topic: str, page: str = "1") -> HTMLResponse:
+        number = int(page) if page.isdigit() else 0  # 0 -> the renderer's 404
+        return public_page(lambda site: site.topic(subject, topic, number))
+
+    @app.get("/papers/{stem}", include_in_schema=False)
+    def paper_page(stem: str) -> HTMLResponse:
+        return public_page(lambda site: site.paper(stem))
+
+    @app.get("/about", include_in_schema=False)
+    def about_page() -> HTMLResponse:
+        return HTMLResponse(seo.about().html, headers={"Cache-Control": _PUBLIC_CACHE})
+
+    def legal_page(name: str):
+        def serve() -> FileResponse:
+            return FileResponse(STATIC_DIR / f"{name}.html")
+
+        return serve
+
+    for name in LEGAL_PAGES:
+        app.get(f"/{name}", include_in_schema=False)(legal_page(name))
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots() -> PlainTextResponse:
+        return PlainTextResponse(seo.robots_txt(), headers={"Cache-Control": _PUBLIC_CACHE})
+
+    @app.get("/llms.txt", include_in_schema=False)
+    def llms() -> PlainTextResponse:
+        return PlainTextResponse(seo.llms_txt(), headers={"Cache-Control": _PUBLIC_CACHE})
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap():
+        site = public_site()
+        if site is None:
+            raise HTTPException(status_code=404)
+        try:
+            xml = site.sitemap()
+        except (OSError, ValueError, KeyError):
+            return PlainTextResponse("", status_code=503, headers={"Cache-Control": "no-store"})
+        return PlainTextResponse(
+            xml, media_type="application/xml", headers={"Cache-Control": _PUBLIC_CACHE}
+        )
 
     @app.get("/api/config", include_in_schema=False)
     def api_config() -> dict:

@@ -1343,6 +1343,122 @@ footer {
 }
 .footer-note { margin: 0 0 0.5rem; }
 .footer-note:last-child { margin-bottom: 0; }
+.footer-note a { color: inherit; }
+
+/* ---- footer site links (all subjects / about / legal) ---- */
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--hairline);
+}
+.legal-nav a { color: var(--text-muted); text-decoration: underline; }
+.legal-nav a:hover,
+.legal-nav a[aria-current="page"] { color: var(--accent-ink); }
+
+/* ---- prose pages (about, legal, public subject/topic/paper pages): plain
+   text in the same glass panel the sign-in gate uses ---- */
+.legal {
+  max-width: 42rem;
+  margin: 0 auto clamp(2rem, 8vh, 4rem);
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  border-radius: var(--r-lg);
+  background: var(--surface-strong);
+  -webkit-backdrop-filter: blur(var(--blur-thick)) var(--refract);
+  backdrop-filter: blur(var(--blur-thick)) var(--refract);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg), var(--edge);
+}
+.legal h1,
+.legal h2 { margin: 0 0 0.35rem; font-size: 1.5rem; }
+.legal .legal-updated { margin: 0 0 1.5rem; color: var(--text-muted); font-size: 0.85rem; }
+.legal h3 { margin: 1.75rem 0 0.5rem; font-size: 1.1rem; }
+.legal h3:first-of-type { margin-top: 0; }
+.legal p { margin: 0 0 0.9rem; }
+.legal ul,
+.legal ol { margin: 0 0 0.9rem; padding-inline-start: 1.4rem; }
+.legal li { margin-bottom: 0.35rem; }
+.legal table {
+  width: 100%;
+  margin: 0 0 1.1rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.legal th,
+.legal td {
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.legal th { color: var(--text-muted); font-weight: 600; }
+.legal code { font-family: var(--mono); font-size: 0.85em; }
+.legal a { color: var(--accent-ink); }
+
+/* the public pages' header site name: a <p>, not the app's <h1> (the page's own
+   title is the <h1> there), styled exactly like it */
+.brand { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+.brand a { color: inherit; text-decoration: none; }
+
+/* ---- public subject/topic/paper pages ---- */
+.pub { max-width: 52rem; }
+.pub h1 { margin-bottom: 0.75rem; line-height: 1.25; }
+.pub h2 { margin: 2rem 0 0.6rem; font-size: 1.2rem; }
+.pub .pub-lead { font-size: 1.02rem; }
+.pub .pub-meta { color: var(--text-muted); font-size: 0.85rem; }
+.pub .pub-cta { margin: 1.25rem 0; font-weight: 600; }
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+.crumbs li { margin: 0; }
+.crumbs li + li::before { content: "/"; margin-right: 0.5rem; color: var(--text-muted); }
+.crumbs a { color: var(--text-muted); }
+.crumbs a[aria-current="page"] { color: var(--text); text-decoration: none; }
+.pub-list { padding-inline-start: 1.1rem; }
+.pub-list li { margin-bottom: 0.5rem; }
+.pub-list .pub-meta { display: block; }
+.pub-cols {
+  columns: 14rem auto;
+  column-gap: 1.5rem;
+}
+.pub-sub { color: var(--text-muted); font-size: 0.88rem; columns: 18rem auto; }
+.pub-q {
+  margin: 1.5rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--hairline);
+}
+.pub-q h2 { margin: 0 0 0.25rem; font-size: 1.05rem; }
+.pub-q .pub-meta { margin: 0 0 0.6rem; }
+.pub-text { white-space: pre-line; overflow-wrap: anywhere; }
+.pub-answer { margin: 0.75rem 0 0; }
+.pub-answer summary { cursor: pointer; color: var(--accent-ink); font-weight: 600; }
+.pub-answer .pub-text {
+  margin-top: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  font-size: 0.92rem;
+}
+.pub-pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--hairline);
+}
+.pub-pager a { color: var(--accent-ink); font-weight: 600; }
+.pub-pager span { color: var(--text-muted); }
 
 /* ---------- accessibility fallbacks (required for glass) ---------- */
 

@@ -17,6 +17,9 @@ PROCESSED_DIR = DATA_DIR / "processed"  # extracted text / JSON, regenerated fro
 CROP_DIR = DATA_DIR / "crops"  # per-question PNG/WebP crops, regenerated from RAW_DIR + papers.db
 DB_PATH = PROJECT_ROOT / "papers.db"
 
+# The deployed site's public origin -- canonical links, sitemap, robots.txt, OG tags.
+SITE_URL = "https://pastpaperanalyser.vercel.app"
+
 # CIE subject codes seen so far. Extend as the corpus grows.
 SUBJECTS: dict[str, str] = {
     "9700": "Biology",

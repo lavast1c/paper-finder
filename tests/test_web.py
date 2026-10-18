@@ -521,3 +521,189 @@ def test_api_difficulty_filter_and_payload(corpus, client):
     assert counts["total"] == 1
     hardest = client.get("/api/browse", params={**base, "sort": "hardest"}).json()
     assert [r["difficulty"] for r in hardest["results"]][0] == 4
+
+
+# ------------------------------------------------------------------ public SEO pages
+
+_PUB_PAPERS = [
+    {
+        "filename": "9702_s24_qp_12.pdf",
+        "subject_code": "9702",
+        "subject_name": "Physics",
+        "year": 2024,
+        "session": "s",
+        "paper": 1,
+        "variant": 2,
+        "question_count": 2,
+    },
+]
+_PUB_QUESTIONS = [
+    {
+        "question_number": 1,
+        "question_text": "What is a <scalar> quantity?\nA. one\nB. two",
+        "answer_text": "C",
+        "marks": 1,
+        "is_mcq": True,
+        "topic_codes": ["s01"],
+        "difficulty": 2,
+    },
+    {
+        "question_number": 2,
+        "question_text": "A wave travels. (a) State its speed. (b) Explain.",
+        "answer_text": "2(a)\n340 m s-1\nB1",
+        "marks": 4,
+        "is_mcq": False,
+        "topic_codes": ["s07"],
+        "difficulty": None,
+    },
+]
+
+
+def _fake_reader(calls=None):
+    def read(name, params):
+        if calls is not None:
+            calls.append(name)
+        if name == "public_papers":
+            return _PUB_PAPERS
+        if name == "public_topic_counts":
+            return [{"code": "s07", "question_count": 120}, {"code": "s01", "question_count": 1}]
+        if name == "public_paper_questions":
+            return _PUB_QUESTIONS if params["fname"] == "9702_s24_qp_12.pdf" else []
+        if name == "public_topic_questions":
+            rows = [{**_PUB_PAPERS[0], **_PUB_QUESTIONS[1], "total_count": 120}]
+            return rows if params["skip"] < 120 else []
+        raise AssertionError(name)
+
+    return read
+
+
+@pytest.fixture
+def public_client(corpus):
+    db_path, raw_dir, crop_dir = corpus
+    app = create_app(
+        db_path=db_path, raw_dir=raw_dir, crop_dir=crop_dir, public_reader=_fake_reader()
+    )
+    return TestClient(app)
+
+
+def _json_ld(html):
+    import json
+    import re
+
+    return [
+        json.loads(m)
+        for m in re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
+    ]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/cie/",
+        "/cie/9702-physics/",
+        "/cie/9702-physics/s07-waves/",
+        "/cie/9702-physics/s07-waves/?page=3",
+        "/papers/9702_s24_qp_12",
+        "/about",
+    ],
+)
+def test_public_pages_render(public_client, path):
+    r = public_client.get(path)
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "s-maxage" in r.headers["cache-control"]
+    assert r.text.count("<h1") == 1
+    assert '<link rel="canonical" href="https://pastpaperanalyser.vercel.app/' in r.text
+    assert 'name="description"' in r.text and 'property="og:image"' in r.text
+    lds = _json_ld(r.text)
+    assert any(d.get("@type") == "BreadcrumbList" for d in lds)
+
+
+def test_paper_page_escapes_and_shows_answers(public_client):
+    r = public_client.get("/papers/9702_s24_qp_12")
+    assert "&lt;scalar&gt;" in r.text and "<scalar>" not in r.text
+    assert "Answer: C" in r.text
+    assert "340 m s-1" in r.text
+    assert "Difficulty 2/5" in r.text
+    assert 'href="/cie/9702-physics/s07-waves/"' in r.text  # topic link
+
+
+def test_topic_page_pagination(public_client):
+    r = public_client.get("/cie/9702-physics/s07-waves/?page=2")
+    assert (
+        'rel="prev" href="https://pastpaperanalyser.vercel.app/cie/9702-physics/s07-waves/"'
+        in r.text
+    )
+    assert "?page=3" in r.text
+    assert public_client.get("/cie/9702-physics/s07-waves/?page=4").status_code == 404
+    assert public_client.get("/cie/9702-physics/s07-waves/?page=x").status_code == 404
+
+
+def test_hub_has_faq_structured_data(public_client):
+    lds = _json_ld(public_client.get("/cie/").text)
+    faq = next(d for d in lds if d.get("@type") == "FAQPage")
+    assert len(faq["mainEntity"]) >= 3
+
+
+@pytest.mark.parametrize(
+    "path", ["/cie/nope/", "/cie/9702-physics/zz-nope/", "/papers/9702_s24_qp_99", "/papers/x"]
+)
+def test_unknown_public_pages_are_real_404s(public_client, path):
+    r = public_client.get(path)
+    assert r.status_code == 404
+    assert 'content="noindex"' in r.text
+
+
+def test_public_pages_404_in_local_mode(client):
+    for path in ("/cie/", "/papers/9702_s24_qp_12", "/sitemap.xml"):
+        assert client.get(path).status_code == 404
+
+
+def test_paper_list_is_cached_between_requests(corpus):
+    calls = []
+    db_path, raw_dir, crop_dir = corpus
+    c = TestClient(create_app(db_path=db_path, public_reader=_fake_reader(calls)))
+    c.get("/cie/")
+    c.get("/cie/9702-physics/")
+    assert calls.count("public_papers") == 1
+
+
+def test_robots_llms_and_sitemap(public_client):
+    robots = public_client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert "Allow: /" in robots.text and "Disallow: /api/" in robots.text
+    assert "Sitemap: https://pastpaperanalyser.vercel.app/sitemap.xml" in robots.text
+    assert "Vihaan Talluri" in public_client.get("/llms.txt").text
+    sm = public_client.get("/sitemap.xml")
+    assert "xml" in sm.headers["content-type"]
+    assert "/papers/9702_s24_qp_12</loc>" in sm.text
+    assert "/cie/9702-physics/s07-waves/?page=3</loc>" in sm.text
+
+
+@pytest.mark.parametrize("name", ["privacy", "terms", "cookies", "accessibility"])
+def test_legal_pages_served(client, name):
+    r = client.get(f"/{name}")
+    assert r.status_code == 200
+    assert r.text.count("<h1") == 1
+    assert f'href="https://pastpaperanalyser.vercel.app/{name}"' in r.text
+
+
+def test_main_pages_have_seo_head_tags(client):
+    for path in ("/", "/search"):
+        html = client.get(path).text
+        assert 'name="description"' in html and 'rel="canonical"' in html
+        assert 'property="og:image"' in html
+        assert 'href="/cie/"' in html  # footer path into the public pages
+        assert any(d.get("@graph") for d in _json_ld(html))
+
+
+def test_csp_covers_every_page_inline_script(public_client):
+    import base64
+    import hashlib
+    import re
+
+    for path in ("/", "/search", "/cie/", "/about", "/privacy", "/papers/9702_s24_qp_12"):
+        r = public_client.get(path)
+        for body in re.findall(r"<script>(.*?)</script>", r.content.decode("utf-8"), re.S):
+            digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
+            assert f"'sha256-{digest}'" in r.headers["content-security-policy"], path
