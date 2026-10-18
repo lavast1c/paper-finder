@@ -266,11 +266,12 @@ Sort dropdown for those subjects (`sort` URL param: `newest` default /
 within a level; local `/api/browse?sort=` and the cloud `browse_questions`
 `sort` param (0020). The browser only sends `sort` when it isn't `newest`.
 
-Supabase migrations `0001`-`0016` and `0018`-`0020` are applied in this branch's
-history (project `gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in
-`supabase/migrations/`) — `0017` (an account-deletion RPC) was applied on the
-not-yet-merged `compliance-legal-a11y` branch, live on the project but not
-yet in this branch's file history. Each subject-addition migration since
+Supabase migrations `0001`-`0021` are all applied (project
+`gfigwnbkzkgwxcdoqxtz`, ap-south-1; full history in `supabase/migrations/`) —
+`0017` (`delete_my_account`, the signed-in "Delete account" link) came from
+the `compliance-legal-a11y` branch, of which only the legal pages, that link
+and 0017 were brought into `main` (its storage-notice banner, self-hosted
+fonts and `Disallow: /` robots.txt were deliberately left out). Each subject-addition migration since
 0008 is DDL-only: widen the `questions_topic_codes_valid` CHECK to include
 the new taxonomy's codes — `questions.is_mcq`, `topics.subject`, and the
 RPCs' `subjects`/`topic_subject` params are already generic (added in
@@ -281,7 +282,27 @@ besides widening the CHECK it added a trailing `papers integer[]` filter (on
 explicitly (0015 removed default grants). 0018 (Further Pure Maths 2 /
 Further Mechanics) is back to CHECK-only, like 0010-0014. 0019 added
 `questions.difficulty` + a `difficulties integer[]` filter to all three RPCs;
-0020 added a trailing `sort text` to `browse_questions` only.
+0020 added a trailing `sort text` to `browse_questions` only. 0021 added
+four `security definer` read RPCs granted to **anon** (`public_papers`,
+`public_topic_counts`, `public_paper_questions`, `public_topic_questions`) —
+the one deliberate exception to "anon gets nothing", feeding the public SEO
+pages below; the advisor's anon-security-definer WARNs on them are expected.
+
+**Public SEO pages** (`web/seo.py`, added 2026-10-18 so the site can rank on
+Google — the app itself is a login-gated JS page crawlers can't read):
+server-rendered HTML at `/cie/` (hub + FAQ), `/cie/<code>-<subject-slug>/`,
+`/cie/<subject>/<topic-code>-<slug>/?page=N` (50/page) and
+`/papers/<stem>`, plus `/about` (author **Vihaan Talluri**, contact/takedown
+address `vihaantalluriwork@gmail.com`), `/privacy` `/terms` `/cookies`
+`/accessibility` (static files), `/robots.txt`, `/sitemap.xml`, `/llms.txt`.
+`create_app` builds a `seo.PublicSite` over `seo.supabase_reader` (publishable
+key, cloud mode only — local `serve` 404s them; tests inject `public_reader`).
+Pages reuse the app chrome + `style.css` (`.legal`/`.pub*` rules) and carry
+title/description/canonical/OG/JSON-LD; responses get `s-maxage=86400` so
+Vercel's edge does the caching. `/` and `/search` only gained invisible
+`<head>` tags and one footer link line — the user asked that the existing
+site's look not change. `config.SITE_URL` is the canonical origin. Next
+manual step: Google Search Console (HTML-tag verification + submit sitemap).
 
 Cloud is live: **846 qp papers, 11946 questions, 11944 answered**; crop PNGs
 for every subject are uploaded to the private `question-crops` bucket (anon
@@ -418,14 +439,15 @@ Next: Stage 6 (semantic search) — see `PLAN.md`.
 
 - `data/raw/` holds downloaded PDFs and is **never edited** — everything in
   `data/processed/` and `papers.db` is regenerated from it.
-- CIE past papers are copyright of Cambridge Assessment: this is a private
-  study tool; the corpus and extracted question bank are not committed to git
-  and the **whole PDFs** are never uploaded anywhere. `.vercelignore` (not
-  `.gitignore`) is what keeps `papers.db` / `data/raw/` / `data/crops/` off
-  Vercel. The deployed Supabase index (question text + answers, no PDFs) is
-  gated behind an email-code login; single-question image crops may go to
-  the private `question-crops` Storage bucket behind that same login. Full
-  PDFs never leave the machine.
+- CIE past papers are copyright of Cambridge Assessment. The corpus and
+  extracted question bank are not committed to git and the **whole PDFs** are
+  never uploaded anywhere. `.vercelignore` (not `.gitignore`) is what keeps
+  `papers.db` / `data/raw/` / `data/crops/` off Vercel. As of 2026-10-18 (user
+  decision, for SEO) question **text + answers are public** on the
+  server-rendered `/cie/…` and `/papers/…` pages, with a takedown address in
+  every footer; the app's search/flashcards and the single-question image
+  crops (private `question-crops` bucket) stay behind the email-code login.
+  Full PDFs never leave the machine.
 - Code style: ruff (`select = E, F, I, UP, B, DTZ`, line length 100); run
   `ruff format` before committing. Prefer functions that take an explicit
   `db_path` / `raw_dir` (defaulting to `config`) so they stay unit-testable.

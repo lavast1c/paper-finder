@@ -16,6 +16,12 @@ custom domain to publish). Remaining = Steps 2–5 in **Manual steps**: a free S
 relay (Brevo), Supabase Auth config (SMTP + email template + Site URL), Vercel
 import + 2 env vars, verify.
 
+## SEO pass (2026-10-18)
+
+- [x] `0021_public_seo_rpcs` applied — anon-callable read RPCs; anon table reads + `browse_questions` still `permission denied` (verified via curl)
+- [x] Public pages, robots/sitemap/llms, About, legal pages, head tags, Delete account link (see CLAUDE.md "Public SEO pages")
+- [ ] Google Search Console — USER: add URL-prefix property `https://pastpaperanalyser.vercel.app/`, pick **HTML tag**, hand over the `content` token; then add it to both pages' `<head>`, deploy, Verify, submit `sitemap.xml`, request indexing of `/cie/`
+
 ## Code commits (§7)
 
 - [x] 0 — Ignore `.env` / Vercel artefacts (`.gitignore`, `.env.example`, `.vercelignore`, this file)
