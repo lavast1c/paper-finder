@@ -20,7 +20,7 @@ import + 2 env vars, verify.
 
 - [x] `0021_public_seo_rpcs` applied — anon-callable read RPCs; anon table reads + `browse_questions` still `permission denied` (verified via curl)
 - [x] Public pages, robots/sitemap/llms, About, legal pages, head tags, Delete account link (see CLAUDE.md "Public SEO pages")
-- [ ] Google Search Console — USER: add URL-prefix property `https://pastpaperanalyser.vercel.app/`, pick **HTML tag**, hand over the `content` token; then add it to both pages' `<head>`, deploy, Verify, submit `sitemap.xml`, request indexing of `/cie/`
+- [~] Google Search Console — verification meta tag added to `/` + `/search` 2026-10-18; USER still to click Verify, submit `sitemap.xml`, request indexing of `/cie/`. (Was: add URL-prefix property `https://pastpaperanalyser.vercel.app/`, pick **HTML tag**, hand over the `content` token; then add it to both pages' `<head>`, deploy, Verify, submit `sitemap.xml`, request indexing of `/cie/`
 
 ## Code commits (§7)
 
