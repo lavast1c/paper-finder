@@ -768,7 +768,46 @@ PF.initAuth = function initAuth({ onReady, onSignedOut }) {
       const out = el("button", "linkbtn", "Sign out");
       out.type = "button";
       out.addEventListener("click", () => sb.auth.signOut());
-      g.whoami.append(out);
+      g.whoami.append(out, document.createTextNode(" · "));
+
+      // Self-service erasure (the privacy policy promises it; RPC from 0017):
+      // a second click on a button that changes its own label, rather than
+      // window.confirm() -- a native dialog blocks all page events and would
+      // be a new kind of interruption this page otherwise never uses.
+      const del = el("button", "linkbtn", "Delete account");
+      del.type = "button";
+      const delStatus = el("span", null, "");
+      delStatus.setAttribute("role", "status");
+      delStatus.setAttribute("aria-live", "polite");
+      let confirming = false;
+      let revertTimer = null;
+      const CONFIRM_WINDOW_MS = 5000;
+      function resetDel() {
+        confirming = false;
+        clearTimeout(revertTimer);
+        revertTimer = null;
+        del.disabled = false;
+        del.textContent = "Delete account";
+      }
+      del.addEventListener("click", async () => {
+        if (!confirming) {
+          confirming = true;
+          del.textContent = "Confirm delete?";
+          revertTimer = setTimeout(resetDel, CONFIRM_WINDOW_MS);
+          return;
+        }
+        clearTimeout(revertTimer);
+        del.disabled = true;
+        del.textContent = "Deleting…";
+        const { error } = await sb.rpc("delete_my_account");
+        if (error) {
+          resetDel();
+          delStatus.textContent = error.message;
+          return;
+        }
+        await sb.auth.signOut();
+      });
+      g.whoami.append(del, delStatus);
     } else {
       g.whoami.hidden = true;
     }
